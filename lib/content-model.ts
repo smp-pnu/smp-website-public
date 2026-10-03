@@ -95,7 +95,10 @@ export function toContentItem(page: NotionPage, kind: ContentKind, now = Date.no
 }
 
 export function sortContent(items: ContentItem[]) {
-  return [...items].sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.date.localeCompare(a.date) || a.id.localeCompare(b.id))
+  return [...items].sort((a, b) => Number(b.pinned) - Number(a.pinned)
+    || b.date.localeCompare(a.date)
+    || (a.kind === "research" && b.kind === "research" ? a.title.localeCompare(b.title, "ko", { numeric: true }) : 0)
+    || a.id.localeCompare(b.id))
 }
 
 export function formatDate(date: string) {

@@ -59,6 +59,13 @@ test("pinned notices appear first, followed by newest publications", () => {
   assert.deepEqual(sorted.map(item => item.id), ["pinned", "recent", "old"])
 })
 
+test("same-day reports use natural title order while newer dates stay first", () => {
+  const item = toContentItem(page(), "research")!
+  const reports = [4, 2, 10, 1].map(number => ({ ...item, id: String(20 - number), title: `2026-2 첫세션 R${number} 리포트` }))
+  const sorted = sortContent([...reports, { ...item, id: "newer", title: "R9 새 리포트", date: "2026-02-01" }])
+  assert.deepEqual(sorted.map(item => item.title), ["R9 새 리포트", "2026-2 첫세션 R1 리포트", "2026-2 첫세션 R2 리포트", "2026-2 첫세션 R4 리포트", "2026-2 첫세션 R10 리포트"])
+})
+
 test("queries all pages, filters publication, and uses the correct source", async () => {
   const calls: { url: string; body: Record<string, unknown> }[] = []
   global.fetch = async (url, init) => {
