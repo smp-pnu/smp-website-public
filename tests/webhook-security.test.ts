@@ -48,3 +48,17 @@ test("webhook bodies are bounded even without a Content-Length header", async ()
   await assert.rejects(limitedBody(new Request("https://smp.test", { method: "POST", body: "x".repeat(70_000) })), /too large/)
   assert.equal(await limitedBody(new Request("https://smp.test", { method: "POST", body: "{}" })), "{}")
 })
+
+test("configured webhook rejects unsigned events and handshake replacement without sharing the cron secret", async () => {
+  const previous = process.env.NOTION_WEBHOOK_VERIFICATION_TOKEN
+  process.env.NOTION_WEBHOOK_VERIFICATION_TOKEN = secret
+  try {
+    for (const body of ['{"type":"page.deleted","entity":{"type":"page","id":"example"}}', '{"verification_token":"secret_untrusted_replacement_token"}']) {
+      const response = await webhook(new Request("https://smp.test/api/notion/webhook", { method: "POST", body }))
+      assert.equal(response.status, 401)
+    }
+  } finally {
+    if (previous) process.env.NOTION_WEBHOOK_VERIFICATION_TOKEN = previous
+    else delete process.env.NOTION_WEBHOOK_VERIFICATION_TOKEN
+  }
+})

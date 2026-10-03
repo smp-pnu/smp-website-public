@@ -1,6 +1,6 @@
 import { coverStore, coverStorageEnabled } from "@/lib/cover-store"
 import { syncReportCover } from "@/lib/cover-service"
-import { authorizedSync, limitedBody, openToken, sameSecret, sealToken, validNotionSignature } from "@/lib/webhook-security"
+import { authorizedSync, limitedBody, openToken, sealToken, validNotionSignature } from "@/lib/webhook-security"
 import { pdfHeaders } from "@/lib/pdf-response"
 
 export const runtime = "nodejs"
@@ -10,19 +10,22 @@ const setupPath = "setup/notion-verification.enc"
 const reply = (body: object, status = 200) => Response.json(body, { status, headers: pdfHeaders })
 
 export async function POST(request: Request) {
-  if (!sameSecret(new URL(request.url).searchParams.get("key"), process.env.CRON_SECRET)) return reply({ error: "Unauthorized" }, 401)
-  if (!coverStorageEnabled()) return reply({ error: "Storage unavailable" }, 503)
   try {
     const raw = await limitedBody(request)
     const event = JSON.parse(raw)
     const token = process.env.NOTION_WEBHOOK_VERIFICATION_TOKEN
     if (!token && typeof event.verification_token === "string" && /^secret_[\w-]{20,200}$/.test(event.verification_token)) {
+      // Notion's initial handshake is unsigned. It only stages ciphertext;
+      // an authenticated administrator must verify it in Notion and install
+      // the token before any event can run. Never share CRON_SECRET in a URL.
+      if (!coverStorageEnabled() || !process.env.CRON_SECRET || process.env.CRON_SECRET.length < 32) return reply({ error: "Setup unavailable" }, 503)
       const existing = await coverStore.read(setupPath)
       if (existing && openToken(existing.bytes, process.env.CRON_SECRET!) !== event.verification_token) return reply({ error: "Handshake already pending" }, 409)
       if (!existing) await coverStore.write(setupPath, sealToken(event.verification_token, process.env.CRON_SECRET!), "application/octet-stream")
       return reply({ received: true })
     }
     if (!validNotionSignature(raw, request.headers.get("x-notion-signature"), token)) return reply({ error: "Invalid signature" }, 401)
+    if (!coverStorageEnabled()) return reply({ error: "Storage unavailable" }, 503)
     if (event.entity?.type !== "page" || typeof event.entity?.id !== "string" || !/^page\./.test(event.type)) return reply({ ignored: true })
     // Fetch current source-scoped content; delayed/duplicate events cannot
     // republish an old state. Failures return 503 so Notion can retry.
