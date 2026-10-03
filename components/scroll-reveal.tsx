@@ -7,7 +7,8 @@ export function ScrollReveal() {
   const pathname = usePathname()
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
-    const elements = document.querySelectorAll<HTMLElement>("main h1:not([data-hero-title]), main h2, main h3, main p, main a, main section span.text-xs")
+    const elements = Array.from(document.querySelectorAll<HTMLElement>("main h1:not([data-hero-title]), main h2, main h3, main p, main a, main section span.text-xs"))
+      .filter(element => !element.closest("[data-card-grid]"))
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => entry.target.classList.toggle("is-visible", entry.isIntersecting))
     }, { threshold: 0, rootMargin: "0px 0px -24px 0px" })

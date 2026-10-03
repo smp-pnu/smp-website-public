@@ -2,9 +2,9 @@ import Link from "next/link"
 import { ArrowUpRight, Search } from "lucide-react"
 import { contentHref, formatDate, type ContentItem, type ContentKind } from "@/lib/content-model"
 import type { ContentResult } from "@/lib/notion"
+import { ResearchGrid } from "@/components/research-grid"
 
 export type ContentSearch = { q?: string; category?: string; page?: string }
-const PAGE_SIZE = 10
 
 export function ContentState({ state, kind }: { state: ContentResult["state"]; kind: ContentKind }) {
   return <p role={state === "error" ? "alert" : "status"} className="border-y border-white/20 px-4 py-20 text-center leading-relaxed text-slate-300">
@@ -37,8 +37,10 @@ export function ContentList({ result, kind, search }: { result: ContentResult; k
   const terms = query.toLocaleLowerCase().split(/\s+/).filter(Boolean)
   const categories = Array.from(new Set(result.items.map(item => item.category))).sort()
   const filtered = result.items.filter(item => (!category || category === item.category) && terms.every(term => `${item.title} ${item.summary} ${item.author} ${item.category}`.toLocaleLowerCase().includes(term)))
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const pageSize = kind === "research" ? 12 : 10
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const page = Math.min(totalPages, Math.max(1, Math.floor(Number(search.page) || 1)))
+  const visibleItems = filtered.slice((page - 1) * pageSize, page * pageSize)
   const pageHref = (number: number) => `/${kind}?${new URLSearchParams({ ...(query ? { q: query } : {}), ...(category ? { category } : {}), page: String(number) })}`
   return <>
     <form action={`/${kind}`} role="search" className="mt-12 flex flex-col gap-4 sm:flex-row">
@@ -47,7 +49,7 @@ export function ContentList({ result, kind, search }: { result: ContentResult; k
       <button className="inline-flex items-center justify-center gap-2 border border-sky-300/40 px-5 py-3 text-sm text-sky-200 hover:bg-sky-300/10" type="submit"><Search size={16} aria-hidden="true" />검색</button>
     </form>
     <div className="mb-5 mt-8 flex justify-between text-sm text-slate-300"><p>총 {filtered.length}건</p>{(query || category) && <Link href={`/${kind}`} className="text-sky-300">검색 초기화</Link>}</div>
-    {result.state !== "ready" || !result.items.length ? <ContentState state={result.state} kind={kind} /> : filtered.length ? <ContentRows items={filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)} /> : <p className="border-y border-white/20 py-20 text-center text-slate-300">검색 결과가 없습니다. 다른 검색어로 검색해보세요.</p>}
+    {result.state !== "ready" || !result.items.length ? <ContentState state={result.state} kind={kind} /> : filtered.length ? kind === "research" ? <ResearchGrid items={visibleItems} /> : <ContentRows items={visibleItems} /> : <p className="border-y border-white/20 py-20 text-center text-slate-300">검색 결과가 없습니다. 다른 검색어로 검색해보세요.</p>}
     {totalPages > 1 && <nav aria-label="목록 페이지" className="mt-8 flex items-center justify-center gap-6 text-sm text-slate-300">{page > 1 ? <Link href={pageHref(page - 1)} className="text-sky-300">이전</Link> : <span aria-disabled="true" className="text-slate-500">이전</span>}<span aria-current="page">{page} / {totalPages}</span>{page < totalPages ? <Link href={pageHref(page + 1)} className="text-sky-300">다음</Link> : <span aria-disabled="true" className="text-slate-500">다음</span>}</nav>}
   </>
 }
