@@ -4,7 +4,9 @@
   "private": true,
   "packageManager": "pnpm@12.3.4",
   "scripts": {
+    "predev": "node scripts/prepare-pdf.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/prepare-pdf.mjs",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
@@ -20,6 +22,7 @@
     "next": "16.3.3",
     "react": "^19",
     "react-dom": "^19",
+    "react-pdf": "11.0.0",
     "server-only": "^0.0.1",
     "shadcn": "^4.11.0",
     "tailwind-merge": "^3.3.1",
