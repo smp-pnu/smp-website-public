@@ -31,6 +31,7 @@ export type NotionPage = {
   archived?: boolean
   in_trash?: boolean
   created_time: string
+  last_edited_time?: string
   properties: Record<string, Property>
 }
 
@@ -45,6 +46,7 @@ export type ContentItem = {
   pinned: boolean
   attachments: { name: string; url: string }[]
   externalUrl: string | null
+  editedAt?: string
 }
 
 export function plainText(value: RichText[] = []) {
@@ -81,7 +83,7 @@ export function toContentItem(page: NotionPage, kind: ContentKind, now = Date.no
   const title = plainText(props["제목"]?.title).trim()
   if (!id || !title) return null
   return {
-    id, kind, title, date: date!,
+    id, kind, title, date: date!, editedAt: page.last_edited_time ?? page.created_time,
     summary: plainText(props["요약"]?.rich_text),
     category: props["분류"]?.select?.name ?? (kind === "notice" ? "공지" : "리서치"),
     author: plainText(props["작성자"]?.rich_text),

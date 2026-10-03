@@ -50,7 +50,7 @@ async function notionRequest<T>(path: string, body?: unknown): Promise<T> {
   throw new Error("Notion API unavailable")
 }
 
-export const getContent = cache(async (kind: ContentKind): Promise<ContentResult> => {
+export async function loadContent(kind: ContentKind): Promise<ContentResult> {
   try {
     const id = sourceId(kind)
     if (!id) return { items: [], state: "unconfigured" }
@@ -75,7 +75,8 @@ export const getContent = cache(async (kind: ContentKind): Promise<ContentResult
     console.error(`[SMP CMS] ${kind}:`, error instanceof Error ? error.message : "Request failed")
     return { items: [], state: "error" }
   }
-})
+}
+export const getContent = cache(loadContent)
 
 export const getContentItem = cache(async (kind: ContentKind, rawId: string) => {
   const id = normalizeId(rawId)

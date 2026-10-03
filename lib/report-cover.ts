@@ -1,6 +1,6 @@
 import "server-only"
 import { getContent, type ContentResult } from "./notion"
-import { normalizeId } from "./content-model"
+import { normalizeId, type ContentItem } from "./content-model"
 import { getPdfSources } from "./pdf-source"
 
 // Coalesce simultaneous cover lookups; never retain a publication result after
@@ -14,7 +14,11 @@ export async function getReportCoverUrl(id: string) {
   try { result = await pending } finally { if (pendingReports === pending) pendingReports = undefined }
   if (result.state === "error") throw new Error("Reports unavailable")
   const item = result.items.find(item => item.id === normalized)
-  const pdf = item && getPdfSources(item)[0]
+  return item ? driveCoverUrl(item) : null
+}
+
+export function driveCoverUrl(item: ContentItem) {
+  const pdf = getPdfSources(item)[0]
   if (!pdf) return null
   const source = new URL(pdf.url)
   if (source.hostname !== "drive.usercontent.google.com") return null
