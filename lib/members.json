@@ -1,0 +1,3137 @@
+[
+  {
+    "generation": 1,
+    "name": "김호상",
+    "department": "기계공학과"
+  },
+  {
+    "generation": 1,
+    "name": "김지형",
+    "department": "경영학과"
+  },
+  {
+    "generation": 1,
+    "name": "이현화",
+    "department": "경제학과"
+  },
+  {
+    "generation": 1,
+    "name": "구경래",
+    "department": "기계공학과"
+  },
+  {
+    "generation": 1,
+    "name": "김유정",
+    "department": "경영학과"
+  },
+  {
+    "generation": 1,
+    "name": "김필윤",
+    "department": "건축학과"
+  },
+  {
+    "generation": 1,
+    "name": "이정훈",
+    "department": "기계공학과"
+  },
+  {
+    "generation": 1,
+    "name": "임정빈",
+    "department": "교육학과"
+  },
+  {
+    "generation": 2,
+    "name": "김동환",
+    "department": "회계학과"
+  },
+  {
+    "generation": 2,
+    "name": "이승훈",
+    "department": "무역국제학부"
+  },
+  {
+    "generation": 2,
+    "name": "남유정",
+    "department": "경영학과"
+  },
+  {
+    "generation": 2,
+    "name": "조형제",
+    "department": "지구과학교육과"
+  },
+  {
+    "generation": 2,
+    "name": "이수민",
+    "department": "국어국문학과"
+  },
+  {
+    "generation": 2,
+    "name": "김종문",
+    "department": "법학과"
+  },
+  {
+    "generation": 2,
+    "name": "구민규",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 2,
+    "name": "김민영",
+    "department": "법학과"
+  },
+  {
+    "generation": 2,
+    "name": "류보경",
+    "department": "응용화학공학부"
+  },
+  {
+    "generation": 2,
+    "name": "박은재",
+    "department": "법학과"
+  },
+  {
+    "generation": 2,
+    "name": "박은진",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 2,
+    "name": "방귀환",
+    "department": "건축학과"
+  },
+  {
+    "generation": 2,
+    "name": "여현진",
+    "department": "윤리교육학과"
+  },
+  {
+    "generation": 2,
+    "name": "장선영",
+    "department": "불어불문학과"
+  },
+  {
+    "generation": 2,
+    "name": "장철수",
+    "department": "기계공학과"
+  },
+  {
+    "generation": 2,
+    "name": "정예지",
+    "department": "응용화학공학부"
+  },
+  {
+    "generation": 2,
+    "name": "정재민",
+    "department": "토목공학과"
+  },
+  {
+    "generation": 2,
+    "name": "황성철",
+    "department": "경영학과"
+  },
+  {
+    "generation": 3,
+    "name": "고강용",
+    "department": "조선해양공학"
+  },
+  {
+    "generation": 3,
+    "name": "김국희",
+    "department": "응용화학공학"
+  },
+  {
+    "generation": 3,
+    "name": "김태경",
+    "department": "나노과학기술"
+  },
+  {
+    "generation": 3,
+    "name": "박성범",
+    "department": "경영학과"
+  },
+  {
+    "generation": 3,
+    "name": "박효국",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 3,
+    "name": "서승범",
+    "department": "경영학과"
+  },
+  {
+    "generation": 3,
+    "name": "양보람",
+    "department": "무역국제학부"
+  },
+  {
+    "generation": 3,
+    "name": "윤유리",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 3,
+    "name": "윤여준",
+    "department": "경영학과"
+  },
+  {
+    "generation": 3,
+    "name": "이수미",
+    "department": "경제학과"
+  },
+  {
+    "generation": 3,
+    "name": "이현정",
+    "department": "경제학과"
+  },
+  {
+    "generation": 3,
+    "name": "장원영",
+    "department": "경영학과"
+  },
+  {
+    "generation": 3,
+    "name": "전종탁",
+    "department": "기계공학과"
+  },
+  {
+    "generation": 3,
+    "name": "전현정",
+    "department": "경영학부"
+  },
+  {
+    "generation": 3,
+    "name": "정혜진",
+    "department": "경제학과"
+  },
+  {
+    "generation": 3,
+    "name": "추영미",
+    "department": "경영학과"
+  },
+  {
+    "generation": 4,
+    "name": "박경목",
+    "department": "기계공학과"
+  },
+  {
+    "generation": 4,
+    "name": "김가연",
+    "department": "경제학과"
+  },
+  {
+    "generation": 4,
+    "name": "김승찬",
+    "department": "경영학과"
+  },
+  {
+    "generation": 4,
+    "name": "김정아",
+    "department": "경영학과"
+  },
+  {
+    "generation": 4,
+    "name": "김지인",
+    "department": "정치외교학과"
+  },
+  {
+    "generation": 4,
+    "name": "변종훈",
+    "department": "수학과"
+  },
+  {
+    "generation": 4,
+    "name": "서영진",
+    "department": "경영학과"
+  },
+  {
+    "generation": 4,
+    "name": "신규일",
+    "department": "경영학과"
+  },
+  {
+    "generation": 4,
+    "name": "안재석",
+    "department": "기계공학과"
+  },
+  {
+    "generation": 4,
+    "name": "양훈민",
+    "department": "경제학과"
+  },
+  {
+    "generation": 4,
+    "name": "예용희",
+    "department": "통계학과"
+  },
+  {
+    "generation": 4,
+    "name": "유대승",
+    "department": "통계학과"
+  },
+  {
+    "generation": 4,
+    "name": "이민경",
+    "department": "정치외교학과"
+  },
+  {
+    "generation": 4,
+    "name": "이준우",
+    "department": "경제학과"
+  },
+  {
+    "generation": 4,
+    "name": "정상준",
+    "department": "무역국제학부"
+  },
+  {
+    "generation": 4,
+    "name": "정연조",
+    "department": "경제학과"
+  },
+  {
+    "generation": 4,
+    "name": "차재형",
+    "department": "경제학과"
+  },
+  {
+    "generation": 4,
+    "name": "채원흠",
+    "department": "주거환경학과"
+  },
+  {
+    "generation": 4,
+    "name": "최원석",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 5,
+    "name": "강동완",
+    "department": "경영학과"
+  },
+  {
+    "generation": 5,
+    "name": "권나영",
+    "department": "생명환경화학"
+  },
+  {
+    "generation": 5,
+    "name": "김대훈",
+    "department": "경영학부"
+  },
+  {
+    "generation": 5,
+    "name": "김민경",
+    "department": "의류학과"
+  },
+  {
+    "generation": 5,
+    "name": "김소영",
+    "department": "경영학과"
+  },
+  {
+    "generation": 5,
+    "name": "김지민",
+    "department": "경제학과"
+  },
+  {
+    "generation": 5,
+    "name": "박영곤",
+    "department": "재료공학부"
+  },
+  {
+    "generation": 5,
+    "name": "박재선",
+    "department": "경영학과"
+  },
+  {
+    "generation": 5,
+    "name": "박현정",
+    "department": "영어영문학과"
+  },
+  {
+    "generation": 5,
+    "name": "손현빈",
+    "department": "건축공학과"
+  },
+  {
+    "generation": 5,
+    "name": "신선화",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 5,
+    "name": "양재혁",
+    "department": "경제학과"
+  },
+  {
+    "generation": 5,
+    "name": "이수연",
+    "department": "중어중문학과"
+  },
+  {
+    "generation": 5,
+    "name": "정유진",
+    "department": "도시공학과"
+  },
+  {
+    "generation": 5,
+    "name": "한원상",
+    "department": "사회학과"
+  },
+  {
+    "generation": 5,
+    "name": "허정의",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 6,
+    "name": "강명진",
+    "department": "수학과"
+  },
+  {
+    "generation": 6,
+    "name": "강지훈",
+    "department": "경영학부"
+  },
+  {
+    "generation": 6,
+    "name": "김도훈",
+    "department": "경영학과"
+  },
+  {
+    "generation": 6,
+    "name": "김동환",
+    "department": "기계공학부"
+  },
+  {
+    "generation": 6,
+    "name": "김상목",
+    "department": "산업공학과"
+  },
+  {
+    "generation": 6,
+    "name": "김용욱",
+    "department": "기계공학부"
+  },
+  {
+    "generation": 6,
+    "name": "김재민",
+    "department": "아동가족학과"
+  },
+  {
+    "generation": 6,
+    "name": "김종우",
+    "department": "사회학과"
+  },
+  {
+    "generation": 6,
+    "name": "김지애",
+    "department": "예술문화영상학과"
+  },
+  {
+    "generation": 6,
+    "name": "김지웅",
+    "department": "경제학과"
+  },
+  {
+    "generation": 6,
+    "name": "박기훈",
+    "department": "회계학과"
+  },
+  {
+    "generation": 6,
+    "name": "박향미",
+    "department": "무역국제학부"
+  },
+  {
+    "generation": 6,
+    "name": "유원상",
+    "department": "회계학과"
+  },
+  {
+    "generation": 6,
+    "name": "이민욱",
+    "department": "경영학과"
+  },
+  {
+    "generation": 6,
+    "name": "이정현",
+    "department": "사회학과"
+  },
+  {
+    "generation": 6,
+    "name": "장태웅",
+    "department": "화학생명공학과"
+  },
+  {
+    "generation": 6,
+    "name": "전인혜",
+    "department": "독어독문학과"
+  },
+  {
+    "generation": 6,
+    "name": "정원길",
+    "department": "전자전기공학과"
+  },
+  {
+    "generation": 6,
+    "name": "정이나",
+    "department": "회계학과"
+  },
+  {
+    "generation": 6,
+    "name": "정현철",
+    "department": "회계학과"
+  },
+  {
+    "generation": 7,
+    "name": "고용호",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 7,
+    "name": "공경희",
+    "department": "경영학부"
+  },
+  {
+    "generation": 7,
+    "name": "구성진",
+    "department": "경제학과"
+  },
+  {
+    "generation": 7,
+    "name": "권태룡",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 7,
+    "name": "김대식",
+    "department": "조선해양공학"
+  },
+  {
+    "generation": 7,
+    "name": "김세재",
+    "department": "기계공학부"
+  },
+  {
+    "generation": 7,
+    "name": "김수민",
+    "department": "통계학과"
+  },
+  {
+    "generation": 7,
+    "name": "나효재",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 7,
+    "name": "문한솔",
+    "department": "통계학과"
+  },
+  {
+    "generation": 7,
+    "name": "서주영",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 7,
+    "name": "유미리",
+    "department": "화학생명공학과"
+  },
+  {
+    "generation": 7,
+    "name": "이정원",
+    "department": "일어일문학과"
+  },
+  {
+    "generation": 7,
+    "name": "이현경",
+    "department": "신문방송학과"
+  },
+  {
+    "generation": 7,
+    "name": "전유진",
+    "department": "경영학과"
+  },
+  {
+    "generation": 7,
+    "name": "전종만",
+    "department": "경제학과"
+  },
+  {
+    "generation": 7,
+    "name": "허문석",
+    "department": "법학과"
+  },
+  {
+    "generation": 8,
+    "name": "곽기훈",
+    "department": "통계학과"
+  },
+  {
+    "generation": 8,
+    "name": "김구엽",
+    "department": "무역국제학부"
+  },
+  {
+    "generation": 8,
+    "name": "김대환",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 8,
+    "name": "김동규",
+    "department": "전자전기공학과"
+  },
+  {
+    "generation": 8,
+    "name": "김동범",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 8,
+    "name": "김보람",
+    "department": "정보컴퓨터공학부"
+  },
+  {
+    "generation": 8,
+    "name": "김주리",
+    "department": "무역국제학부"
+  },
+  {
+    "generation": 8,
+    "name": "민귀선",
+    "department": "무역국제학부"
+  },
+  {
+    "generation": 8,
+    "name": "박민희",
+    "department": "수학과"
+  },
+  {
+    "generation": 8,
+    "name": "박시윤",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 8,
+    "name": "박정아",
+    "department": "무역국제학부"
+  },
+  {
+    "generation": 8,
+    "name": "박진",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 8,
+    "name": "소현종",
+    "department": "식품영양학과"
+  },
+  {
+    "generation": 8,
+    "name": "송현석",
+    "department": "통계학과"
+  },
+  {
+    "generation": 8,
+    "name": "신영완",
+    "department": "회계학과"
+  },
+  {
+    "generation": 8,
+    "name": "양예설",
+    "department": "통계학과"
+  },
+  {
+    "generation": 8,
+    "name": "양지혜",
+    "department": "유기소재시스템공학과"
+  },
+  {
+    "generation": 8,
+    "name": "윤성미",
+    "department": "경영학부"
+  },
+  {
+    "generation": 8,
+    "name": "이유경",
+    "department": "수학과"
+  },
+  {
+    "generation": 8,
+    "name": "이지수",
+    "department": "회계학과"
+  },
+  {
+    "generation": 8,
+    "name": "이혜진",
+    "department": "경영학부"
+  },
+  {
+    "generation": 8,
+    "name": "정다정",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 8,
+    "name": "정유진",
+    "department": "경제학과"
+  },
+  {
+    "generation": 8,
+    "name": "정현욱",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 8,
+    "name": "조홍석",
+    "department": "경제학과"
+  },
+  {
+    "generation": 8,
+    "name": "최성열",
+    "department": "경제학과"
+  },
+  {
+    "generation": 8,
+    "name": "최우영",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 8,
+    "name": "최정경",
+    "department": "경영학부"
+  },
+  {
+    "generation": 8,
+    "name": "최진명",
+    "department": "통계학과"
+  },
+  {
+    "generation": 9,
+    "name": "고윤승",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 9,
+    "name": "권용국",
+    "department": "예술문화영상학과"
+  },
+  {
+    "generation": 9,
+    "name": "김다감",
+    "department": "미술학과"
+  },
+  {
+    "generation": 9,
+    "name": "김수영",
+    "department": "수학과"
+  },
+  {
+    "generation": 9,
+    "name": "김수정",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 9,
+    "name": "김승종",
+    "department": "경제학과"
+  },
+  {
+    "generation": 9,
+    "name": "김지영",
+    "department": "경영학과"
+  },
+  {
+    "generation": 9,
+    "name": "김해수",
+    "department": "무역학과"
+  },
+  {
+    "generation": 9,
+    "name": "김현수",
+    "department": "경제학과"
+  },
+  {
+    "generation": 9,
+    "name": "박경혜",
+    "department": "관광컨벤션학과"
+  },
+  {
+    "generation": 9,
+    "name": "박태유",
+    "department": "경영학과"
+  },
+  {
+    "generation": 9,
+    "name": "서다은",
+    "department": "경영학과"
+  },
+  {
+    "generation": 9,
+    "name": "손규혁",
+    "department": "경영학과"
+  },
+  {
+    "generation": 9,
+    "name": "손동준",
+    "department": "경영학과"
+  },
+  {
+    "generation": 9,
+    "name": "신한빛",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 9,
+    "name": "안현준",
+    "department": "회계학과"
+  },
+  {
+    "generation": 9,
+    "name": "이승택",
+    "department": "심리학과"
+  },
+  {
+    "generation": 9,
+    "name": "정연우",
+    "department": "경영학과"
+  },
+  {
+    "generation": 9,
+    "name": "정영호",
+    "department": "경제학과"
+  },
+  {
+    "generation": 9,
+    "name": "정인호",
+    "department": "전자전기공학부"
+  },
+  {
+    "generation": 9,
+    "name": "조성훈",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 9,
+    "name": "조유정",
+    "department": "경영학과"
+  },
+  {
+    "generation": 9,
+    "name": "최지수",
+    "department": "통계학과"
+  },
+  {
+    "generation": 10,
+    "name": "기대운",
+    "department": "물리학과"
+  },
+  {
+    "generation": 10,
+    "name": "김종영",
+    "department": "수학과"
+  },
+  {
+    "generation": 10,
+    "name": "김지영",
+    "department": "수학과"
+  },
+  {
+    "generation": 10,
+    "name": "박재민",
+    "department": "경영학과"
+  },
+  {
+    "generation": 10,
+    "name": "박중국",
+    "department": "경영학과"
+  },
+  {
+    "generation": 10,
+    "name": "송유나",
+    "department": "수학과"
+  },
+  {
+    "generation": 10,
+    "name": "여현일",
+    "department": "국어교육과"
+  },
+  {
+    "generation": 10,
+    "name": "이수인",
+    "department": "수학과"
+  },
+  {
+    "generation": 10,
+    "name": "이승용",
+    "department": "역사교육학과"
+  },
+  {
+    "generation": 10,
+    "name": "정상욱",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 10,
+    "name": "현종환",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 11,
+    "name": "김도훈",
+    "department": "조선해양공학과"
+  },
+  {
+    "generation": 11,
+    "name": "김수연",
+    "department": "통계학과"
+  },
+  {
+    "generation": 11,
+    "name": "김승준",
+    "department": "나노메카트로닉스공학"
+  },
+  {
+    "generation": 11,
+    "name": "김은지",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 11,
+    "name": "류호준",
+    "department": "경영학과"
+  },
+  {
+    "generation": 11,
+    "name": "백종운",
+    "department": "회계학과"
+  },
+  {
+    "generation": 11,
+    "name": "백진우",
+    "department": "회계학과"
+  },
+  {
+    "generation": 11,
+    "name": "신동진",
+    "department": "무역학과"
+  },
+  {
+    "generation": 11,
+    "name": "엄선영",
+    "department": "수학과"
+  },
+  {
+    "generation": 11,
+    "name": "이보라",
+    "department": "경영학과"
+  },
+  {
+    "generation": 11,
+    "name": "전수정",
+    "department": "통계학과"
+  },
+  {
+    "generation": 11,
+    "name": "정희정",
+    "department": "경영학과"
+  },
+  {
+    "generation": 11,
+    "name": "황준석",
+    "department": "경영학과"
+  },
+  {
+    "generation": 11,
+    "name": "문경원",
+    "department": "경영학과"
+  },
+  {
+    "generation": 12,
+    "name": "김두만",
+    "department": "경제학과"
+  },
+  {
+    "generation": 12,
+    "name": "김한호",
+    "department": "통계학과"
+  },
+  {
+    "generation": 12,
+    "name": "김해인",
+    "department": "경영학과"
+  },
+  {
+    "generation": 12,
+    "name": "박영주",
+    "department": "경영학과"
+  },
+  {
+    "generation": 12,
+    "name": "박영진",
+    "department": "경영학과"
+  },
+  {
+    "generation": 12,
+    "name": "서승연",
+    "department": "통계학과"
+  },
+  {
+    "generation": 12,
+    "name": "신홍수",
+    "department": "경영학과"
+  },
+  {
+    "generation": 12,
+    "name": "이효민",
+    "department": "조선해양공학과"
+  },
+  {
+    "generation": 12,
+    "name": "정병훈",
+    "department": "경영학과"
+  },
+  {
+    "generation": 12,
+    "name": "정아람",
+    "department": "통계학과"
+  },
+  {
+    "generation": 12,
+    "name": "정원우",
+    "department": "사학과"
+  },
+  {
+    "generation": 13,
+    "name": "김두완",
+    "department": "경영학과"
+  },
+  {
+    "generation": 13,
+    "name": "노현수",
+    "department": "무역학과"
+  },
+  {
+    "generation": 13,
+    "name": "노희경",
+    "department": "수학과"
+  },
+  {
+    "generation": 13,
+    "name": "마승희",
+    "department": "통계학과"
+  },
+  {
+    "generation": 13,
+    "name": "박수진",
+    "department": "통계학과"
+  },
+  {
+    "generation": 13,
+    "name": "석영찬",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 13,
+    "name": "송한철",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 13,
+    "name": "이승섭",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 13,
+    "name": "이아라",
+    "department": "유기소재시스템공학과"
+  },
+  {
+    "generation": 13,
+    "name": "이유진",
+    "department": "경제학과"
+  },
+  {
+    "generation": 13,
+    "name": "이제희",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 13,
+    "name": "임영주",
+    "department": "경영학과"
+  },
+  {
+    "generation": 13,
+    "name": "장혜린",
+    "department": "통계학과"
+  },
+  {
+    "generation": 13,
+    "name": "정단비",
+    "department": "수학과"
+  },
+  {
+    "generation": 13,
+    "name": "정원호",
+    "department": "통계학과"
+  },
+  {
+    "generation": 13,
+    "name": "최창웅",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 13,
+    "name": "한아름",
+    "department": "불어불문학과"
+  },
+  {
+    "generation": 13,
+    "name": "형성모",
+    "department": "정보컴퓨터공학부"
+  },
+  {
+    "generation": 13,
+    "name": "김명선",
+    "department": "경영학과"
+  },
+  {
+    "generation": 13,
+    "name": "황정민",
+    "department": "수학과"
+  },
+  {
+    "generation": 14,
+    "name": "기봉선",
+    "department": "무역학과"
+  },
+  {
+    "generation": 14,
+    "name": "이동근",
+    "department": "통계학과"
+  },
+  {
+    "generation": 14,
+    "name": "김성현",
+    "department": "물리학과"
+  },
+  {
+    "generation": 14,
+    "name": "이주형",
+    "department": "회계학과"
+  },
+  {
+    "generation": 14,
+    "name": "박소라",
+    "department": "도시공학과"
+  },
+  {
+    "generation": 14,
+    "name": "김재성",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 14,
+    "name": "김동우",
+    "department": "경영학과"
+  },
+  {
+    "generation": 14,
+    "name": "서예진",
+    "department": "수학과"
+  },
+  {
+    "generation": 14,
+    "name": "김아정",
+    "department": "경영학과"
+  },
+  {
+    "generation": 14,
+    "name": "문필준",
+    "department": "통계학과"
+  },
+  {
+    "generation": 14,
+    "name": "박주영",
+    "department": "통계학과"
+  },
+  {
+    "generation": 14,
+    "name": "김호창",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 14,
+    "name": "정유진",
+    "department": "통계학과"
+  },
+  {
+    "generation": 14,
+    "name": "윤수완",
+    "department": "수학과"
+  },
+  {
+    "generation": 14,
+    "name": "김용억",
+    "department": "금융공학과"
+  },
+  {
+    "generation": 14,
+    "name": "임창현",
+    "department": "통계학과"
+  },
+  {
+    "generation": 14,
+    "name": "이창한",
+    "department": "경영학과"
+  },
+  {
+    "generation": 14,
+    "name": "이정은",
+    "department": "경영학과"
+  },
+  {
+    "generation": 15,
+    "name": "이회윤",
+    "department": "사회복지학과"
+  },
+  {
+    "generation": 15,
+    "name": "김현석",
+    "department": "무역학과"
+  },
+  {
+    "generation": 15,
+    "name": "이재희",
+    "department": "경영학과"
+  },
+  {
+    "generation": 15,
+    "name": "나현혜",
+    "department": "경영학과"
+  },
+  {
+    "generation": 15,
+    "name": "오윤표",
+    "department": "회계학과"
+  },
+  {
+    "generation": 15,
+    "name": "박재홍",
+    "department": "경제학과"
+  },
+  {
+    "generation": 15,
+    "name": "이진협",
+    "department": "경영학과"
+  },
+  {
+    "generation": 15,
+    "name": "김관욱",
+    "department": "경영학과"
+  },
+  {
+    "generation": 15,
+    "name": "오신애",
+    "department": "무역학과"
+  },
+  {
+    "generation": 15,
+    "name": "서지예",
+    "department": "경제학과"
+  },
+  {
+    "generation": 15,
+    "name": "안치훈",
+    "department": "경영학과"
+  },
+  {
+    "generation": 15,
+    "name": "최주연",
+    "department": "경영학과"
+  },
+  {
+    "generation": 15,
+    "name": "장진주",
+    "department": "경영학과"
+  },
+  {
+    "generation": 15,
+    "name": "구승현",
+    "department": "경영학과"
+  },
+  {
+    "generation": 15,
+    "name": "김건태",
+    "department": "화공생명공학부"
+  },
+  {
+    "generation": 15,
+    "name": "이재광",
+    "department": "경영학과"
+  },
+  {
+    "generation": 15,
+    "name": "곽상용",
+    "department": "경영학과"
+  },
+  {
+    "generation": 15,
+    "name": "왕동환",
+    "department": "무역학과"
+  },
+  {
+    "generation": 15,
+    "name": "최지원",
+    "department": "경제학과"
+  },
+  {
+    "generation": 15,
+    "name": "안현수",
+    "department": "경제학과"
+  },
+  {
+    "generation": 15,
+    "name": "박수현",
+    "department": "경영학과"
+  },
+  {
+    "generation": 15,
+    "name": "우유경",
+    "department": "경영학과"
+  },
+  {
+    "generation": 15,
+    "name": "성주현",
+    "department": "경영학과"
+  },
+  {
+    "generation": 16,
+    "name": "권은현",
+    "department": "무역학과"
+  },
+  {
+    "generation": 16,
+    "name": "권훈기",
+    "department": "나노소재공학과"
+  },
+  {
+    "generation": 16,
+    "name": "김도현",
+    "department": "심리학과"
+  },
+  {
+    "generation": 16,
+    "name": "김승겸",
+    "department": "경영학과"
+  },
+  {
+    "generation": 16,
+    "name": "김영해",
+    "department": "경영학과"
+  },
+  {
+    "generation": 16,
+    "name": "김영회",
+    "department": "경영학과"
+  },
+  {
+    "generation": 16,
+    "name": "김의진",
+    "department": "금용공학과"
+  },
+  {
+    "generation": 16,
+    "name": "김준경",
+    "department": "경영학과"
+  },
+  {
+    "generation": 16,
+    "name": "박강규",
+    "department": "동물생명자원과학과"
+  },
+  {
+    "generation": 16,
+    "name": "박혜지",
+    "department": "무역학과"
+  },
+  {
+    "generation": 16,
+    "name": "서민지",
+    "department": "경영학과"
+  },
+  {
+    "generation": 16,
+    "name": "양다슬",
+    "department": "경영학과"
+  },
+  {
+    "generation": 16,
+    "name": "양세은",
+    "department": "경영학과"
+  },
+  {
+    "generation": 16,
+    "name": "위태웅",
+    "department": "화공생명공학부"
+  },
+  {
+    "generation": 16,
+    "name": "윤나영",
+    "department": "무역학과"
+  },
+  {
+    "generation": 16,
+    "name": "이동욱",
+    "department": "무역학과"
+  },
+  {
+    "generation": 16,
+    "name": "이소현",
+    "department": "무역학과"
+  },
+  {
+    "generation": 16,
+    "name": "정준영",
+    "department": "무역학과"
+  },
+  {
+    "generation": 16,
+    "name": "조민수",
+    "department": "경영학과"
+  },
+  {
+    "generation": 16,
+    "name": "주수현",
+    "department": "경영학과"
+  },
+  {
+    "generation": 16,
+    "name": "최영임",
+    "department": "경영학과"
+  },
+  {
+    "generation": 17,
+    "name": "정성우",
+    "department": "재료공학부"
+  },
+  {
+    "generation": 17,
+    "name": "이유정",
+    "department": "영어영문학과"
+  },
+  {
+    "generation": 17,
+    "name": "윤제영",
+    "department": "경영학과"
+  },
+  {
+    "generation": 17,
+    "name": "차언엽",
+    "department": "경영학과"
+  },
+  {
+    "generation": 17,
+    "name": "김수진",
+    "department": "무역학부"
+  },
+  {
+    "generation": 17,
+    "name": "권대겸",
+    "department": "경영학과"
+  },
+  {
+    "generation": 17,
+    "name": "이주연",
+    "department": "경영학과"
+  },
+  {
+    "generation": 17,
+    "name": "이동훈",
+    "department": "경영학과"
+  },
+  {
+    "generation": 17,
+    "name": "정철",
+    "department": "스포츠과학부"
+  },
+  {
+    "generation": 17,
+    "name": "강민호",
+    "department": "경제학부"
+  },
+  {
+    "generation": 17,
+    "name": "양수근",
+    "department": "경영학과"
+  },
+  {
+    "generation": 17,
+    "name": "김동현",
+    "department": "경제학과"
+  },
+  {
+    "generation": 17,
+    "name": "김정회",
+    "department": "경영학과"
+  },
+  {
+    "generation": 17,
+    "name": "최율",
+    "department": "경영학과"
+  },
+  {
+    "generation": 17,
+    "name": "김혜림",
+    "department": "경영학과"
+  },
+  {
+    "generation": 17,
+    "name": "이은지",
+    "department": "무역학부"
+  },
+  {
+    "generation": 17,
+    "name": "손해정",
+    "department": "경영학과"
+  },
+  {
+    "generation": 17,
+    "name": "전유정",
+    "department": "경영학과"
+  },
+  {
+    "generation": 17,
+    "name": "김부영",
+    "department": "대기환경과학과"
+  },
+  {
+    "generation": 17,
+    "name": "이정문",
+    "department": "경영학과"
+  },
+  {
+    "generation": 17,
+    "name": "유혜령",
+    "department": "전기컴퓨터공학부"
+  },
+  {
+    "generation": 17,
+    "name": "이민정",
+    "department": "경영학과"
+  },
+  {
+    "generation": 17,
+    "name": "윤다영",
+    "department": "경영학과"
+  },
+  {
+    "generation": 17,
+    "name": "문애경",
+    "department": "식품영양학과"
+  },
+  {
+    "generation": 18,
+    "name": "조민정",
+    "department": "무역학과"
+  },
+  {
+    "generation": 18,
+    "name": "박의정",
+    "department": "경영학과"
+  },
+  {
+    "generation": 18,
+    "name": "김나형",
+    "department": "국제학부"
+  },
+  {
+    "generation": 18,
+    "name": "장수창",
+    "department": "무역학과"
+  },
+  {
+    "generation": 18,
+    "name": "김민정",
+    "department": "사회학과"
+  },
+  {
+    "generation": 18,
+    "name": "문기동",
+    "department": "경제학과"
+  },
+  {
+    "generation": 18,
+    "name": "윤승헌",
+    "department": "경영학과"
+  },
+  {
+    "generation": 18,
+    "name": "김소현",
+    "department": "무역학과"
+  },
+  {
+    "generation": 18,
+    "name": "이기욱",
+    "department": "경제학과"
+  },
+  {
+    "generation": 18,
+    "name": "심영훈",
+    "department": "IT응용공학과"
+  },
+  {
+    "generation": 18,
+    "name": "이익재",
+    "department": "경영학과"
+  },
+  {
+    "generation": 18,
+    "name": "박경찬",
+    "department": "경영학과"
+  },
+  {
+    "generation": 18,
+    "name": "화지인",
+    "department": "경영학과"
+  },
+  {
+    "generation": 18,
+    "name": "김상하",
+    "department": "경영학과"
+  },
+  {
+    "generation": 18,
+    "name": "박소현",
+    "department": "주거환경학과"
+  },
+  {
+    "generation": 18,
+    "name": "이예진",
+    "department": "의예과"
+  },
+  {
+    "generation": 18,
+    "name": "김현웅",
+    "department": "전기공학과"
+  },
+  {
+    "generation": 18,
+    "name": "한성진",
+    "department": "경영학과"
+  },
+  {
+    "generation": 18,
+    "name": "손윤",
+    "department": "화학과"
+  },
+  {
+    "generation": 18,
+    "name": "조서현",
+    "department": "경영학과"
+  },
+  {
+    "generation": 18,
+    "name": "박소현",
+    "department": "무역학과"
+  },
+  {
+    "generation": 19,
+    "name": "강소연",
+    "department": "심리학과"
+  },
+  {
+    "generation": 19,
+    "name": "강석오",
+    "department": "경영학과"
+  },
+  {
+    "generation": 19,
+    "name": "강태훈",
+    "department": "경영학과"
+  },
+  {
+    "generation": 19,
+    "name": "곽수일",
+    "department": "경영학과"
+  },
+  {
+    "generation": 19,
+    "name": "김성헌",
+    "department": "경영학과"
+  },
+  {
+    "generation": 19,
+    "name": "김수희",
+    "department": "경영학과"
+  },
+  {
+    "generation": 19,
+    "name": "김은성",
+    "department": "영어영문학과"
+  },
+  {
+    "generation": 19,
+    "name": "김정완",
+    "department": "경영학과"
+  },
+  {
+    "generation": 19,
+    "name": "김형목",
+    "department": "경영학과"
+  },
+  {
+    "generation": 19,
+    "name": "박남률",
+    "department": "경영학과"
+  },
+  {
+    "generation": 19,
+    "name": "박준우",
+    "department": "화공생명공학부"
+  },
+  {
+    "generation": 19,
+    "name": "박준홍",
+    "department": "경영학과"
+  },
+  {
+    "generation": 19,
+    "name": "배기현",
+    "department": "경영학과"
+  },
+  {
+    "generation": 19,
+    "name": "심재희",
+    "department": "경영학과"
+  },
+  {
+    "generation": 19,
+    "name": "오나연",
+    "department": "무역학과"
+  },
+  {
+    "generation": 19,
+    "name": "오지현",
+    "department": "경영학과"
+  },
+  {
+    "generation": 19,
+    "name": "이민호",
+    "department": "무역학과"
+  },
+  {
+    "generation": 19,
+    "name": "이승화",
+    "department": "경영학과"
+  },
+  {
+    "generation": 19,
+    "name": "이혜민",
+    "department": "경영학과"
+  },
+  {
+    "generation": 19,
+    "name": "한태경",
+    "department": "경영학과"
+  },
+  {
+    "generation": 19,
+    "name": "허진희",
+    "department": "경영학과"
+  },
+  {
+    "generation": 20,
+    "name": "김근아",
+    "department": "중어중문학과"
+  },
+  {
+    "generation": 20,
+    "name": "김소희",
+    "department": "심리학과"
+  },
+  {
+    "generation": 20,
+    "name": "남경민",
+    "department": "국제학부"
+  },
+  {
+    "generation": 20,
+    "name": "문미선",
+    "department": "경영학과"
+  },
+  {
+    "generation": 20,
+    "name": "박수현",
+    "department": "수학교육과"
+  },
+  {
+    "generation": 20,
+    "name": "배송경",
+    "department": "주거환경학과"
+  },
+  {
+    "generation": 20,
+    "name": "배진욱",
+    "department": "경영학과"
+  },
+  {
+    "generation": 20,
+    "name": "손민수",
+    "department": "무역학과"
+  },
+  {
+    "generation": 20,
+    "name": "송지상",
+    "department": "경영학과"
+  },
+  {
+    "generation": 20,
+    "name": "심규선",
+    "department": "경영학과"
+  },
+  {
+    "generation": 20,
+    "name": "안성현",
+    "department": "경영학과"
+  },
+  {
+    "generation": 20,
+    "name": "오성원",
+    "department": "경영학과"
+  },
+  {
+    "generation": 20,
+    "name": "이민섭",
+    "department": "경영학과"
+  },
+  {
+    "generation": 20,
+    "name": "이선학",
+    "department": "경영학과"
+  },
+  {
+    "generation": 20,
+    "name": "이승민",
+    "department": "경영학과"
+  },
+  {
+    "generation": 20,
+    "name": "이현종",
+    "department": "공공정책학부"
+  },
+  {
+    "generation": 20,
+    "name": "정민영",
+    "department": "심리학부"
+  },
+  {
+    "generation": 20,
+    "name": "조성현",
+    "department": "경영학과"
+  },
+  {
+    "generation": 20,
+    "name": "조정현",
+    "department": "경영학과"
+  },
+  {
+    "generation": 20,
+    "name": "최권우",
+    "department": "고고학과"
+  },
+  {
+    "generation": 20,
+    "name": "최승현",
+    "department": "경영학과"
+  },
+  {
+    "generation": 20,
+    "name": "홍상우",
+    "department": "조선해양공학과"
+  },
+  {
+    "generation": 21,
+    "name": "김진",
+    "department": "경영학과"
+  },
+  {
+    "generation": 21,
+    "name": "김경민",
+    "department": "관광컨벤션학과"
+  },
+  {
+    "generation": 21,
+    "name": "김동현",
+    "department": "통계학과"
+  },
+  {
+    "generation": 21,
+    "name": "김민근",
+    "department": "경영학과"
+  },
+  {
+    "generation": 21,
+    "name": "문주성",
+    "department": "경제학부"
+  },
+  {
+    "generation": 21,
+    "name": "문찬솔",
+    "department": "무역학부"
+  },
+  {
+    "generation": 21,
+    "name": "성민규",
+    "department": "경영학과"
+  },
+  {
+    "generation": 21,
+    "name": "양도영",
+    "department": "경영학과"
+  },
+  {
+    "generation": 21,
+    "name": "윤혜주",
+    "department": "수학과"
+  },
+  {
+    "generation": 21,
+    "name": "이민규",
+    "department": "경영학과"
+  },
+  {
+    "generation": 21,
+    "name": "임상균",
+    "department": "경영학과"
+  },
+  {
+    "generation": 21,
+    "name": "조동석",
+    "department": "경영학과"
+  },
+  {
+    "generation": 21,
+    "name": "조민정",
+    "department": "사회복지학과"
+  },
+  {
+    "generation": 21,
+    "name": "최하은",
+    "department": "공공정책학부"
+  },
+  {
+    "generation": 21,
+    "name": "최혜미",
+    "department": "주거환경학과"
+  },
+  {
+    "generation": 22,
+    "name": "김동우",
+    "department": "조선해양공학과"
+  },
+  {
+    "generation": 22,
+    "name": "김주영",
+    "department": "경영학과"
+  },
+  {
+    "generation": 22,
+    "name": "김현기",
+    "department": "경영학과"
+  },
+  {
+    "generation": 22,
+    "name": "박언영",
+    "department": "노어노문학과"
+  },
+  {
+    "generation": 22,
+    "name": "박진송",
+    "department": "경영학과"
+  },
+  {
+    "generation": 22,
+    "name": "석아름",
+    "department": "경영학과"
+  },
+  {
+    "generation": 22,
+    "name": "손수호",
+    "department": "정보컴퓨터공학부"
+  },
+  {
+    "generation": 22,
+    "name": "장재웅",
+    "department": "재료공학부"
+  },
+  {
+    "generation": 22,
+    "name": "정승원",
+    "department": "경영학과"
+  },
+  {
+    "generation": 22,
+    "name": "정현지",
+    "department": "무역학과"
+  },
+  {
+    "generation": 22,
+    "name": "최승환",
+    "department": "경영학과"
+  },
+  {
+    "generation": 23,
+    "name": "김태연",
+    "department": "경영학과"
+  },
+  {
+    "generation": 23,
+    "name": "김태흥",
+    "department": "경영학과"
+  },
+  {
+    "generation": 23,
+    "name": "변준호",
+    "department": "경영학과"
+  },
+  {
+    "generation": 23,
+    "name": "서동빈",
+    "department": "경영학과"
+  },
+  {
+    "generation": 23,
+    "name": "소준영",
+    "department": "경영학과"
+  },
+  {
+    "generation": 23,
+    "name": "이창주",
+    "department": "전기컴퓨터공학부"
+  },
+  {
+    "generation": 23,
+    "name": "안홍기",
+    "department": "경영학과"
+  },
+  {
+    "generation": 23,
+    "name": "조현민",
+    "department": "경영학과"
+  },
+  {
+    "generation": 23,
+    "name": "정호정",
+    "department": "경영학과"
+  },
+  {
+    "generation": 23,
+    "name": "최소윤",
+    "department": "기계공학부"
+  },
+  {
+    "generation": 23,
+    "name": "최유민",
+    "department": "경영학과"
+  },
+  {
+    "generation": 24,
+    "name": "강재헌",
+    "department": "정치외교학과"
+  },
+  {
+    "generation": 24,
+    "name": "고경근",
+    "department": "경영학과"
+  },
+  {
+    "generation": 24,
+    "name": "권주아",
+    "department": "경영학과"
+  },
+  {
+    "generation": 24,
+    "name": "김강욱",
+    "department": "조선해양공학과"
+  },
+  {
+    "generation": 24,
+    "name": "김동현",
+    "department": "경제학과"
+  },
+  {
+    "generation": 24,
+    "name": "김민서",
+    "department": "경영학과"
+  },
+  {
+    "generation": 24,
+    "name": "김영남",
+    "department": "경영학과"
+  },
+  {
+    "generation": 24,
+    "name": "김은서",
+    "department": "경영학과"
+  },
+  {
+    "generation": 24,
+    "name": "김재원",
+    "department": "조선해양공학과"
+  },
+  {
+    "generation": 24,
+    "name": "김재한",
+    "department": "경영학과"
+  },
+  {
+    "generation": 24,
+    "name": "박영천",
+    "department": "도시공학과"
+  },
+  {
+    "generation": 24,
+    "name": "박태진",
+    "department": "건축학과"
+  },
+  {
+    "generation": 24,
+    "name": "배재호",
+    "department": "경제학과"
+  },
+  {
+    "generation": 24,
+    "name": "이시균",
+    "department": "경제학과"
+  },
+  {
+    "generation": 24,
+    "name": "이용수",
+    "department": "경영학과"
+  },
+  {
+    "generation": 24,
+    "name": "정해진",
+    "department": "경영학과"
+  },
+  {
+    "generation": 24,
+    "name": "진정미",
+    "department": "경영학과"
+  },
+  {
+    "generation": 24,
+    "name": "최성우",
+    "department": "식품자원경제학과"
+  },
+  {
+    "generation": 25,
+    "name": "구본승",
+    "department": "경영학과"
+  },
+  {
+    "generation": 25,
+    "name": "김나운",
+    "department": "심리학과"
+  },
+  {
+    "generation": 25,
+    "name": "김두일",
+    "department": "중어중문학과"
+  },
+  {
+    "generation": 25,
+    "name": "김영현",
+    "department": "경영학과"
+  },
+  {
+    "generation": 25,
+    "name": "김주성",
+    "department": "경영학과"
+  },
+  {
+    "generation": 25,
+    "name": "김진호",
+    "department": "경영학과"
+  },
+  {
+    "generation": 25,
+    "name": "김현지",
+    "department": "경영학과"
+  },
+  {
+    "generation": 25,
+    "name": "김형주",
+    "department": "경영학과"
+  },
+  {
+    "generation": 25,
+    "name": "김혜은",
+    "department": "경영학과"
+  },
+  {
+    "generation": 25,
+    "name": "박민지",
+    "department": "수학과"
+  },
+  {
+    "generation": 25,
+    "name": "서유경",
+    "department": "통계학과"
+  },
+  {
+    "generation": 25,
+    "name": "서정우",
+    "department": "공공정책학부"
+  },
+  {
+    "generation": 25,
+    "name": "소준섭",
+    "department": "스포츠과학부"
+  },
+  {
+    "generation": 25,
+    "name": "윤찬식",
+    "department": "경제학과"
+  },
+  {
+    "generation": 25,
+    "name": "윤현정",
+    "department": "경영학과"
+  },
+  {
+    "generation": 25,
+    "name": "이주미",
+    "department": "경영학과"
+  },
+  {
+    "generation": 25,
+    "name": "이채연",
+    "department": "경영학과"
+  },
+  {
+    "generation": 25,
+    "name": "장소현",
+    "department": "경영학과"
+  },
+  {
+    "generation": 25,
+    "name": "장수화",
+    "department": "경영학과"
+  },
+  {
+    "generation": 25,
+    "name": "전태혁",
+    "department": "경영학과"
+  },
+  {
+    "generation": 25,
+    "name": "최화은",
+    "department": "경영학과"
+  },
+  {
+    "generation": 25,
+    "name": "태우섬",
+    "department": "경제학부"
+  },
+  {
+    "generation": 26,
+    "name": "강지우",
+    "department": "국어국문학과"
+  },
+  {
+    "generation": 26,
+    "name": "김가나",
+    "department": "경영학과"
+  },
+  {
+    "generation": 26,
+    "name": "김예나",
+    "department": "일어일문학과"
+  },
+  {
+    "generation": 26,
+    "name": "박병태",
+    "department": "경영학과"
+  },
+  {
+    "generation": 26,
+    "name": "안예원",
+    "department": "경영학과"
+  },
+  {
+    "generation": 26,
+    "name": "안주홍",
+    "department": "경제학부"
+  },
+  {
+    "generation": 26,
+    "name": "양준모",
+    "department": "경영학과"
+  },
+  {
+    "generation": 26,
+    "name": "윤겨레",
+    "department": "경영학과"
+  },
+  {
+    "generation": 26,
+    "name": "윤우섭",
+    "department": "경영학과"
+  },
+  {
+    "generation": 26,
+    "name": "이권석",
+    "department": "디자인학과"
+  },
+  {
+    "generation": 26,
+    "name": "이영준",
+    "department": "물리학과"
+  },
+  {
+    "generation": 26,
+    "name": "이현주",
+    "department": "식품공학과"
+  },
+  {
+    "generation": 26,
+    "name": "정태현",
+    "department": "무역학부"
+  },
+  {
+    "generation": 26,
+    "name": "조건형",
+    "department": "경영학과"
+  },
+  {
+    "generation": 26,
+    "name": "조연제",
+    "department": "나노메카트로닉스공학과"
+  },
+  {
+    "generation": 27,
+    "name": "노호균",
+    "department": "사회학과"
+  },
+  {
+    "generation": 27,
+    "name": "박희철",
+    "department": "무역학과"
+  },
+  {
+    "generation": 27,
+    "name": "박현아",
+    "department": "경영학과"
+  },
+  {
+    "generation": 27,
+    "name": "이현준",
+    "department": "경영학과"
+  },
+  {
+    "generation": 27,
+    "name": "강준영",
+    "department": "국제학과"
+  },
+  {
+    "generation": 27,
+    "name": "강동우",
+    "department": "경영학과"
+  },
+  {
+    "generation": 27,
+    "name": "김세희",
+    "department": "경영학과"
+  },
+  {
+    "generation": 27,
+    "name": "김소연",
+    "department": "경영학과"
+  },
+  {
+    "generation": 27,
+    "name": "김유진",
+    "department": "경영학과"
+  },
+  {
+    "generation": 27,
+    "name": "김호민",
+    "department": "기계공학과"
+  },
+  {
+    "generation": 27,
+    "name": "문원진",
+    "department": "경영학과"
+  },
+  {
+    "generation": 27,
+    "name": "변해민",
+    "department": "철학과"
+  },
+  {
+    "generation": 27,
+    "name": "신형철",
+    "department": "광메카트로닉공학과"
+  },
+  {
+    "generation": 27,
+    "name": "안서현",
+    "department": "경영학과"
+  },
+  {
+    "generation": 27,
+    "name": "이광준",
+    "department": "경영학과"
+  },
+  {
+    "generation": 27,
+    "name": "이국휘",
+    "department": "철학과"
+  },
+  {
+    "generation": 27,
+    "name": "이나현",
+    "department": "경영학과"
+  },
+  {
+    "generation": 27,
+    "name": "이성희",
+    "department": "경영학과"
+  },
+  {
+    "generation": 27,
+    "name": "이승주",
+    "department": "경영학과"
+  },
+  {
+    "generation": 27,
+    "name": "장수려",
+    "department": "경제학과"
+  },
+  {
+    "generation": 27,
+    "name": "정준혁",
+    "department": "경영학과"
+  },
+  {
+    "generation": 27,
+    "name": "조민우",
+    "department": "기계공학과"
+  },
+  {
+    "generation": 27,
+    "name": "조재현",
+    "department": "기계공학과"
+  },
+  {
+    "generation": 27,
+    "name": "차종태",
+    "department": "통계학과"
+  },
+  {
+    "generation": 28,
+    "name": "김민성",
+    "department": "행정학과"
+  },
+  {
+    "generation": 28,
+    "name": "김지훈",
+    "department": "경영학과"
+  },
+  {
+    "generation": 28,
+    "name": "박상후",
+    "department": "경영학과"
+  },
+  {
+    "generation": 28,
+    "name": "박가은",
+    "department": "무역학과"
+  },
+  {
+    "generation": 28,
+    "name": "서정인",
+    "department": "경영학과"
+  },
+  {
+    "generation": 28,
+    "name": "신민재",
+    "department": "무역학과"
+  },
+  {
+    "generation": 28,
+    "name": "양세현",
+    "department": "경영학과"
+  },
+  {
+    "generation": 28,
+    "name": "여가은",
+    "department": "경영학과"
+  },
+  {
+    "generation": 28,
+    "name": "이금민",
+    "department": "경영학과"
+  },
+  {
+    "generation": 28,
+    "name": "이민지",
+    "department": "통계학과"
+  },
+  {
+    "generation": 28,
+    "name": "정연수",
+    "department": "경영학과"
+  },
+  {
+    "generation": 28,
+    "name": "장수인",
+    "department": "경영학과"
+  },
+  {
+    "generation": 28,
+    "name": "조혁",
+    "department": "경영학과"
+  },
+  {
+    "generation": 28,
+    "name": "최가원",
+    "department": "경영학과"
+  },
+  {
+    "generation": 29,
+    "name": "강대훈",
+    "department": "국제학과"
+  },
+  {
+    "generation": 29,
+    "name": "권미혜",
+    "department": "식품자원경제학과"
+  },
+  {
+    "generation": 29,
+    "name": "김정헌",
+    "department": "경영학과"
+  },
+  {
+    "generation": 29,
+    "name": "김지수",
+    "department": "한문학과"
+  },
+  {
+    "generation": 29,
+    "name": "남서영",
+    "department": "무역학과"
+  },
+  {
+    "generation": 29,
+    "name": "문수인",
+    "department": "노어노문"
+  },
+  {
+    "generation": 29,
+    "name": "문호혁",
+    "department": "경영학과"
+  },
+  {
+    "generation": 29,
+    "name": "전승윤",
+    "department": "수학과"
+  },
+  {
+    "generation": 29,
+    "name": "전준영",
+    "department": "경영학과"
+  },
+  {
+    "generation": 29,
+    "name": "정수빈",
+    "department": "국어국문학과"
+  },
+  {
+    "generation": 29,
+    "name": "정인철",
+    "department": "경제학과"
+  },
+  {
+    "generation": 29,
+    "name": "지수민",
+    "department": "경영학과"
+  },
+  {
+    "generation": 29,
+    "name": "최성규",
+    "department": "경영학과"
+  },
+  {
+    "generation": 29,
+    "name": "홍진욱",
+    "department": "정보컴퓨터공학부"
+  },
+  {
+    "generation": 30,
+    "name": "강혜성",
+    "department": "경영학과"
+  },
+  {
+    "generation": 30,
+    "name": "최승인",
+    "department": "경영학과"
+  },
+  {
+    "generation": 30,
+    "name": "손민구",
+    "department": "경영학과"
+  },
+  {
+    "generation": 30,
+    "name": "신지원",
+    "department": "경영학과"
+  },
+  {
+    "generation": 30,
+    "name": "성흔태",
+    "department": "경제학부"
+  },
+  {
+    "generation": 30,
+    "name": "손경진",
+    "department": "수학과"
+  },
+  {
+    "generation": 30,
+    "name": "권지승",
+    "department": "경제학부"
+  },
+  {
+    "generation": 30,
+    "name": "김도영",
+    "department": "경영학과"
+  },
+  {
+    "generation": 31,
+    "name": "강민수",
+    "department": "통계학과"
+  },
+  {
+    "generation": 31,
+    "name": "강하늘",
+    "department": "산업공학과"
+  },
+  {
+    "generation": 31,
+    "name": "김기효",
+    "department": "경영학과"
+  },
+  {
+    "generation": 31,
+    "name": "김도균",
+    "department": "경영학과"
+  },
+  {
+    "generation": 31,
+    "name": "김예원",
+    "department": "국어국문학과"
+  },
+  {
+    "generation": 31,
+    "name": "김지희",
+    "department": "경제학과"
+  },
+  {
+    "generation": 31,
+    "name": "김한준",
+    "department": "경제학과"
+  },
+  {
+    "generation": 31,
+    "name": "박인규",
+    "department": "경영학과"
+  },
+  {
+    "generation": 31,
+    "name": "박지현",
+    "department": "경제학과"
+  },
+  {
+    "generation": 31,
+    "name": "배수근",
+    "department": "통계학과"
+  },
+  {
+    "generation": 31,
+    "name": "안소영",
+    "department": "경제학과"
+  },
+  {
+    "generation": 31,
+    "name": "오주혁",
+    "department": "경영학과"
+  },
+  {
+    "generation": 31,
+    "name": "임다은",
+    "department": "경제학과"
+  },
+  {
+    "generation": 31,
+    "name": "임태수",
+    "department": "경영학과"
+  },
+  {
+    "generation": 31,
+    "name": "하헌영",
+    "department": "경영학과"
+  },
+  {
+    "generation": 32,
+    "name": "권현준",
+    "department": "경영학과"
+  },
+  {
+    "generation": 32,
+    "name": "김민채",
+    "department": "무역학부"
+  },
+  {
+    "generation": 32,
+    "name": "김세민",
+    "department": "무역학부"
+  },
+  {
+    "generation": 32,
+    "name": "김윤희",
+    "department": "경영학과"
+  },
+  {
+    "generation": 32,
+    "name": "김진석",
+    "department": "실내환경디자인학과"
+  },
+  {
+    "generation": 32,
+    "name": "김진현",
+    "department": "사회학과"
+  },
+  {
+    "generation": 32,
+    "name": "문배정",
+    "department": "경영학과"
+  },
+  {
+    "generation": 32,
+    "name": "서유정",
+    "department": "경영학과"
+  },
+  {
+    "generation": 32,
+    "name": "성운주",
+    "department": "물리학과"
+  },
+  {
+    "generation": 32,
+    "name": "양호진",
+    "department": "경영학과"
+  },
+  {
+    "generation": 32,
+    "name": "유영근",
+    "department": "수학과"
+  },
+  {
+    "generation": 32,
+    "name": "유지현",
+    "department": "산업공학과"
+  },
+  {
+    "generation": 32,
+    "name": "유호정",
+    "department": "경영학과"
+  },
+  {
+    "generation": 32,
+    "name": "이다민",
+    "department": "사회학과"
+  },
+  {
+    "generation": 32,
+    "name": "이 안",
+    "department": "경영학과"
+  },
+  {
+    "generation": 32,
+    "name": "이우진",
+    "department": "경제학부"
+  },
+  {
+    "generation": 32,
+    "name": "정민금",
+    "department": "경영학과"
+  },
+  {
+    "generation": 32,
+    "name": "정서현",
+    "department": "경영학과"
+  },
+  {
+    "generation": 32,
+    "name": "최우영",
+    "department": "통계학과"
+  },
+  {
+    "generation": 33,
+    "name": "강소민",
+    "department": "정치외교학과"
+  },
+  {
+    "generation": 33,
+    "name": "김나은",
+    "department": "무역학부"
+  },
+  {
+    "generation": 33,
+    "name": "김민서(남)",
+    "department": "경영학과"
+  },
+  {
+    "generation": 33,
+    "name": "김민서(여)",
+    "department": "경영학과"
+  },
+  {
+    "generation": 33,
+    "name": "김은환",
+    "department": "경영학과"
+  },
+  {
+    "generation": 33,
+    "name": "김지명",
+    "department": "경영학과"
+  },
+  {
+    "generation": 33,
+    "name": "신애지",
+    "department": "경제학부"
+  },
+  {
+    "generation": 33,
+    "name": "신유나",
+    "department": "경영학과"
+  },
+  {
+    "generation": 33,
+    "name": "윤동현",
+    "department": "경영학과"
+  },
+  {
+    "generation": 33,
+    "name": "윤현아",
+    "department": "무역학부"
+  },
+  {
+    "generation": 33,
+    "name": "이민경",
+    "department": "경제학부"
+  },
+  {
+    "generation": 33,
+    "name": "이혜민",
+    "department": "영어영문학과"
+  },
+  {
+    "generation": 33,
+    "name": "정다원",
+    "department": "정보컴퓨터공학과"
+  },
+  {
+    "generation": 33,
+    "name": "조영준",
+    "department": "경제학부"
+  },
+  {
+    "generation": 34,
+    "name": "오승우",
+    "department": "경영학과"
+  },
+  {
+    "generation": 34,
+    "name": "김건우",
+    "department": "경영학과"
+  },
+  {
+    "generation": 34,
+    "name": "김경민",
+    "department": "무역학부"
+  },
+  {
+    "generation": 34,
+    "name": "김도원",
+    "department": "경제학부"
+  },
+  {
+    "generation": 34,
+    "name": "김재혁",
+    "department": "경제학부"
+  },
+  {
+    "generation": 34,
+    "name": "김주연",
+    "department": "경영학과"
+  },
+  {
+    "generation": 34,
+    "name": "김준경",
+    "department": "조선해양공학과"
+  },
+  {
+    "generation": 34,
+    "name": "김준학",
+    "department": "경제학부"
+  },
+  {
+    "generation": 34,
+    "name": "이다현",
+    "department": "경영학과"
+  },
+  {
+    "generation": 34,
+    "name": "전서연",
+    "department": "경영학과"
+  },
+  {
+    "generation": 34,
+    "name": "최빛샘",
+    "department": "경영학과"
+  },
+  {
+    "generation": 34,
+    "name": "한경엽",
+    "department": "통계학과"
+  },
+  {
+    "generation": 34,
+    "name": "홍성지",
+    "department": "수학과"
+  },
+  {
+    "generation": 35,
+    "name": "강성준",
+    "department": "불어불문학과"
+  },
+  {
+    "generation": 35,
+    "name": "강은지",
+    "department": "경영학과"
+  },
+  {
+    "generation": 35,
+    "name": "김남경",
+    "department": "경영학과"
+  },
+  {
+    "generation": 35,
+    "name": "김다연",
+    "department": "경영학과"
+  },
+  {
+    "generation": 35,
+    "name": "김혜민",
+    "department": "경영학과"
+  },
+  {
+    "generation": 35,
+    "name": "민산",
+    "department": "경영학과"
+  },
+  {
+    "generation": 35,
+    "name": "양수민",
+    "department": "경영학과"
+  },
+  {
+    "generation": 35,
+    "name": "이시은",
+    "department": "고고학과"
+  },
+  {
+    "generation": 35,
+    "name": "이혜빈",
+    "department": "경영학과"
+  },
+  {
+    "generation": 35,
+    "name": "임채준",
+    "department": "경영학과"
+  },
+  {
+    "generation": 35,
+    "name": "정재형",
+    "department": "행정학과"
+  },
+  {
+    "generation": 35,
+    "name": "하준서",
+    "department": "경영학과"
+  },
+  {
+    "generation": 35,
+    "name": "한서경",
+    "department": "경제학부"
+  },
+  {
+    "generation": 35,
+    "name": "한시연",
+    "department": "경영학과"
+  },
+  {
+    "generation": 35,
+    "name": "황다홍",
+    "department": "경영학과"
+  },
+  {
+    "generation": 36,
+    "name": "김현준",
+    "department": "경영학과"
+  },
+  {
+    "generation": 36,
+    "name": "강류진",
+    "department": "철학과"
+  },
+  {
+    "generation": 36,
+    "name": "강수민",
+    "department": "식품영양학과"
+  },
+  {
+    "generation": 36,
+    "name": "김동혁",
+    "department": "철학과"
+  },
+  {
+    "generation": 36,
+    "name": "김민주",
+    "department": "경영학과"
+  },
+  {
+    "generation": 36,
+    "name": "김수민",
+    "department": "경영학과"
+  },
+  {
+    "generation": 36,
+    "name": "김시은",
+    "department": "경영학과"
+  },
+  {
+    "generation": 36,
+    "name": "손형준",
+    "department": "경제학부"
+  },
+  {
+    "generation": 36,
+    "name": "신채연",
+    "department": "경영학과"
+  },
+  {
+    "generation": 36,
+    "name": "양진혁",
+    "department": "식품자원경제학과"
+  },
+  {
+    "generation": 36,
+    "name": "육태군",
+    "department": "경제학부"
+  },
+  {
+    "generation": 36,
+    "name": "이도원",
+    "department": "건축공학과"
+  },
+  {
+    "generation": 36,
+    "name": "이지윤",
+    "department": "경영학과"
+  },
+  {
+    "generation": 36,
+    "name": "장세빈",
+    "department": "경영학과"
+  },
+  {
+    "generation": 37,
+    "name": "김경민",
+    "department": "경제학부"
+  },
+  {
+    "generation": 37,
+    "name": "김미금",
+    "department": "경영학과"
+  },
+  {
+    "generation": 37,
+    "name": "김윤서",
+    "department": "무역학부"
+  },
+  {
+    "generation": 37,
+    "name": "김해찬",
+    "department": "무역학부"
+  },
+  {
+    "generation": 37,
+    "name": "김혜지",
+    "department": "경영학과"
+  },
+  {
+    "generation": 37,
+    "name": "왕유석",
+    "department": "경영학과"
+  },
+  {
+    "generation": 37,
+    "name": "이종석",
+    "department": "물리학과"
+  },
+  {
+    "generation": 37,
+    "name": "이준서",
+    "department": "전자공학과"
+  },
+  {
+    "generation": 37,
+    "name": "이효진",
+    "department": "경영학과"
+  },
+  {
+    "generation": 37,
+    "name": "조용현",
+    "department": "경영학과"
+  },
+  {
+    "generation": 37,
+    "name": "진세현",
+    "department": "경제학부"
+  },
+  {
+    "generation": 37,
+    "name": "허다경",
+    "department": "경영학과"
+  },
+  {
+    "generation": 37,
+    "name": "홍성진",
+    "department": "정보컴퓨터공학부"
+  },
+  {
+    "generation": 37,
+    "name": "황재언",
+    "department": "무역학부"
+  }
+]

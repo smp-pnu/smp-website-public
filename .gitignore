@@ -1,0 +1,22 @@
+# v0 sandbox internal files
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+.snowflake/
+.v0-trash/
+.vercel/
+
+# Environment variables
+.env*
+!.env.example
+*.tsbuildinfo
+
+# Common ignores
+node_modules
+.next/
+.DS_Store
+
+# Private production handover documents stay outside the public repository.
+/data/SMP_Website_Copy_v1-40a04b.docx
+/전달안내.txt
+/홈페이지.url
