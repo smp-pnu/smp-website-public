@@ -20,7 +20,8 @@ type Property = {
   rich_text?: RichText[]
   checkbox?: boolean
   date?: { start: string } | null
-  select?: { name: string } | null
+  select?: { name: string; color?: string } | null
+  number?: number | null
   url?: string | null
   files?: NotionFile[]
 }
@@ -42,6 +43,8 @@ export type ContentItem = {
   summary: string
   date: string
   category: string
+  categoryColor?: string
+  displayOrder?: number
   author: string
   pinned: boolean
   attachments: { name: string; url: string }[]
@@ -86,6 +89,9 @@ export function toContentItem(page: NotionPage, kind: ContentKind, now = Date.no
     id, kind, title, date: date!, editedAt: page.last_edited_time ?? page.created_time,
     summary: plainText(props["요약"]?.rich_text),
     category: props["분류"]?.select?.name ?? (kind === "notice" ? "공지" : "리서치"),
+    categoryColor: props["분류"]?.select?.color ?? "default",
+    displayOrder: typeof props["표시 순서"]?.number === "number" && Number.isFinite(props["표시 순서"].number)
+      ? props["표시 순서"].number : undefined,
     author: plainText(props["작성자"]?.rich_text),
     pinned: kind === "notice" && props["상단 고정"]?.checkbox === true,
     externalUrl: safeUrl(props["외부 링크"]?.url),
@@ -98,6 +104,8 @@ export function toContentItem(page: NotionPage, kind: ContentKind, now = Date.no
 
 export function sortContent(items: ContentItem[]) {
   return [...items].sort((a, b) => Number(b.pinned) - Number(a.pinned)
+    || (a.kind === "research" && b.kind === "research"
+      ? (a.displayOrder ?? Infinity) - (b.displayOrder ?? Infinity) : 0)
     || b.date.localeCompare(a.date)
     || (a.kind === "research" && b.kind === "research" ? a.title.localeCompare(b.title, "ko", { numeric: true }) : 0)
     || a.id.localeCompare(b.id))

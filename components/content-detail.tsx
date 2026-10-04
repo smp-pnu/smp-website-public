@@ -7,6 +7,7 @@ import { PdfViewer } from "@/components/pdf-viewer"
 import { formatDate, type ContentKind } from "@/lib/content-model"
 import { getContentBlocks, getContentItem } from "@/lib/notion"
 import { getPdfSources } from "@/lib/pdf-source"
+import { CategoryTag } from "./category-tag"
 
 export async function ContentDetail({ kind, id }: { kind: ContentKind; id: string }) {
   const item = await getContentItem(kind, id)
@@ -17,7 +18,8 @@ export async function ContentDetail({ kind, id }: { kind: ContentKind; id: strin
     <Link href={`/${kind}`} className="text-sm tracking-widest text-sky-300">← {kind === "notice" ? "NOTICE" : "RESEARCH"}</Link>
     <article className="mt-10">
       <header className="border-b border-white/20 pb-8">
-        <p className="text-sm text-sky-300">{item.pinned && "고정 · "}{item.category}</p>
+        {kind === "research" ? <CategoryTag name={item.category} color={item.categoryColor} />
+          : <p className="text-sm text-sky-300">{item.pinned && "고정 · "}{item.category}</p>}
         <h1 className="mt-4 break-words text-3xl font-medium leading-snug text-white sm:text-4xl">{item.title}</h1>
         <p className="mt-5 text-sm text-slate-300"><time dateTime={item.date}>{formatDate(item.date)}</time>{item.author && ` · ${item.author}`}</p>
         {item.summary && <p className="mt-6 leading-8 text-slate-300">{item.summary}</p>}

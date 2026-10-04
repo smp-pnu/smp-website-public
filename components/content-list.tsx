@@ -3,6 +3,7 @@ import { ArrowUpRight, Search } from "lucide-react"
 import { contentHref, formatDate, type ContentItem, type ContentKind } from "@/lib/content-model"
 import type { ContentResult } from "@/lib/notion"
 import { ResearchGrid } from "@/components/research-grid"
+import { CategoryTag } from "./category-tag"
 
 export type ContentSearch = { q?: string; category?: string; page?: string }
 
@@ -18,7 +19,7 @@ export function ContentRows({ items }: { items: ContentItem[] }) {
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
           {item.pinned && <span className="rounded border border-sky-300/40 px-2 py-1 text-sky-300">고정</span>}
-          <span className="text-sky-300">{item.category}</span>
+          {item.kind === "research" ? <CategoryTag name={item.category} color={item.categoryColor} /> : <span className="text-sky-300">{item.category}</span>}
           <time dateTime={item.date}>{formatDate(item.date)}</time>
           {item.author && <span>{item.author}</span>}
         </div>

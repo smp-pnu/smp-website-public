@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, test } from "node:test"
 import assert from "node:assert/strict"
 import { normalizeId, safeUrl, sortContent, toContentItem, type NotionPage } from "../lib/content-model"
-import { getContent, getContentBlocks, getContentItem } from "../lib/notion"
+import { getContent, getContentBlocks, getContentItem, loadContent } from "../lib/notion"
 import { GET } from "../app/api/content/[kind]/[id]/file/route"
 
 const id = "11111111-1111-4111-8111-111111111111"
@@ -64,6 +64,40 @@ test("same-day reports use natural title order while newer dates stay first", ()
   const reports = [4, 2, 10, 1].map(number => ({ ...item, id: String(20 - number), title: `2026-2 첫세션 R${number} 리포트` }))
   const sorted = sortContent([...reports, { ...item, id: "newer", title: "R9 새 리포트", date: "2026-02-01" }])
   assert.deepEqual(sorted.map(item => item.title), ["R9 새 리포트", "2026-2 첫세션 R1 리포트", "2026-2 첫세션 R2 리포트", "2026-2 첫세션 R4 리포트", "2026-2 첫세션 R10 리포트"])
+})
+
+test("Notion display order wins over dates and survives filtering without mutating the input", () => {
+  const base = page()
+  const pages = [
+    { id: "11111111111141118111111111111111", order: 3, date: "2026-02-01", color: "red" },
+    { id: "22222222222242228222222222222222", order: null, date: "2026-03-01", color: "yellow" },
+    { id: "33333333333343338333333333333333", order: 0, date: "2026-01-01", color: "green" },
+    { id: "44444444444444448444444444444444", order: 1.5, date: "2026-01-01", color: "blue" },
+  ].map(({ id, order, date, color }) => toContentItem({ ...base, id, properties: {
+    ...base.properties, "표시 순서": { type: "number", number: order },
+    "게시일": { type: "date", date: { start: date } },
+    "분류": { type: "select", select: { name: "분석", color } },
+  } }, "research")!)
+  assert.deepEqual(sortContent(pages).map(item => item.displayOrder), [0, 1.5, 3, undefined])
+  assert.deepEqual(sortContent(pages.filter(item => item.displayOrder !== 1.5)).map(item => item.categoryColor), ["green", "red", "yellow"])
+  assert.deepEqual(pages.map(item => item.displayOrder), [3, undefined, 0, 1.5])
+  assert.equal(toContentItem({ ...base, properties: { ...base.properties, "표시 순서": { type: "number", number: NaN } } }, "research")?.displayOrder, undefined)
+})
+
+test("simultaneous list and detail reads share a query, but later requests see publication changes", async () => {
+  let calls = 0
+  let release!: () => void
+  const gate = new Promise<void>(resolve => { release = resolve })
+  global.fetch = async () => { calls++; await gate; return response([page()]) }
+  const pending = Promise.all([loadContent("research"), getContent("research"), getContentItem("research", id)])
+  assert.equal(calls, 1)
+  release()
+  const results = await pending
+  assert.equal(results[0].items.length, 1)
+  assert.ok(results[2])
+  global.fetch = async () => { calls++; return response([]) }
+  assert.equal(await getContentItem("research", id), null)
+  assert.equal(calls, 2)
 })
 
 test("queries all pages, filters publication, and uses the correct source", async () => {

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, test } from "node:test"
 import assert from "node:assert/strict"
 import { fetchReportCover } from "../lib/report-cover"
 import { GET } from "../app/api/content/research/[id]/cover/route"
+import { coverStore } from "../lib/cover-store"
 
 const originalFetch = global.fetch
 const originalEnv = { ...process.env }
@@ -11,8 +12,22 @@ const imageBytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 0])
 const request = new Request("https://smp.test/api/content/research/cover")
 const params = Promise.resolve({ id })
 beforeEach(() => {
+  delete process.env.BLOB_READ_WRITE_TOKEN
+  delete process.env.BLOB_STORE_ID
   process.env.NOTION_TOKEN = "test-only"
   process.env.NOTION_REPORTS_DATA_SOURCE_ID = "22222222222242228222222222222222"
+})
+
+test("storage failure falls back to Drive without a duplicate publication query", async t => {
+  process.env.BLOB_READ_WRITE_TOKEN = "test-only"
+  t.mock.method(coverStore, "read", async () => { throw new Error("Storage unavailable") })
+  let notionCalls = 0
+  global.fetch = async input => {
+    if (String(input).includes("api.notion.com")) { notionCalls++; return notion() }
+    return new Response(imageBytes)
+  }
+  assert.equal((await GET(request, { params })).status, 200)
+  assert.equal(notionCalls, 1)
 })
 afterEach(() => { global.fetch = originalFetch; process.env = { ...originalEnv } })
 

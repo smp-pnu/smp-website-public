@@ -1,21 +1,6 @@
 import "server-only"
-import { getContent, type ContentResult } from "./notion"
-import { normalizeId, type ContentItem } from "./content-model"
+import { type ContentItem } from "./content-model"
 import { getPdfSources } from "./pdf-source"
-
-// Coalesce simultaneous cover lookups; never retain a publication result after
-// the request completes, so unpublished reports stop serving new covers.
-let pendingReports: Promise<ContentResult> | undefined
-export async function getReportCoverUrl(id: string) {
-  const normalized = normalizeId(id)
-  if (!normalized) return null
-  const pending = pendingReports ??= getContent("research")
-  let result: ContentResult
-  try { result = await pending } finally { if (pendingReports === pending) pendingReports = undefined }
-  if (result.state === "error") throw new Error("Reports unavailable")
-  const item = result.items.find(item => item.id === normalized)
-  return item ? driveCoverUrl(item) : null
-}
 
 export function driveCoverUrl(item: ContentItem) {
   const pdf = getPdfSources(item)[0]

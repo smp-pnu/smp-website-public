@@ -50,7 +50,20 @@ async function notionRequest<T>(path: string, body?: unknown): Promise<T> {
   throw new Error("Notion API unavailable")
 }
 
+// Share simultaneous reads in this server instance, then immediately discard the
+// result. A later request still checks publication changes against Notion.
+const pendingContent = new Map<string, Promise<ContentResult>>()
 export async function loadContent(kind: ContentKind): Promise<ContentResult> {
+  const key = JSON.stringify([kind, process.env.NOTION_TOKEN,
+    kind === "notice" ? process.env.NOTION_NOTICES_DATA_SOURCE_ID : process.env.NOTION_REPORTS_DATA_SOURCE_ID])
+  const existing = pendingContent.get(key)
+  if (existing) return existing
+  const work = queryContent(kind)
+  pendingContent.set(key, work)
+  try { return await work } finally { if (pendingContent.get(key) === work) pendingContent.delete(key) }
+}
+
+async function queryContent(kind: ContentKind): Promise<ContentResult> {
   try {
     const id = sourceId(kind)
     if (!id) return { items: [], state: "unconfigured" }
