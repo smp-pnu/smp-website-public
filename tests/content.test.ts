@@ -83,6 +83,73 @@ test("retired Notion display order does not override publication dates or catego
   assert.deepEqual(pages.map(item => item.categoryColor), ["red", "yellow", "green", "blue"])
 })
 
+function semesterReport(semester: string, order: number | null, title: string, date = "2026-01-01") {
+  const base = page()
+  return toContentItem({ ...base, properties: { ...base.properties,
+    "학기": { type: "rich_text", rich_text: [{ plain_text: semester }] },
+    "학기 내 순서": { type: "number", number: order },
+    "제목": { type: "title", title: [{ plain_text: title }] },
+    "게시일": { type: "date", date: { start: date } },
+  } }, "research")!
+}
+
+test("reports sort by newest semester then local order without changing publication dates", () => {
+  const items = [
+    semesterReport("2026-1", 1, "previous semester", "2026-03-01"),
+    semesterReport("2026-2", 30, "third", "2026-02-01"),
+    semesterReport("2026-2", 10, "first"),
+    semesterReport("2026-2", 15, "inserted between"),
+    semesterReport("2025-2", 1, "previous year"),
+  ]
+  assert.deepEqual(sortContent(items).map(item => item.title), ["first", "inserted between", "third", "previous semester", "previous year"])
+  assert.equal(items[1].date, "2026-02-01")
+  assert.equal(items[2].date, "2026-01-01")
+  assert.equal(items[0].title, "previous semester")
+})
+
+test("missing numbers go last within their semester and missing semesters go last overall", () => {
+  const items = [
+    semesterReport("", 1, "unclassified", "2026-03-01"),
+    semesterReport("2025-2", 10, "older semester"),
+    semesterReport("2026-2", null, "no number"),
+    semesterReport("2026-2", 20, "numbered"),
+  ]
+  assert.deepEqual(sortContent(items).map(item => item.title), ["numbered", "no number", "older semester", "unclassified"])
+})
+
+test("invalid semester or order cannot override valid semester ordering", () => {
+  for (const semester of ["2026", "2026-3", "26-2", "2026-02", "2026-2 extra"]) {
+    assert.equal(semesterReport(semester, 10, "invalid").semester, undefined)
+  }
+  assert.equal(semesterReport(" 2026-2 ", 10, "valid").semester, "2026-2")
+  for (const order of [null, 0, -1, NaN, Infinity]) {
+    assert.equal(semesterReport("2026-2", order, "invalid").semesterOrder, undefined)
+  }
+})
+
+test("equal or missing semester numbers have deterministic date, natural title and ID fallbacks", () => {
+  for (const order of [10, null]) {
+    const base = semesterReport("2026-2", order, "R2")
+    const sorted = sortContent([
+      { ...base, id: "z" }, { ...base, title: "R10" }, { ...base, id: "a" },
+      { ...base, title: "R1" }, { ...base, title: "newest", date: "2026-02-01" },
+    ])
+    assert.deepEqual(sorted.map(item => [item.title, item.id]), [
+      ["newest", base.id], ["R1", base.id], ["R2", "a"], ["R2", "z"], ["R10", base.id],
+    ])
+  }
+})
+
+test("notice publication ordering ignores research-only semester fields", () => {
+  const base = page()
+  const notice = toContentItem({ ...base, properties: { ...base.properties,
+    "학기": { type: "rich_text", rich_text: [{ plain_text: "2026-2" }] },
+    "학기 내 순서": { type: "number", number: 10 },
+  } }, "notice")!
+  assert.equal(notice.semester, undefined)
+  assert.equal(notice.semesterOrder, undefined)
+})
+
 test("100 simultaneous detail reads fetch only that page; later reads see publication changes", async () => {
   let calls = 0
   let release!: () => void

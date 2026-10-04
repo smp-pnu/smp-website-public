@@ -47,6 +47,8 @@ export type ContentItem = {
   categoryColor?: string
   author: string
   pinned: boolean
+  semester?: string
+  semesterOrder?: number
   attachments: { name: string; url: string }[]
   externalUrl: string | null
   editedAt?: string
@@ -85,6 +87,8 @@ export function toContentItem(page: NotionPage, kind: ContentKind, now = Date.no
   const id = normalizeId(page.id)
   const title = plainText(props["제목"]?.title).trim()
   if (!id || !title) return null
+  const semester = plainText(props["학기"]?.rich_text).trim()
+  const semesterOrder = props["학기 내 순서"]?.number
   return {
     id, kind, title, date: date!, editedAt: page.last_edited_time ?? page.created_time,
     summary: plainText(props["요약"]?.rich_text),
@@ -92,6 +96,9 @@ export function toContentItem(page: NotionPage, kind: ContentKind, now = Date.no
     categoryColor: props["분류"]?.select?.color ?? "default",
     author: plainText(props["작성자"]?.rich_text),
     pinned: kind === "notice" && props["상단 고정"]?.checkbox === true,
+    semester: kind === "research" && /^\d{4}-[12]$/.test(semester) ? semester : undefined,
+    semesterOrder: kind === "research" && typeof semesterOrder === "number" && Number.isFinite(semesterOrder) && semesterOrder > 0
+      ? semesterOrder : undefined,
     externalUrl: safeUrl(props["외부 링크"]?.url),
     attachments: (props["첨부파일"]?.files ?? []).flatMap(file => {
       const url = fileUrl(file)
@@ -101,7 +108,14 @@ export function toContentItem(page: NotionPage, kind: ContentKind, now = Date.no
 }
 
 export function sortContent(items: ContentItem[]) {
+  // Scope manual order to a semester. Missing semesters come last; missing
+  // numbers come last within that semester. No per-card Notion reads are needed.
+  const reportOrder = (a: ContentItem, b: ContentItem) => a.kind === "research" && b.kind === "research"
+    ? (b.semester ?? "").localeCompare(a.semester ?? "")
+      || (a.semester ? (a.semesterOrder ?? Infinity) - (b.semesterOrder ?? Infinity) : 0)
+    : 0
   return [...items].sort((a, b) => Number(b.pinned) - Number(a.pinned)
+    || reportOrder(a, b)
     || b.date.localeCompare(a.date)
     || (a.kind === "research" && b.kind === "research" ? a.title.localeCompare(b.title, "ko", { numeric: true }) : 0)
     || a.id.localeCompare(b.id))
