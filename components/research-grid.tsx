@@ -4,7 +4,6 @@ import { contentHref, formatDate, type ContentItem } from "@/lib/content-model"
 import { getPdfSources } from "@/lib/pdf-source"
 import { ResearchGridReveal } from "./research-grid-reveal"
 import { ReportCover } from "./report-cover"
-import { ReportCoverPreview } from "./report-cover-preview"
 import { savedReportCover } from "@/lib/cover-service"
 import { CategoryTag } from "./category-tag"
 import "./research-grid.css"
@@ -23,33 +22,33 @@ export async function ResearchGrid({ items }: { items: ContentItem[] }) {
         pdfUrl: pdf && !isDrive ? `/api/content/research/${item.id}/pdf?${pdf.query}` : undefined,
       }
       return <li key={item.id} className="research-grid-item">
-        <article className="research-card group relative flex h-full flex-col">
+        <Link prefetch={false} href={contentHref(item)} className="research-card">
           <div className="research-card-frame">
             <div className="research-card-cover">
               <ReportCover key={`${item.id}:${item.editedAt}:${covers[index]?.url}`} {...cover} eager={index < 4} />
             </div>
-            <span aria-hidden="true" className="research-card-edition">{semesterTitle?.[1]}{semesterTitle && pdf ? " / " : ""}{pdf ? "PDF" : ""}</span>
-            {pdf && <ReportCoverPreview key={`${item.id}:${item.editedAt}:${covers[index]?.url}`} {...cover} href={contentHref(item)} />}
           </div>
-          <div className="research-card-info flex flex-1 flex-col pt-5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <CategoryTag name={item.category} color={item.categoryColor} />
-              <time dateTime={item.date} className="text-[11px] tabular-nums tracking-wide text-slate-400">{formatDate(item.date)}</time>
-            </div>
-            <h2 className="mt-3 line-clamp-2 break-words text-xl font-medium leading-7 tracking-tight text-white">
-              <Link prefetch={false} href={contentHref(item)} className="research-card-link">
-                {semesterTitle ? <><span className="sr-only">[{semesterTitle[1]}] </span>{semesterTitle[2]}</> : item.title}
-              </Link>
-            </h2>
-            {item.summary && <p className="mt-2 line-clamp-2 break-words text-sm leading-6 text-slate-400">{item.summary}</p>}
-            <div className="mt-auto flex items-center justify-between gap-3 pt-4 pb-4">
-              <p className="min-w-0 break-words text-[15px] font-medium leading-6 text-slate-300">{item.author}</p>
-              <span className="research-card-action flex shrink-0 items-center gap-2 text-xs text-slate-400">
-                리포트 읽기<ArrowUpRight aria-hidden="true" className="research-card-arrow h-4 w-4" strokeWidth={1.5} />
-              </span>
+          <div className="research-card-details">
+            <div className="research-card-details-track">
+              <div className="research-card-info">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <CategoryTag name={item.category} color={item.categoryColor} />
+                  <time dateTime={item.date} className="text-[11px] tabular-nums tracking-wide text-slate-400">{formatDate(item.date)}</time>
+                </div>
+                <h2 className="mt-3 line-clamp-2 break-words text-xl font-medium leading-7 tracking-tight text-white">
+                  {semesterTitle ? <><span className="research-card-semester">[{semesterTitle[1]}] </span>{semesterTitle[2]}</> : item.title}
+                </h2>
+                {item.summary && <p className="mt-2 line-clamp-2 break-words text-sm leading-6 text-slate-400">{item.summary}</p>}
+                <div className="flex items-center justify-between gap-3 pt-4">
+                  <p className="min-w-0 break-words text-[15px] font-medium leading-6 text-slate-300">{item.author}</p>
+                  <span className="research-card-action flex shrink-0 items-center gap-2 text-xs text-slate-400">
+                    리포트 읽기<ArrowUpRight aria-hidden="true" className="research-card-arrow h-4 w-4" strokeWidth={1.5} />
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-        </article>
+        </Link>
       </li>
     })}
   </ResearchGridReveal>
