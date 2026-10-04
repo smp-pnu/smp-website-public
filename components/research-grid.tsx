@@ -14,7 +14,6 @@ export async function ResearchGrid({ items }: { items: ContentItem[] }) {
     {items.map((item, index) => {
       const pdf = getPdfSources(item)[0]
       const isDrive = pdf && new URL(pdf.url).hostname === "drive.usercontent.google.com"
-      const semesterTitle = /^\[(\d{4}-[12])\]\s*(.+)$/.exec(item.title)
       const cover = {
         title: item.title,
         imageUrl: covers[index]?.url ?? (isDrive ? `/api/content/research/${item.id}/cover` : undefined),
@@ -34,7 +33,7 @@ export async function ResearchGrid({ items }: { items: ContentItem[] }) {
               <time dateTime={item.date} className="text-[11px] tabular-nums tracking-wide text-slate-400">{formatDate(item.date)}</time>
             </div>
             <h2 className="mt-3 line-clamp-2 break-words text-xl font-medium leading-7 tracking-tight text-white">
-              {semesterTitle ? <><span className="research-card-semester">[{semesterTitle[1]}] </span>{semesterTitle[2]}</> : item.title}
+              {item.title}
             </h2>
             {item.summary && <p className="mt-2 line-clamp-2 break-words text-sm leading-6 text-slate-400">{item.summary}</p>}
             <div className="flex items-center justify-between gap-3 pt-4">
