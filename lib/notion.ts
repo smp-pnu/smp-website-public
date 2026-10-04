@@ -1,5 +1,7 @@
 import "server-only"
 import { cache } from "react"
+import { notionRequest } from "./notion-request"
+import { applySavedResearchOrder } from "./research-order-service"
 import { normalizeId, sortContent, toContentItem, type ContentItem, type ContentKind, type NotionFile, type NotionPage, type RichText } from "./content-model"
 
 type ListResponse<T> = { results: T[]; has_more: boolean; next_cursor: string | null }
@@ -22,32 +24,6 @@ function sourceId(kind: ContentKind) {
   const id = normalizeId(value.trim())
   if (!id) throw new Error("Invalid Notion data source ID")
   return id
-}
-
-async function notionRequest<T>(path: string, body?: unknown): Promise<T> {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const response = await fetch(`https://api.notion.com/v1/${path}`, {
-      method: body ? "POST" : "GET",
-      headers: {
-        Authorization: `Bearer ${process.env.NOTION_TOKEN}`,
-        "Notion-Version": "2025-09-03",
-        "Content-Type": "application/json",
-      },
-      body: body ? JSON.stringify(body) : undefined,
-      // Revoked publications and expiring file URLs must not persist in a cache.
-      cache: "no-store",
-      signal: AbortSignal.timeout(10_000),
-    })
-    if (response.ok) return response.json() as Promise<T>
-    if ((response.status === 429 || response.status >= 500) && attempt < 2) {
-      const retry = Number(response.headers.get("retry-after") ?? 1)
-      await new Promise(resolve => setTimeout(resolve, Math.min(3, Math.max(1, Number.isFinite(retry) ? retry : 1)) * 1000))
-      continue
-    }
-    // Do not include Notion response bodies, content or secrets in logs/errors.
-    throw new Error(`Notion API returned ${response.status}`)
-  }
-  throw new Error("Notion API unavailable")
 }
 
 // Share simultaneous reads in this server instance, then immediately discard the
@@ -89,12 +65,17 @@ async function queryContent(kind: ContentKind): Promise<ContentResult> {
     return { items: [], state: "error" }
   }
 }
-export const getContent = cache(loadContent)
+const getUnorderedContent = cache(loadContent)
+export const getContent = cache(async (kind: ContentKind): Promise<ContentResult> => {
+  const result = await getUnorderedContent(kind)
+  return kind === "research" && result.state === "ready"
+    ? { ...result, items: await applySavedResearchOrder(result.items) } : result
+})
 
 export const getContentItem = cache(async (kind: ContentKind, rawId: string) => {
   const id = normalizeId(rawId)
   if (!id) return null
-  const result = await getContent(kind)
+  const result = await getUnorderedContent(kind)
   if (result.state === "error") throw new Error("콘텐츠를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.")
   return result.items.find(item => item.id === id) ?? null
 })
