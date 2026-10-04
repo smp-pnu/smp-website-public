@@ -41,18 +41,18 @@
   padding: 18px 16px 16px;
   border-bottom: 1px solid rgb(255 255 255 / .18);
   background: #111820;
-  box-shadow: 0 -10px 24px rgb(0 0 0 / .14);
-  transition: transform 350ms var(--card-ease), border-color 250ms ease;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  transition: transform 500ms cubic-bezier(.25, .1, .25, 1), border-color 250ms ease;
 }
 .research-card-semester { color: #94a3b8; font-size: 12px; font-weight: 400; }
 .research-card-action { transition: color 250ms ease; }
 .research-card-arrow { transition: transform 350ms ease; }
-.research-card:focus-visible .research-card-info { transform: translateY(60px); box-shadow: none; }
+.research-card:focus-visible .research-card-info { transform: translate3d(0, 60px, 0); }
 .research-card:focus-visible .research-card-action { color: #bae6fd; }
 @media (hover: hover) and (pointer: fine) {
   .research-card:hover .research-card-info {
-    transform: translateY(60px);
-    box-shadow: none;
+    transform: translate3d(0, 60px, 0);
     border-color: rgb(186 230 253 / .45);
   }
   .research-card:hover .research-card-frame { border-color: rgb(255 255 255 / .25); }
@@ -68,4 +68,5 @@
   .research-card-frame, .research-card-cover, .research-card-info,
   .research-card-action, .research-card-arrow { transition: none; }
   .research-card-cover, .research-card-arrow { transform: none !important; }
+  .research-card-info { will-change: auto; }
 }
