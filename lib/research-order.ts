@@ -84,12 +84,18 @@ export async function saveResearchOrder(store: CoverStore, pageId: string, loadI
     // Read the version before fetching Notion. If another worker wins, fetch
     // both again instead of overwriting its newer order with a delayed event.
     const previous = await readResearchOrder(store, pageId)
+    // Public Blob get(useCache:false) still uses its CDN. A -> B -> A edits
+    // must not be mistaken for an unchanged A from that stale delivery cache.
+    const etag = store.version ? await store.version(orderPath(pageId)) : previous.etag
     const keys = [...new Set((await loadIds()).map(orderKey))]
     if (keys.length > maxEntries) throw new Error("Research order supports up to 250 references")
-    if (previous.order && JSON.stringify(previous.order.keys) === JSON.stringify(keys)) return { order: previous.order, changed: false }
+    if (previous.order && previous.etag === etag && JSON.stringify(previous.order.keys) === JSON.stringify(keys)) {
+      if (store.version && await store.version(orderPath(pageId)) !== etag) continue
+      return { order: previous.order, changed: false }
+    }
     const order: ResearchOrder = { version: 1, keys, savedAt: new Date().toISOString() }
     try {
-      await store.write(orderPath(pageId), Buffer.from(JSON.stringify(order)), "application/json", { etag: previous.etag })
+      await store.write(orderPath(pageId), Buffer.from(JSON.stringify(order)), "application/json", { etag })
       return { order, changed: true }
     } catch (error) {
       if (attempt === 2) throw error

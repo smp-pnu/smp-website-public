@@ -1,9 +1,12 @@
 import "server-only"
-import { get, put, list, del } from "@vercel/blob"
+import { get, put, list, del, head, BlobNotFoundError } from "@vercel/blob"
 
 export type StoredValue = { bytes: Uint8Array; etag: string }
 export interface CoverStore {
   read(path: string): Promise<StoredValue | null>
+  // Control-plane metadata bypasses the public delivery cache when a writer
+  // needs the current version. Ordinary cover/list reads do not call this.
+  version?(path: string): Promise<string | undefined>
   write(path: string, bytes: Uint8Array, type: string, options?: { etag?: string; immutable?: boolean }): Promise<string>
   remove(paths: string[]): Promise<void>
   paths(prefix: string, olderThan?: Date): Promise<string[]>
@@ -14,6 +17,10 @@ export function coverStorageEnabled() {
 }
 
 export const coverStore: CoverStore = {
+  async version(path) {
+    try { return (await head(path, { abortSignal: AbortSignal.timeout(8_000) })).etag }
+    catch (error) { if (error instanceof BlobNotFoundError) return undefined; throw error }
+  },
   async read(path) {
     const result = await get(path, { access: "public", useCache: false, abortSignal: AbortSignal.timeout(8_000) })
     if (!result || result.statusCode !== 200) return null

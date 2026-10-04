@@ -20,6 +20,7 @@ class MemoryStore implements CoverStore {
   values = new Map<string, StoredValue>()
   writes = 0
   async read(path: string) { return this.values.get(path) ?? null }
+  async version(path: string) { return this.values.get(path)?.etag }
   async write(path: string, bytes: Uint8Array, _type: string, options: { etag?: string } = {}) {
     if (this.values.get(path)?.etag !== options.etag) throw new Error("Precondition failed")
     this.values.set(path, { bytes, etag: String(++this.writes) })
@@ -32,7 +33,8 @@ const originalFetch = global.fetch
 const originalEnv = { ...process.env }
 const originalRead = coverStore.read
 const originalWrite = coverStore.write
-afterEach(() => { global.fetch = originalFetch; process.env = { ...originalEnv }; coverStore.read = originalRead; coverStore.write = originalWrite })
+const originalVersion = coverStore.version
+afterEach(() => { global.fetch = originalFetch; process.env = { ...originalEnv }; coverStore.read = originalRead; coverStore.write = originalWrite; coverStore.version = originalVersion })
 
 test("flat report references accept mentions and Notion page links, ignore external URLs, instructions, nested and duplicate references", () => {
   assert.deepEqual(reportIdsFromBlocks([
@@ -83,6 +85,19 @@ test("a delayed concurrent event re-fetches Notion after losing the conditional 
   await slow
   assert.equal(reads, 2)
   assert.deepEqual((await readResearchOrder(store, pageId)).order!.keys, [c, a, b].map(orderKey))
+})
+
+test("restoring an earlier order succeeds even while the public CDN still serves that old snapshot", async () => {
+  const store = new MemoryStore()
+  await saveResearchOrder(store, pageId, async () => [a, b])
+  const stale = await store.read(orderPath(pageId))
+  await saveResearchOrder(store, pageId, async () => [b, a])
+  store.read = async () => stale
+  const restored = await saveResearchOrder(store, pageId, async () => [a, b])
+  assert.equal(restored.changed, true)
+  assert.equal(store.writes, 3)
+  const latest = JSON.parse(Buffer.from(store.values.get(orderPath(pageId))!.bytes).toString())
+  assert.deepEqual(latest.keys, [a, b].map(orderKey))
 })
 
 test("ordering page pagination is shallow and archived sources fail closed", async () => {
@@ -150,6 +165,7 @@ test("order writes require admin authentication or a signed webhook for the conf
   const store = new MemoryStore()
   coverStore.read = path => store.read(path)
   coverStore.write = (...args) => store.write(...args)
+  coverStore.version = path => store.version(path)
   global.fetch = async input => {
     assert.ok(!String(input).includes("data_sources"), "An order edit must not regenerate covers or query reports")
     return Response.json(String(input).includes("/pages/") ? { archived: false } : { results: [numbered(a)], has_more: false })
