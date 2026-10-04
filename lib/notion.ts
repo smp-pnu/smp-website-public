@@ -1,7 +1,6 @@
 import "server-only"
 import { cache } from "react"
 import { notionPages } from "./notion-request"
-import { applySavedResearchOrder } from "./research-order-service"
 import { normalizeId, sortContent, toContentItem, type ContentItem, type ContentKind, type NotionFile, type NotionPage, type RichText } from "./content-model"
 
 type BlockValue = NotionFile & {
@@ -56,17 +55,12 @@ async function queryContent(kind: ContentKind): Promise<ContentResult> {
     return { items: [], state: "error" }
   }
 }
-const getUnorderedContent = cache(loadContent)
-export const getContent = cache(async (kind: ContentKind): Promise<ContentResult> => {
-  const result = await getUnorderedContent(kind)
-  return kind === "research" && result.state === "ready"
-    ? { ...result, items: await applySavedResearchOrder(result.items) } : result
-})
+export const getContent = cache(loadContent)
 
 export const getContentItem = cache(async (kind: ContentKind, rawId: string) => {
   const id = normalizeId(rawId)
   if (!id) return null
-  const result = await getUnorderedContent(kind)
+  const result = await getContent(kind)
   if (result.state === "error") throw new Error("콘텐츠를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.")
   return result.items.find(item => item.id === id) ?? null
 })

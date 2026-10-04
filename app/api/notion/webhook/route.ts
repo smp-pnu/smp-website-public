@@ -2,8 +2,6 @@ import { coverStore, coverStorageEnabled } from "@/lib/cover-store"
 import { syncReportCover } from "@/lib/cover-service"
 import { authorizedSync, limitedBody, openToken, sealToken, validNotionSignature } from "@/lib/webhook-security"
 import { pdfHeaders } from "@/lib/pdf-response"
-import { normalizeId } from "@/lib/content-model"
-import { researchOrderPageId, syncResearchOrder } from "@/lib/research-order-service"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -29,10 +27,6 @@ export async function POST(request: Request) {
     if (!validNotionSignature(raw, request.headers.get("x-notion-signature"), token)) return reply({ error: "Invalid signature" }, 401)
     if (!coverStorageEnabled()) return reply({ error: "Storage unavailable" }, 503)
     if (event.entity?.type !== "page" || typeof event.entity?.id !== "string" || !/^page\./.test(event.type)) return reply({ ignored: true })
-    if (researchOrderPageId() && normalizeId(event.entity.id) === researchOrderPageId()) {
-      const order = await syncResearchOrder()
-      return reply({ received: true, order })
-    }
     // Fetch current source-scoped content; delayed/duplicate events cannot
     // republish an old state. Failures return 503 so Notion can retry.
     const cover = await syncReportCover(event.entity.id, true)

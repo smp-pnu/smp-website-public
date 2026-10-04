@@ -66,7 +66,7 @@ test("same-day reports use natural title order while newer dates stay first", ()
   assert.deepEqual(sorted.map(item => item.title), ["R9 새 리포트", "2026-2 첫세션 R1 리포트", "2026-2 첫세션 R2 리포트", "2026-2 첫세션 R4 리포트", "2026-2 첫세션 R10 리포트"])
 })
 
-test("Notion display order wins over dates and survives filtering without mutating the input", () => {
+test("retired Notion display order does not override publication dates or category colors", () => {
   const base = page()
   const pages = [
     { id: "11111111111141118111111111111111", order: 3, date: "2026-02-01", color: "red" },
@@ -78,10 +78,9 @@ test("Notion display order wins over dates and survives filtering without mutati
     "게시일": { type: "date", date: { start: date } },
     "분류": { type: "select", select: { name: "분석", color } },
   } }, "research")!)
-  assert.deepEqual(sortContent(pages).map(item => item.displayOrder), [0, 1.5, 3, undefined])
-  assert.deepEqual(sortContent(pages.filter(item => item.displayOrder !== 1.5)).map(item => item.categoryColor), ["green", "red", "yellow"])
-  assert.deepEqual(pages.map(item => item.displayOrder), [3, undefined, 0, 1.5])
-  assert.equal(toContentItem({ ...base, properties: { ...base.properties, "표시 순서": { type: "number", number: NaN } } }, "research")?.displayOrder, undefined)
+  assert.deepEqual(sortContent(pages).map(item => item.categoryColor), ["yellow", "red", "green", "blue"])
+  assert.deepEqual(sortContent(pages.filter(item => item.categoryColor !== "blue")).map(item => item.date), ["2026-03-01", "2026-02-01", "2026-01-01"])
+  assert.deepEqual(pages.map(item => item.categoryColor), ["red", "yellow", "green", "blue"])
 })
 
 test("simultaneous list and detail reads share a query, but later requests see publication changes", async () => {
