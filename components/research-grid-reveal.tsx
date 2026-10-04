@@ -25,5 +25,5 @@ export function ResearchGridReveal({ children }: { children: ReactNode }) {
       cards.forEach(card => { card.removeAttribute("data-reveal"); card.removeAttribute("data-visible") })
     }
   }, [])
-  return <ul ref={list} data-card-grid aria-label="리포트 목록" className="grid grid-cols-1 gap-x-7 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">{children}</ul>
+  return <ul ref={list} data-card-grid aria-label="리포트 목록" className="grid grid-cols-1 gap-x-7 sm:grid-cols-2 lg:grid-cols-4">{children}</ul>
 }

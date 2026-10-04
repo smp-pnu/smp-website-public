@@ -164,3 +164,22 @@ test("temporary Notion rate limiting retries successfully", async () => {
   assert.equal((await getContent("notice")).items.length, 1)
   assert.equal(calls, 2)
 })
+
+test("repeated Notion cursors stop list and block reads without returning partial content", async () => {
+  for (const kind of ["list", "blocks"]) {
+    let calls = 0
+    global.fetch = async () => {
+      if (++calls > 2) throw new Error("Repeated cursor was not stopped")
+      return response(kind === "list" ? [page()] : [{ id: "block", type: "paragraph" }], true, "same-cursor")
+    }
+    if (kind === "list") assert.deepEqual(await loadContent("notice"), { items: [], state: "error" })
+    else await assert.rejects(getContentBlocks(id), /Invalid Notion pagination/)
+    assert.equal(calls, 2)
+  }
+})
+
+test("a missing next cursor fails rather than silently dropping the rest of a page", async () => {
+  global.fetch = async () => response([page()], true, null)
+  assert.deepEqual(await loadContent("notice"), { items: [], state: "error" })
+  await assert.rejects(getContentBlocks(id), /Invalid Notion pagination/)
+})

@@ -7,7 +7,7 @@ import { FileText } from "lucide-react"
 
 const PdfCoverCanvas = dynamic(() => import("./pdf-cover-canvas"), { ssr: false })
 
-export type ReportCoverProps = {
+type ReportCoverProps = {
   title: string; imageUrl?: string; fallbackUrl?: string; pdfUrl?: string; eager?: boolean
 }
 

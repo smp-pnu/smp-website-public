@@ -1,7 +1,7 @@
 import "server-only"
 import { normalizeId, type ContentItem } from "./content-model"
 import { coverStore, coverStorageEnabled } from "./cover-store"
-import { notionRequest } from "./notion-request"
+import { notionPages, notionRequest } from "./notion-request"
 import { applyResearchOrder, readResearchOrder, reportIdsFromBlocks, saveResearchOrder, type OrderBlock, type ResearchOrder } from "./research-order"
 
 export function researchOrderPageId() {
@@ -12,17 +12,10 @@ export async function readOrderPageIds(pageId: string) {
   const page = await notionRequest<{ archived?: boolean; in_trash?: boolean }>(`pages/${pageId}`)
   if (page.archived || page.in_trash) throw new Error("Research order page is archived")
   const blocks: OrderBlock[] = []
-  let cursor: string | null = null
-  const cursors = new Set<string>()
-  do {
-    const query = new URLSearchParams({ page_size: "100", ...(cursor ? { start_cursor: cursor } : {}) })
-    const response: { results: OrderBlock[]; has_more: boolean; next_cursor: string | null } = await notionRequest(`blocks/${pageId}/children?${query}`)
-    blocks.push(...response.results)
+  for await (const batch of notionPages<OrderBlock>(`blocks/${pageId}/children`)) {
+    blocks.push(...batch)
     if (blocks.length > 1000) throw new Error("Research order page is too large")
-    if (response.has_more && (!response.next_cursor || cursors.has(response.next_cursor))) throw new Error("Invalid order page pagination")
-    cursor = response.has_more ? response.next_cursor : null
-    if (cursor) cursors.add(cursor)
-  } while (cursor)
+  }
   return reportIdsFromBlocks(blocks)
 }
 

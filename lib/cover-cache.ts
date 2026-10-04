@@ -59,10 +59,13 @@ export async function prepareCover(options: {
   if (!key) return null
   const previous = await readCover(store, item.id)
   if (!options.force && currentCover(previous.cover, item)) return previous.cover
+  const prefix = coverPrefix(item.id)
+  // The public CDN can still serve an older current.json. Capture the actual
+  // storage version before doing Drive/Notion work, as with ordering snapshots.
+  const etag = store.version ? await store.version(`${prefix}current.json`) : previous.etag
   const image = await encodeCover(await options.fetchImage())
   const latest = await options.latestItem()
   if (!latest || sourceKey(latest) !== key || latest.editedAt !== item.editedAt) return null
-  const prefix = coverPrefix(item.id)
   let url = previous.cover?.hash === image.hash ? previous.cover.url : undefined
   if (!url) {
     try { url = await store.write(`${prefix}${image.hash}.webp`, image.data, "image/webp", { immutable: true }) }
@@ -75,12 +78,12 @@ export async function prepareCover(options: {
   }
   const cover: SavedCover = { version: 1, sourceKey: key, editedAt: item.editedAt ?? "", hash: image.hash, url,
     width: image.width, height: image.height, bytes: image.data.length }
-  if (JSON.stringify(cover) !== JSON.stringify(previous.cover)) {
+  if (previous.etag !== etag || JSON.stringify(cover) !== JSON.stringify(previous.cover)) {
     try {
-      await store.write(`${prefix}current.json`, new TextEncoder().encode(JSON.stringify(cover)), "application/json", { etag: previous.etag })
+      await store.write(`${prefix}current.json`, new TextEncoder().encode(JSON.stringify(cover)), "application/json", { etag })
     } catch (error) {
-      const concurrent = (await readCover(store, item.id)).cover
-      if (currentCover(concurrent, item)) return concurrent
+      const concurrent = await readCover(store, item.id)
+      if (currentCover(concurrent.cover, item) && (!store.version || await store.version(`${prefix}current.json`) === concurrent.etag)) return concurrent.cover
       throw error
     }
   }

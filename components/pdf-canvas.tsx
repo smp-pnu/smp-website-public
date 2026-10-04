@@ -1,18 +1,11 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Document, Page, pdfjs } from "react-pdf"
+import { Document, Page } from "react-pdf"
+import { pdfOptions } from "./pdf-config"
 import "react-pdf/dist/Page/TextLayer.css"
 import "react-pdf/dist/Page/AnnotationLayer.css"
 
-pdfjs.GlobalWorkerOptions.workerSrc = `/pdfjs/${pdfjs.version}/pdf.worker.min.mjs`
-const options = {
-  cMapUrl: `/pdfjs/${pdfjs.version}/cmaps/`,
-  standardFontDataUrl: `/pdfjs/${pdfjs.version}/standard_fonts/`,
-  wasmUrl: `/pdfjs/${pdfjs.version}/wasm/`,
-  isEvalSupported: false,
-  disableRange: true,
-}
 const buttonClass = "rounded border border-white/25 px-3 py-2 text-sm text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-2 focus-visible:outline-sky-300"
 
 export default function PdfCanvas({ url }: { url: string }) {
@@ -62,7 +55,7 @@ export default function PdfCanvas({ url }: { url: string }) {
       </label>
     </div>
     <div ref={viewport} tabIndex={0} aria-label="PDF 문서" className="overflow-x-auto bg-slate-800">
-      {width > 0 && <Document key={attempt} file={url} options={options} suspense={false}
+      {width > 0 && <Document key={attempt} file={url} options={pdfOptions} suspense={false}
         loading={failed ? error : <p role="status" className="p-6 text-sm text-slate-200">PDF를 불러오고 있습니다…</p>}
         error={error} onLoadError={() => setFailed(true)} onLoadSuccess={pdf => { setPages(pdf.numPages); setFailed(false) }}
         onPassword={() => setFailed(true)} externalLinkTarget="_blank" onItemClick={({ pageNumber }) => { if (pageNumber) navigate(pageNumber) }}>

@@ -95,3 +95,21 @@ test("duplicate publication events converge to a single reusable image", async (
   assert.equal(results[0]!.url, results[1]!.url)
   assert.equal(store.values.size, 2)
 })
+
+test("cover refresh uses the current storage version when CDN metadata is stale", async () => {
+  const store = new MemoryStore()
+  const versionedStore: CoverStore = Object.assign(store, {
+    async version(path: string) { return store.values.get(path)?.etag },
+  })
+  const options = { store: versionedStore, item, latestItem: async () => item }
+  const first = await prepareCover({ ...options, fetchImage: () => png() })
+  const path = `${coverPrefix(item.id)}current.json`
+  const stale = store.values.get(path)!
+  await prepareCover({ ...options, force: true, fetchImage: () => png("red") })
+  store.read = async name => name === path ? stale : store.values.get(name) ?? null
+  // The source returns to A while the CDN also still shows A. Storage is B;
+  // comparing the image alone would incorrectly skip the write.
+  const restored = await prepareCover({ ...options, force: true, fetchImage: () => png() })
+  assert.equal(restored!.url, first!.url)
+  assert.equal(JSON.parse(Buffer.from(store.values.get(path)!.bytes).toString()).url, first!.url)
+})

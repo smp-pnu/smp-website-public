@@ -28,7 +28,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const query = typeof raw === "string" ? raw.trim().slice(0, 100) : ""
   const terms = query.toLocaleLowerCase().split(/\s+/).filter(Boolean)
   const content = terms.length ? await Promise.all([getContent("notice"), getContent("research")]) : []
-  const contentEntries = content.flatMap(result => result.items.map(item => ({ title: item.title, text: `${item.category} · ${item.summary} · ${item.author}`, href: contentHref(item) })))
+  const contentEntries = content.flatMap(result => result.items.map(item => ({ title: item.title, text: [item.category, item.summary, item.author].filter(Boolean).join(" · "), href: contentHref(item) })))
   const results = terms.length ? [...contentEntries, ...entries].filter(item => terms.every(term => `${item.title} ${item.text}`.toLocaleLowerCase().includes(term))) : []
   return <><SiteHeader /><main className="relative z-10 mx-auto min-h-[75svh] max-w-4xl px-6 py-20">
     <h1 className="text-4xl font-light text-white">SEARCH</h1>
@@ -40,6 +40,6 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     <p className="mt-8 text-sm text-slate-300">{query ? `“${query}” 검색 결과 ${results.length}건` : "검색어를 입력해주세요."}</p>
     {content.some(result => result.state === "error") && <p role="status" className="mt-3 text-sm text-slate-300">공지·리포트 검색 결과 일부를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</p>}
     {query && !results.length && <p className="mt-8 text-slate-300">검색 결과가 없습니다. 다른 검색어로 검색해보세요.</p>}
-    <ul className="mt-8 divide-y divide-white/20">{results.map((item, index) => <li key={`${item.href}-${index}`} className="py-6"><Link href={item.href} className="block rounded-sm focus-visible:outline-2 focus-visible:outline-sky-300"><h2 className="text-xl font-normal text-white hover:text-sky-300">{item.title}</h2><p className="mt-2 text-sm leading-relaxed text-slate-300">{item.text}</p></Link></li>)}</ul>
+    <ul className="mt-8 divide-y divide-white/20">{results.map((item, index) => <li key={`${item.href}-${index}`} className="py-6"><Link prefetch={false} href={item.href} className="block rounded-sm focus-visible:outline-2 focus-visible:outline-sky-300"><h2 className="text-xl font-normal text-white hover:text-sky-300">{item.title}</h2><p className="mt-2 text-sm leading-relaxed text-slate-300">{item.text}</p></Link></li>)}</ul>
   </main><SiteFooter /></>
 }

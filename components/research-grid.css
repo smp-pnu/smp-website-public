@@ -10,12 +10,16 @@
   transform: none;
 }
 .research-card {
-  --card-ease: cubic-bezier(.22, 1, .36, 1);
   display: block;
   position: relative;
 }
 .research-card:focus-visible { outline: 2px solid #bae6fd; outline-offset: 6px; }
-[data-card-grid] { row-gap: 108px; }
+[data-card-grid] {
+  --cover-overlap: 60px;
+  row-gap: calc(48px + var(--cover-overlap));
+  /* Reserve the last row's motion too, before pagination or the footer. */
+  padding-bottom: var(--cover-overlap);
+}
 .research-card-frame {
   position: relative;
   aspect-ratio: 210 / 297;
@@ -31,13 +35,9 @@
   left: 0;
   width: 100%;
 }
-.research-card-details {
-  position: relative;
-  margin-top: -60px;
-}
-.research-card-details-track { min-height: 0; }
 .research-card-info {
   position: relative;
+  margin-top: calc(-1 * var(--cover-overlap));
   padding: 18px 16px 16px;
   border-bottom: 1px solid rgb(255 255 255 / .18);
   background: #111820;
@@ -48,11 +48,11 @@
 .research-card-semester { color: #94a3b8; font-size: 12px; font-weight: 400; }
 .research-card-action { transition: color 250ms ease; }
 .research-card-arrow { transition: transform 350ms ease; }
-.research-card:focus-visible .research-card-info { transform: translate3d(0, 60px, 0); }
+.research-card:focus-visible .research-card-info { transform: translate3d(0, var(--cover-overlap), 0); }
 .research-card:focus-visible .research-card-action { color: #bae6fd; }
 @media (hover: hover) and (pointer: fine) {
   .research-card:hover .research-card-info {
-    transform: translate3d(0, 60px, 0);
+    transform: translate3d(0, var(--cover-overlap), 0);
     border-color: rgb(186 230 253 / .45);
   }
   .research-card:hover .research-card-frame { border-color: rgb(255 255 255 / .25); }
@@ -65,8 +65,8 @@
     transform: none;
     transition: none;
   }
-  .research-card-frame, .research-card-cover, .research-card-info,
+  .research-card-frame, .research-card-info,
   .research-card-action, .research-card-arrow { transition: none; }
-  .research-card-cover, .research-card-arrow { transform: none !important; }
+  .research-card-arrow { transform: none; }
   .research-card-info { will-change: auto; }
 }

@@ -4,6 +4,7 @@ import { loadContent } from "./notion"
 import { coverStore, coverStorageEnabled } from "./cover-store"
 import { coverPrefix, currentCover, prepareCover, readCover, type SavedCover } from "./cover-cache"
 import { driveCoverUrl, fetchReportCover } from "./report-cover"
+import { createSavedCoverReader } from "./saved-cover-reader"
 
 async function latestReport(id: string) {
   const result = await loadContent("research")
@@ -11,11 +12,11 @@ async function latestReport(id: string) {
   return result.items.find(item => item.id === id) ?? null
 }
 
+const readSavedCover = createSavedCoverReader(coverStore)
 export async function savedReportCover(item: ContentItem) {
   if (!coverStorageEnabled() || !driveCoverUrl(item)) return null
   try {
-    const { cover } = await readCover(coverStore, item.id)
-    return currentCover(cover, item) ? cover : null
+    return await readSavedCover(item)
   } catch { return null }
 }
 

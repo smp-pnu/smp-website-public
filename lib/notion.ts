@@ -1,10 +1,9 @@
 import "server-only"
 import { cache } from "react"
-import { notionRequest } from "./notion-request"
+import { notionPages } from "./notion-request"
 import { applySavedResearchOrder } from "./research-order-service"
 import { normalizeId, sortContent, toContentItem, type ContentItem, type ContentKind, type NotionFile, type NotionPage, type RichText } from "./content-model"
 
-type ListResponse<T> = { results: T[]; has_more: boolean; next_cursor: string | null }
 type BlockValue = NotionFile & {
   rich_text?: RichText[]; caption?: RichText[]; url?: string; language?: string
   checked?: boolean; cells?: RichText[][]; has_column_header?: boolean; has_row_header?: boolean
@@ -44,17 +43,9 @@ async function queryContent(kind: ContentKind): Promise<ContentResult> {
     const id = sourceId(kind)
     if (!id) return { items: [], state: "unconfigured" }
     const pages: NotionPage[] = []
-    let cursor: string | null = null
-    do {
-      const response: ListResponse<NotionPage> = await notionRequest(`data_sources/${id}/query`, {
-        page_size: 100,
-        filter: { property: "공개", checkbox: { equals: true } },
-        ...(cursor ? { start_cursor: cursor } : {}),
-      })
-      pages.push(...response.results)
-      if (response.has_more && !response.next_cursor) throw new Error("Invalid Notion pagination")
-      cursor = response.has_more ? response.next_cursor : null
-    } while (cursor)
+    for await (const batch of notionPages<NotionPage>(`data_sources/${id}/query`, {
+      filter: { property: "공개", checkbox: { equals: true } },
+    })) pages.push(...batch)
     const items = pages.flatMap(page => {
       const item = toContentItem(page, kind)
       return item ? [item] : []
@@ -86,17 +77,12 @@ const childTypes = new Set(["paragraph", "heading_1", "heading_2", "heading_3", 
 export async function getContentBlocks(id: string, depth = 0): Promise<ContentBlock[]> {
   if (depth > 8) throw new Error("Content nesting exceeds the supported depth")
   const blocks: ContentBlock[] = []
-  let cursor: string | null = null
-  do {
-    const query = new URLSearchParams({ page_size: "100", ...(cursor ? { start_cursor: cursor } : {}) })
-    const response: ListResponse<ContentBlock> = await notionRequest(`blocks/${id}/children?${query}`)
-    for (const block of response.results) {
+  for await (const batch of notionPages<ContentBlock>(`blocks/${id}/children`)) {
+    for (const block of batch) {
       if (block.archived || block.in_trash) continue
       if (block.has_children && childTypes.has(block.type)) block.children = await getContentBlocks(block.id, depth + 1)
       blocks.push(block)
     }
-    if (response.has_more && !response.next_cursor) throw new Error("Invalid Notion pagination")
-    cursor = response.has_more ? response.next_cursor : null
-  } while (cursor)
+  }
   return blocks
 }
