@@ -56,7 +56,7 @@ export function HomeBackground() {
         <div className="absolute inset-0 bg-gradient-to-br from-[#0a1424] via-[#0f2038] to-[#0a1424]" />
       )}
       {/* One neutral black overlay shared across the entire home page. */}
-      {!isHome && <div className={`absolute inset-0 ${pathname === "/recruit" ? "bg-black/65" : "bg-black/70"}`} />}
+      {!isHome && <div className={`absolute inset-0 ${pathname === "/research" ? "bg-[#080b10]/95" : pathname === "/recruit" ? "bg-black/65" : "bg-black/70"}`} />}
     </div>
   )
 }
