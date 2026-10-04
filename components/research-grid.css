@@ -15,6 +15,7 @@
   position: relative;
 }
 .research-card:focus-visible { outline: 2px solid #bae6fd; outline-offset: 6px; }
+[data-card-grid] { row-gap: 108px; }
 .research-card-frame {
   position: relative;
   aspect-ratio: 4 / 5;
@@ -43,18 +44,18 @@
   border-bottom: 1px solid rgb(255 255 255 / .18);
   background: #111820;
   box-shadow: 0 -10px 24px rgb(0 0 0 / .14);
-  transition: background-color 250ms ease, border-color 250ms ease;
+  transition: transform 350ms var(--card-ease), border-color 250ms ease;
 }
 .research-card-semester { color: #94a3b8; font-size: 12px; font-weight: 400; }
 .research-card-action { transition: color 250ms ease; }
 .research-card-arrow { transition: transform 350ms ease; }
 .research-card:focus-visible .research-card-cover { transform: scale(1.015); }
-.research-card:focus-visible .research-card-info { background-color: rgb(17 24 32 / .85); }
+.research-card:focus-visible .research-card-info { transform: translateY(60px); }
 .research-card:focus-visible .research-card-action { color: #bae6fd; }
 @media (hover: hover) and (pointer: fine) {
   .research-card:hover .research-card-cover { transform: scale(1.015); }
   .research-card:hover .research-card-info {
-    background-color: rgb(17 24 32 / .85);
+    transform: translateY(60px);
     border-color: rgb(186 230 253 / .45);
   }
   .research-card:hover .research-card-frame { border-color: rgb(255 255 255 / .25); }
