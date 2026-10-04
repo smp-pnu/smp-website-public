@@ -16,20 +16,25 @@
 }
 .research-card:focus-visible { outline: 2px solid #bae6fd; outline-offset: 6px; }
 .research-card-frame {
+  position: relative;
+  aspect-ratio: 4 / 5;
   overflow: clip;
   border: 1px solid rgb(255 255 255 / .12);
   border-radius: 2px 2px 0 0;
   background: #fff;
   transition: border-color 450ms ease;
 }
-.research-card-cover { width: 100%; }
-/* The paper keeps its A4 ratio. The zero-height track overlays the panel by
-   its own height; opening the track reserves that same space below the paper. */
+.research-card-cover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  transform-origin: center top;
+  transition: transform 450ms var(--card-ease);
+}
 .research-card-details {
   position: relative;
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 450ms var(--card-ease);
+  margin-top: -24px;
 }
 .research-card-details-track { min-height: 0; }
 .research-card-info {
@@ -38,20 +43,16 @@
   border-bottom: 1px solid rgb(255 255 255 / .18);
   background: #111820;
   box-shadow: 0 -10px 24px rgb(0 0 0 / .14);
-  transform: translateY(-100%);
-  transition: transform 450ms var(--card-ease), border-color 450ms ease, box-shadow 450ms ease;
+  transition: border-color 350ms ease;
 }
 .research-card-semester { color: #94a3b8; font-size: 12px; font-weight: 400; }
 .research-card-action { transition: color 250ms ease; }
 .research-card-arrow { transition: transform 350ms ease; }
-.research-card:focus-visible .research-card-details { grid-template-rows: 1fr; }
-.research-card:focus-visible .research-card-info { transform: none; box-shadow: none; }
+.research-card:focus-visible .research-card-cover { transform: scale(1.015); }
 .research-card:focus-visible .research-card-action { color: #bae6fd; }
 @media (hover: hover) and (pointer: fine) {
-  .research-card:hover .research-card-details { grid-template-rows: 1fr; }
+  .research-card:hover .research-card-cover { transform: scale(1.015); }
   .research-card:hover .research-card-info {
-    transform: none;
-    box-shadow: none;
     border-color: rgb(186 230 253 / .45);
   }
   .research-card:hover .research-card-frame { border-color: rgb(255 255 255 / .25); }
@@ -64,6 +65,7 @@
     transform: none;
     transition: none;
   }
-  .research-card-frame, .research-card-details, .research-card-info,
+  .research-card-frame, .research-card-cover, .research-card-info,
   .research-card-action, .research-card-arrow { transition: none; }
+  .research-card-cover, .research-card-arrow { transform: none !important; }
 }
