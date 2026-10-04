@@ -1,6 +1,6 @@
 import "server-only"
 import { cache } from "react"
-import { notionPages } from "./notion-request"
+import { notionPages, notionRequest, NotionRequestError } from "./notion-request"
 import { normalizeId, sortContent, toContentItem, type ContentItem, type ContentKind, type NotionFile, type NotionPage, type RichText } from "./content-model"
 
 type BlockValue = NotionFile & {
@@ -55,20 +55,46 @@ async function queryContent(kind: ContentKind): Promise<ContentResult> {
     return { items: [], state: "error" }
   }
 }
-export const getContent = cache(loadContent)
-
-export const getContentItem = cache(async (kind: ContentKind, rawId: string) => {
+const pendingItems = new Map<string, Promise<ContentItem | null>>()
+export async function loadContentItem(kind: ContentKind, rawId: string): Promise<ContentItem | null> {
   const id = normalizeId(rawId)
   if (!id) return null
-  const result = await getContent(kind)
-  if (result.state === "error") throw new Error("콘텐츠를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.")
-  return result.items.find(item => item.id === id) ?? null
-})
+  const source = sourceId(kind)
+  if (!source) return null
+  const key = JSON.stringify([kind, id, source, process.env.NOTION_TOKEN])
+  const existing = pendingItems.get(key)
+  if (existing) return existing
+  const work = (async () => {
+    try {
+      const page = await notionRequest<NotionPage>(`pages/${id}`)
+      // A page read must not expose arbitrary pages shared with the integration.
+      if (normalizeId(page.id) !== id || page.parent?.type !== "data_source_id"
+        || normalizeId(page.parent.data_source_id ?? "") !== source) return null
+      return toContentItem(page, kind)
+    } catch (error) {
+      if (error instanceof NotionRequestError && error.status === 404) return null
+      throw error
+    }
+  })()
+  pendingItems.set(key, work)
+  try { return await work } finally { if (pendingItems.get(key) === work) pendingItems.delete(key) }
+}
+export const getContentItem = cache(loadContentItem)
 
 // Only follow children that the renderer supports. Never follow child pages or linked databases.
 const childTypes = new Set(["paragraph", "heading_1", "heading_2", "heading_3", "bulleted_list_item", "numbered_list_item", "quote", "callout", "toggle", "to_do", "column_list", "column", "table"])
 
+const pendingBlocks = new Map<string, Promise<ContentBlock[]>>()
 export async function getContentBlocks(id: string, depth = 0): Promise<ContentBlock[]> {
+  const key = JSON.stringify([id, depth, process.env.NOTION_TOKEN])
+  const existing = pendingBlocks.get(key)
+  if (existing) return existing
+  const work = queryContentBlocks(id, depth)
+  pendingBlocks.set(key, work)
+  try { return await work } finally { if (pendingBlocks.get(key) === work) pendingBlocks.delete(key) }
+}
+
+async function queryContentBlocks(id: string, depth: number): Promise<ContentBlock[]> {
   if (depth > 8) throw new Error("Content nesting exceeds the supported depth")
   const blocks: ContentBlock[] = []
   for await (const batch of notionPages<ContentBlock>(`blocks/${id}/children`)) {

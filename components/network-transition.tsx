@@ -15,7 +15,7 @@ export function NetworkTransition({ children }: { children: ReactNode }) {
     if (!["/network", "/alumni", "/members"].includes(pathname)) return
     router.prefetch("/alumni")
     router.prefetch("/members")
-    for (const src of ["/network-yeouido-portrait.jpg", "/pnu-campus-upscaled.png"]) {
+    for (const src of ["/backgrounds/network-yeouido-portrait.webp", "/backgrounds/pnu-campus-upscaled.webp"]) {
       const image = new Image()
       image.src = src
       void image.decode().catch(() => {})

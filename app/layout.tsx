@@ -55,7 +55,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <head><link rel="preload" as="image" href="/home-gwangan-3.png" /></head>
       <body className={`${notoSansKr.variable} ${heroFont.variable} antialiased`} style={{ fontFamily: 'var(--font-body), sans-serif' }}>
         <NetworkTransition>
         <HomeBackground />

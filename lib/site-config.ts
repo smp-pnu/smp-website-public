@@ -25,7 +25,7 @@ export const SITE_NAME_EN = "STOCK MASTERS OF PNU"
  * entire home page (hero through footer). Leave as null to show the dark
  * navy fallback gradient.
  */
-export const HOME_BACKGROUND_IMAGE_SRC: string | null = "/home-gwangan-2.jpg"
+export const HOME_BACKGROUND_IMAGE_SRC: string | null = "/backgrounds/home-gwangan-2.webp"
 
 /**
  * object-position focal point for HOME_BACKGROUND_IMAGE_SRC, tuned separately

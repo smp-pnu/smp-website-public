@@ -5,14 +5,15 @@ import { SiteFooter } from "@/components/site-footer"
 import { NotionContent } from "@/components/notion-content"
 import { PdfViewer } from "@/components/pdf-viewer"
 import { formatDate, type ContentKind } from "@/lib/content-model"
-import { getContentBlocks, getContentItem } from "@/lib/notion"
+import { getContentItem } from "@/lib/notion"
+import { getPublishedBlocks } from "@/lib/content-catalog"
 import { getPdfSources } from "@/lib/pdf-source"
 import { CategoryTag } from "./category-tag"
 
 export async function ContentDetail({ kind, id }: { kind: ContentKind; id: string }) {
   const item = await getContentItem(kind, id)
   if (!item) notFound()
-  const blocks = await getContentBlocks(item.id)
+  const blocks = await getPublishedBlocks(item)
   const pdfs = getPdfSources(item)
   return <><SiteHeader /><main className="relative z-10 mx-auto min-h-[75svh] max-w-4xl px-6 py-16 sm:py-20">
     <Link href={`/${kind}`} className="text-sm tracking-widest text-sky-300">← {kind === "notice" ? "NOTICE" : "RESEARCH"}</Link>

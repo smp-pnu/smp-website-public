@@ -22,7 +22,7 @@ export const coverStore: CoverStore = {
     catch (error) { if (error instanceof BlobNotFoundError) return undefined; throw error }
   },
   async read(path) {
-    const result = await get(path, { access: "public", useCache: false, abortSignal: AbortSignal.timeout(8_000) })
+    const result = await get(path, { access: "public", useCache: true, abortSignal: AbortSignal.timeout(8_000) })
     if (!result || result.statusCode !== 200) return null
     if (result.blob.size > 16_384) { await result.stream.cancel(); throw new Error("Invalid cover metadata") }
     return { bytes: new Uint8Array(await new Response(result.stream).arrayBuffer()), etag: result.blob.etag }

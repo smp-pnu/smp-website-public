@@ -31,6 +31,7 @@ export type NotionPage = {
   object: string
   archived?: boolean
   in_trash?: boolean
+  parent?: { type: string; data_source_id?: string }
   created_time: string
   last_edited_time?: string
   properties: Record<string, Property>

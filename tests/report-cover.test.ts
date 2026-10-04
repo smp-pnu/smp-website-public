@@ -32,10 +32,10 @@ test("storage failure falls back to Drive without a duplicate publication query"
 afterEach(() => { global.fetch = originalFetch; process.env = { ...originalEnv } })
 
 function notion(published = true, pageId = id) {
-  return Response.json({ has_more: false, results: [{ id: pageId, object: "page", properties: {
+  return Response.json({ id: pageId, object: "page", parent: { type: "data_source_id", data_source_id: process.env.NOTION_REPORTS_DATA_SOURCE_ID }, properties: {
     "제목": { title: [{ plain_text: "Cover test" }] }, "공개": { checkbox: published },
     "게시일": { date: { start: "2026-01-01" } }, "외부 링크": { url: drive },
-  } }] })
+  } })
 }
 
 test("covers require a currently published report from the configured source", async () => {

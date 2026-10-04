@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { FileText, ArrowRight } from "lucide-react"
-import { getContent } from "@/lib/notion"
+import { getContent } from "@/lib/content-catalog"
 import { ContentRows } from "@/components/content-list"
 
 export async function LatestResearchSection() {

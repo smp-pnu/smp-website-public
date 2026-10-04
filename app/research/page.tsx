@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { ContentList, type ContentSearch } from "@/components/content-list"
-import { getContent } from "@/lib/notion"
+import { getContent } from "@/lib/content-catalog"
 
 export const metadata: Metadata = { title: "RESEARCH | SMP" }
 

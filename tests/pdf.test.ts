@@ -16,10 +16,10 @@ beforeEach(() => {
 afterEach(() => { global.fetch = originalFetch; process.env = { ...originalEnv } })
 
 function notionResponse(published = true) {
-  return Response.json({ has_more: false, results: [{ id, object: "page", properties: {
+  return Response.json({ id, object: "page", parent: { type: "data_source_id", data_source_id: process.env.NOTION_REPORTS_DATA_SOURCE_ID }, properties: {
     "제목": { title: [{ plain_text: "테스트 리포트" }] }, "공개": { checkbox: published },
     "게시일": { date: { start: "2026-01-01" } }, "외부 링크": { url: drive },
-  } }] })
+  } })
 }
 
 test("Drive URLs accept individual files and reject folders, lookalikes and credentials", () => {

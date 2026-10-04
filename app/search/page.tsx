@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import members from "@/lib/members.json"
 import { awardGroups } from "@/lib/awards"
-import { getContent } from "@/lib/notion"
+import { getContent } from "@/lib/content-catalog"
 import { contentHref } from "@/lib/content-model"
 export const metadata: Metadata = { title: "SEARCH | SMP" }
 export const dynamic = "force-dynamic"

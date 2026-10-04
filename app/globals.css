@@ -1,6 +1,5 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import 'shadcn/tailwind.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -198,7 +197,7 @@
 
 .curriculum-page { --light-x: 18%; background: #030912; }
 .curriculum-atmosphere { position: absolute; inset: 0; pointer-events: none; clip-path: inset(0); z-index: -1; }
-.curriculum-atmosphere::before { content: ''; position: fixed; inset: 0; background: linear-gradient(#000c, #000d), url("/curriculum-skyscrapers.jpg") center var(--photo-y, 0%) / cover no-repeat; }
+.curriculum-atmosphere::before { content: ''; position: fixed; inset: 0; background: linear-gradient(#000c, #000d), url("/backgrounds/curriculum-skyscrapers.webp") center var(--photo-y, 0%) / cover no-repeat; }
 .curriculum-beam { position: fixed; top: -30vh; left: var(--light-x); width: min(30vw, 420px); height: 160vh; transform: translateX(-50%) rotate(-23deg); background: linear-gradient(90deg, transparent, #1685df14 25%, #5dc1ff40 48%, #bbecff24 52%, #1685df12 75%, transparent); filter: blur(18px); }
 .curriculum-horizon { position: fixed; top: 56vh; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, #8bd5ff90, transparent); box-shadow: 0 0 8px #4cb7ff70; }
 .curriculum-star { position: fixed; left: var(--light-x); top: 56vh; width: 5px; height: 5px; transform: translate(-50%, -50%) rotate(45deg); background: #b8ddedb3; box-shadow: 0 0 8px 2px #83d0ff66, 0 0 24px 6px #1685df22; }

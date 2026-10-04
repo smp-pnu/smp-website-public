@@ -38,13 +38,13 @@ export function HomeBackground() {
   }, [isAlumni])
   const isHome = pathname === "/"
   const isResearch = pathname === "/research" || pathname.startsWith("/research/")
-  const photo = isResearch ? "/research-desk.jpg" : pathname === "/achievements" ? "/achievements-building.jpg" : pathname === "/members" ? "/pnu-campus-upscaled.png" : ["/network", "/alumni"].includes(pathname) ? "/network-yeouido.jpg" : pathname === "/recruit" ? "/recruit-bull.jpg" : pathname === "/curriculum" ? "/curriculum-skyscrapers.jpg" : isHome ? "/home-gwangan-3.png" : (["/about", "/contact", "/notice"].includes(pathname) || pathname.startsWith("/notice/")) ? "/page-gwangan-3.png" : HOME_BACKGROUND_IMAGE_SRC
+  const photo = isResearch ? "/backgrounds/research-desk.webp" : pathname === "/achievements" ? "/backgrounds/achievements-building.webp" : pathname === "/members" ? "/backgrounds/pnu-campus-upscaled.webp" : ["/network", "/alumni"].includes(pathname) ? "/backgrounds/network-yeouido.webp" : pathname === "/recruit" ? "/backgrounds/recruit-bull.webp" : pathname === "/curriculum" ? "/backgrounds/curriculum-skyscrapers.webp" : isHome ? "/backgrounds/home-gwangan-3.webp" : (["/about", "/contact", "/notice"].includes(pathname) || pathname.startsWith("/notice/")) ? "/backgrounds/page-gwangan-3.webp" : HOME_BACKGROUND_IMAGE_SRC
   return (
     <div ref={background} className="pointer-events-none fixed inset-0 z-0 bg-[#0a1424]" aria-hidden="true">
       {photo ? (
         <Image
           key={photo}
-          src={isAlumni ? "/network-yeouido-portrait.jpg" : photo}
+          src={isAlumni ? "/backgrounds/network-yeouido-portrait.webp" : photo}
           alt=""
           fill
           priority

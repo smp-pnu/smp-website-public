@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, test } from "node:test"
 import assert from "node:assert/strict"
 import { normalizeId, safeUrl, sortContent, toContentItem, type NotionPage } from "../lib/content-model"
-import { getContent, getContentBlocks, getContentItem, loadContent } from "../lib/notion"
+import { getContentBlocks, getContentItem, loadContent } from "../lib/notion"
 import { GET } from "../app/api/content/[kind]/[id]/file/route"
 
 const id = "11111111-1111-4111-8111-111111111111"
 const notices = "22222222222242228222222222222222"
 const reports = "33333333333343338333333333333333"
 function page(overrides: Partial<NotionPage> = {}): NotionPage {
-  return { object: "page", id, created_time: "2026-01-01T00:00:00Z", properties: {
+  return { object: "page", id, created_time: "2026-01-01T00:00:00Z", parent: { type: "data_source_id", data_source_id: notices }, properties: {
     "제목": { type: "title", title: [{ plain_text: "공개 공지" }] },
     "공개": { type: "checkbox", checkbox: true },
     "게시일": { type: "date", date: { start: "2026-01-01" } },
@@ -83,18 +83,21 @@ test("retired Notion display order does not override publication dates or catego
   assert.deepEqual(pages.map(item => item.categoryColor), ["red", "yellow", "green", "blue"])
 })
 
-test("simultaneous list and detail reads share a query, but later requests see publication changes", async () => {
+test("100 simultaneous detail reads fetch only that page; later reads see publication changes", async () => {
   let calls = 0
   let release!: () => void
   const gate = new Promise<void>(resolve => { release = resolve })
-  global.fetch = async () => { calls++; await gate; return response([page()]) }
-  const pending = Promise.all([loadContent("research"), getContent("research"), getContentItem("research", id)])
+  global.fetch = async url => {
+    calls++
+    assert.equal(String(url), `https://api.notion.com/v1/pages/${id.replaceAll("-", "")}`)
+    await gate
+    return Response.json(page({ parent: { type: "data_source_id", data_source_id: reports } }))
+  }
+  const pending = Promise.all(Array.from({ length: 100 }, () => getContentItem("research", id)))
   assert.equal(calls, 1)
   release()
-  const results = await pending
-  assert.equal(results[0].items.length, 1)
-  assert.ok(results[2])
-  global.fetch = async () => { calls++; return response([]) }
+  assert.ok((await pending).every(Boolean))
+  global.fetch = async () => { calls++; return Response.json(page({ archived: true })) }
   assert.equal(await getContentItem("research", id), null)
   assert.equal(calls, 2)
 })
@@ -107,7 +110,7 @@ test("queries all pages, filters publication, and uses the correct source", asyn
     calls.push({ url: String(url), body: JSON.parse(String(init?.body)) })
     return calls.length === 1 ? response([page()], true, "next-page") : response([page({ id: "44444444-4444-4444-8444-444444444444" })])
   }
-  const result = await getContent("research")
+  const result = await loadContent("research")
   assert.equal(result.state, "ready")
   assert.equal(result.items.length, 2)
   assert.ok(calls.every(call => call.url === `https://api.notion.com/v1/data_sources/${reports}/query`))
@@ -118,27 +121,27 @@ test("queries all pages, filters publication, and uses the correct source", asyn
 test("missing config is distinct from API failure and does not request data", async () => {
   delete process.env.NOTION_TOKEN
   global.fetch = async () => { throw new Error("Unexpected request") }
-  assert.deepEqual(await getContent("notice"), { items: [], state: "unconfigured" })
+  assert.deepEqual(await loadContent("notice"), { items: [], state: "unconfigured" })
   process.env.NOTION_TOKEN = "test-token"
   global.fetch = async () => new Response("Do not log this body", { status: 401 })
-  assert.deepEqual(await getContent("notice"), { items: [], state: "error" })
+  assert.deepEqual(await loadContent("notice"), { items: [], state: "error" })
 })
 
 test("detail lookup cannot read drafts or pages outside the configured source", async () => {
-  global.fetch = async () => response([page({ properties: { ...page().properties, "공개": { type: "checkbox", checkbox: false } } })])
+  global.fetch = async () => Response.json(page({ properties: { ...page().properties, "공개": { type: "checkbox", checkbox: false } } }))
   assert.equal(await getContentItem("notice", id), null)
   assert.equal(await getContentItem("notice", "55555555-5555-4555-8555-555555555555"), null)
 })
 
 test("file route refreshes signed links and rejects unpublished files and bad indices", async () => {
-  global.fetch = async () => response([page()])
+  global.fetch = async () => Response.json(page())
   const params = Promise.resolve({ kind: "notice", id })
   const result = await GET(new Request("https://smp.test/api/file?index=0"), { params })
   assert.equal(result.status, 307)
   assert.match(result.headers.get("location")!, /signature=fresh/)
   assert.match(result.headers.get("cache-control")!, /no-store/)
   assert.equal((await GET(new Request("https://smp.test/api/file?index=-1"), { params })).status, 404)
-  global.fetch = async () => response([])
+  global.fetch = async () => new Response(null, { status: 404 })
   assert.equal((await GET(new Request("https://smp.test/api/file?index=0"), { params })).status, 404)
 })
 
@@ -160,7 +163,7 @@ test("nested blocks paginate without traversing linked databases or child pages"
 test("temporary Notion rate limiting retries successfully", async () => {
   let calls = 0
   global.fetch = async () => ++calls === 1 ? new Response(null, { status: 429, headers: { "retry-after": "1" } }) : response([page()])
-  assert.equal((await getContent("notice")).items.length, 1)
+  assert.equal((await loadContent("notice")).items.length, 1)
   assert.equal(calls, 2)
 })
 

@@ -17,7 +17,7 @@ export default function Page() {
       <SiteHeader />
       <main className="relative z-10">
         <HeroSection />
-        <BackgroundChapter image="/central-business-district-singapore.jpg">
+        <BackgroundChapter image="/backgrounds/central-business-district-singapore.webp">
           <WhoWeAreSection />
           <WhatWeDoSection />
         </BackgroundChapter>

@@ -21,3 +21,6 @@ node_modules
 /data/SMP_Website_Copy_v1-40a04b.docx
 /전달안내.txt
 /홈페이지.url
+
+# Rebuilt from the original backgrounds during predev/prebuild.
+/public/backgrounds/

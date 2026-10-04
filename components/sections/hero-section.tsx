@@ -48,7 +48,7 @@ export function HeroSection() {
     >
       <div className="pointer-events-none absolute inset-0 [clip-path:inset(0)]" aria-hidden="true">
         <div className="fixed inset-0">
-          <Image src="/home-gwangan-3.png" alt="" fill priority sizes="100vw" className="object-cover object-center" />
+          <Image src="/backgrounds/home-gwangan-3.webp" alt="" fill priority sizes="100vw" className="object-cover object-center" />
         </div>
       </div>
       <div className={`hero-shadow absolute inset-y-0 left-0 bg-black/50 ${isVisible ? "is-visible" : ""}`} style={{ width: panelWidth }} aria-hidden="true" />

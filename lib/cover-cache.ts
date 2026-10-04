@@ -61,7 +61,7 @@ export async function prepareCover(options: {
   if (!options.force && currentCover(previous.cover, item)) return previous.cover
   const prefix = coverPrefix(item.id)
   // The public CDN can still serve an older current.json. Capture the actual
-  // storage version before doing Drive/Notion work, as with ordering snapshots.
+  // storage version before doing Drive/Notion work.
   const etag = store.version ? await store.version(`${prefix}current.json`) : previous.etag
   const image = await encodeCover(await options.fetchImage())
   const latest = await options.latestItem()

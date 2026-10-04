@@ -1,15 +1,14 @@
 import "server-only"
 import { normalizeId, type ContentItem } from "./content-model"
-import { loadContent } from "./notion"
+import { loadContent, loadContentItem } from "./notion"
 import { coverStore, coverStorageEnabled } from "./cover-store"
 import { coverPrefix, currentCover, prepareCover, readCover, type SavedCover } from "./cover-cache"
 import { driveCoverUrl, fetchReportCover } from "./report-cover"
 import { createSavedCoverReader } from "./saved-cover-reader"
+import { coverBatch, dailyCoverLimit } from "./cover-schedule"
 
 async function latestReport(id: string) {
-  const result = await loadContent("research")
-  if (result.state !== "ready") throw new Error("Reports unavailable")
-  return result.items.find(item => item.id === id) ?? null
+  return loadContentItem("research", id)
 }
 
 const readSavedCover = createSavedCoverReader(coverStore)
@@ -50,24 +49,31 @@ export async function reconcileReportCovers() {
   if (!coverStorageEnabled()) throw new Error("Cover storage is not configured")
   const result = await loadContent("research")
   if (result.state !== "ready") throw new Error("Reports unavailable")
-  let prepared = 0, failed = 0
+  let prepared = 0, failed = 0, checked = 0
   // Sequential generation bounds Notion/Drive pressure and image memory use.
   const deadline = Date.now() + 240_000
-  for (const item of result.items) {
+  const batch = coverBatch(result.items.filter(item => driveCoverUrl(item)))
+  for (const item of batch) {
     if (Date.now() > deadline) { failed++; break }
+    checked++
     try { if (await ensureReportCover(item, true)) prepared++ } catch { failed++ }
   }
   // Clean only derived images, never the source PDF or Notion content.
   const allPaths = await coverStore.paths("report-covers/", new Date(Date.now() - 86_400_000))
-  const ids = [...new Set(allPaths.map(path => path.split("/")[1]))]
+  const liveIds = new Set(result.items.map(item => item.id))
+  const orphans = [...new Set(allPaths.map(path => path.split("/")[1]))]
+    .filter(id => normalizeId(id) === id && !liveIds.has(id)).slice(0, dailyCoverLimit)
+  const ids = [...new Set([...batch.map(item => item.id), ...orphans])]
   for (const id of ids) {
     if (Date.now() > deadline) { failed++; break }
-    const latest = await latestReport(id)
-    const paths = allPaths.filter(path => path.startsWith(coverPrefix(id)))
-    if (!latest || !driveCoverUrl(latest)) { await coverStore.remove(paths); continue }
-    const { cover } = await readCover(coverStore, id)
-    if (!cover || !currentCover(cover, latest)) continue
-    await coverStore.remove(paths.filter(path => path !== `${coverPrefix(id)}current.json` && path !== `${coverPrefix(id)}${cover.hash}.webp`))
+    try {
+      const latest = await latestReport(id)
+      const paths = allPaths.filter(path => path.startsWith(coverPrefix(id)))
+      if (!latest || !driveCoverUrl(latest)) { await coverStore.remove(paths); continue }
+      const { cover } = await readCover(coverStore, id)
+      if (!cover || !currentCover(cover, latest)) continue
+      await coverStore.remove(paths.filter(path => path !== `${coverPrefix(id)}current.json` && path !== `${coverPrefix(id)}${cover.hash}.webp`))
+    } catch { failed++ }
   }
-  return { prepared, failed }
+  return { prepared, failed, checked, total: result.items.length, limit: dailyCoverLimit }
 }
