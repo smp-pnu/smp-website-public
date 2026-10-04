@@ -12,49 +12,168 @@
 .research-card-frame {
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   aspect-ratio: 1.22;
-  overflow: hidden;
+  min-height: 0;
+  flex-shrink: 0;
+  overflow: clip;
   border: 1px solid rgb(255 255 255 / .08);
   border-radius: 2px;
   background: linear-gradient(135deg, #252e37, #151b22);
   transition: border-color 350ms ease;
 }
+.research-card-frame::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 64px;
+  background: linear-gradient(transparent, rgb(10 15 22 / .72));
+  pointer-events: none;
+}
 .research-card-cover {
   position: relative;
-  width: 51%;
+  flex-shrink: 0;
+  width: 90%;
+  margin-top: 12px;
   background: #fff;
-  box-shadow: 0 2px 4px rgb(0 0 0 / .25), 5px 14px 22px rgb(0 0 0 / .35);
+  transform-origin: center top;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / .1), 0 8px 20px rgb(0 0 0 / .25);
   transition: transform 550ms cubic-bezier(.22, 1, .36, 1), box-shadow 550ms ease;
 }
-.research-card-edition, .research-card-format {
+.research-card-edition {
   position: absolute;
   z-index: 1;
-  color: #a6afb9;
+  color: #e0e5eb;
   font-size: 10px;
   font-variant-numeric: tabular-nums;
   letter-spacing: .12em;
 }
-.research-card-edition { top: 15px; left: 15px; }
-.research-card-format { right: 15px; bottom: 15px; }
+.research-card-edition { bottom: 24px; left: 15px; pointer-events: none; }
+.research-card-link::after { content: ""; position: absolute; inset: 0; z-index: 1; }
+.research-card-link:focus-visible { outline: none; }
+.research-card-link:focus-visible::after { outline: 2px solid #bae6fd; outline-offset: 6px; }
+.research-cover-trigger {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgb(255 255 255 / .2);
+  border-radius: 3px;
+  background: rgb(18 25 34 / .9);
+  color: #f1f5f9;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 200ms ease, border-color 200ms ease;
+}
+.research-cover-trigger:focus-visible { outline: 2px solid #bae6fd; outline-offset: 3px; }
 .research-card-info {
   border-bottom: 1px solid rgb(255 255 255 / .16);
   transition: border-color 350ms ease;
 }
 .research-card-action { transition: color 250ms ease; }
 .research-card-arrow { transition: transform 350ms ease; }
-.research-card:focus-visible .research-card-cover { transform: translateY(-5px); }
-.research-card:focus-visible .research-card-action { color: #bae6fd; }
+.research-card:focus-within .research-card-cover { transform: scale(1.025); }
+.research-card:focus-within .research-card-action { color: #bae6fd; }
 @media (hover: hover) and (pointer: fine) {
   .research-card:hover .research-card-cover {
-    transform: translateY(-5px);
-    box-shadow: 0 3px 6px rgb(0 0 0 / .25), 6px 20px 28px rgb(0 0 0 / .4);
+    transform: scale(1.025);
   }
   .research-card:hover .research-card-frame { border-color: rgb(255 255 255 / .18); }
   .research-card:hover .research-card-info { border-color: rgb(186 230 253 / .45); }
   .research-card:hover .research-card-action { color: #bae6fd; }
   .research-card:hover .research-card-arrow { transform: translate(2px, -2px); }
+  .research-cover-trigger:hover { background: #182737; border-color: rgb(186 230 253 / .65); }
+}
+.research-preview-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgb(3 6 10 / .84);
+  backdrop-filter: blur(6px);
+  transition: opacity 180ms ease;
+}
+.research-preview-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 101;
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  display: flex;
+  flex-direction: column;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgb(255 255 255 / .14);
+  border-radius: 6px;
+  background: #111820;
+  box-shadow: 0 24px 100px rgb(0 0 0 / .5);
+  transition: opacity 180ms ease;
+}
+.research-preview-backdrop[data-starting-style], .research-preview-backdrop[data-ending-style],
+.research-preview-popup[data-starting-style], .research-preview-popup[data-ending-style] { opacity: 0; }
+.research-preview-header, .research-preview-footer {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+}
+.research-preview-header { border-bottom: 1px solid rgb(255 255 255 / .1); }
+.research-preview-close {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 3px;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+.research-preview-body {
+  min-height: 0;
+  max-height: calc(100dvh - 190px);
+  padding: 20px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: #1c252e;
+}
+.research-preview-paper {
+  width: min(100%, calc((100dvh - 240px) * .70707));
+  margin-inline: auto;
+  box-shadow: 0 4px 20px rgb(0 0 0 / .28);
+}
+.research-preview-body[data-zoomed] .research-preview-paper { width: max(100%, 640px); }
+.research-preview-footer { border-top: 1px solid rgb(255 255 255 / .1); }
+.research-preview-zoom, .research-preview-read {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  color: #cbd5e1;
+  font-size: 13px;
+  cursor: pointer;
+}
+.research-preview-read { color: #bae6fd; }
+.research-preview-close:hover, .research-preview-zoom:hover { background: rgb(255 255 255 / .05); color: white; }
+.research-preview-close:focus-visible, .research-preview-zoom:focus-visible, .research-preview-read:focus-visible {
+  outline: 2px solid #bae6fd;
+  outline-offset: 3px;
+}
+@media (pointer: coarse) {
+  .research-cover-trigger { min-height: 44px; }
+}
+@media (max-width: 480px) {
+  .research-preview-popup { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
+  .research-preview-header, .research-preview-footer { padding: 10px 14px; }
+  .research-preview-body { padding: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .research-grid-item[data-reveal="ready"], .research-card-frame, .research-card-info,
@@ -63,4 +182,5 @@
     transform: none !important;
     transition: none !important;
   }
+  .research-preview-popup, .research-preview-backdrop { transition: none; }
 }

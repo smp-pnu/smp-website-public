@@ -7,9 +7,11 @@ import { FileText } from "lucide-react"
 
 const PdfCoverCanvas = dynamic(() => import("./pdf-cover-canvas"), { ssr: false })
 
-export function ReportCover({ title, imageUrl, fallbackUrl, pdfUrl, eager = false }: {
+export type ReportCoverProps = {
   title: string; imageUrl?: string; fallbackUrl?: string; pdfUrl?: string; eager?: boolean
-}) {
+}
+
+export function ReportCover({ title, imageUrl, fallbackUrl, pdfUrl, eager = false }: ReportCoverProps) {
   const container = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(eager)
   const [failed, setFailed] = useState(false)
