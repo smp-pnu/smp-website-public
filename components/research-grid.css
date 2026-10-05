@@ -1,24 +1,22 @@
 .research-grid-item[data-reveal="ready"] {
   opacity: 0;
-  transform: translate3d(0, 10px, 0);
-  transition: opacity 400ms ease, transform 400ms cubic-bezier(.22, 1, .36, 1);
+  transition: opacity 360ms ease-out;
   transition-delay: var(--card-delay, 0ms);
 }
 .research-grid-item[data-visible="true"],
 .research-grid-item:focus-within {
   opacity: 1;
-  transform: none;
 }
 .research-card {
   display: block;
   position: relative;
+  /* Keep the fully expanded panel inside a fixed hover/focus target. */
+  padding-bottom: var(--cover-overlap);
 }
 .research-card:focus-visible { outline: 2px solid #bae6fd; outline-offset: 6px; }
 [data-card-grid] {
   --cover-overlap: 60px;
-  row-gap: calc(48px + var(--cover-overlap));
-  /* Reserve the last row's motion too, before pagination or the footer. */
-  padding-bottom: var(--cover-overlap);
+  row-gap: 48px;
 }
 .research-card-frame {
   position: relative;
@@ -41,9 +39,10 @@
   padding: 18px 16px 16px;
   border-bottom: 1px solid rgb(255 255 255 / .18);
   background: #111820;
+  contain: paint;
   transform: translate3d(0, 0, 0);
   will-change: transform;
-  transition: transform 420ms cubic-bezier(.22, 1, .36, 1);
+  transition: transform 600ms cubic-bezier(.4, 0, .2, 1);
 }
 .research-card-arrow { transition: transform 350ms ease; }
 .research-card:focus-visible .research-card-info { transform: translate3d(0, var(--cover-overlap), 0); }
@@ -59,7 +58,6 @@
 @media (prefers-reduced-motion: reduce) {
   .research-grid-item[data-reveal="ready"] {
     opacity: 1;
-    transform: none;
     transition: none;
   }
   .research-card-frame, .research-card-info,

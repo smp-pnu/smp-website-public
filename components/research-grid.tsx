@@ -24,7 +24,7 @@ export async function ResearchGrid({ items }: { items: ContentItem[] }) {
         <Link prefetch={false} href={contentHref(item)} className="research-card">
           <div className="research-card-frame">
             <div className="research-card-cover">
-              <ReportCover key={`${item.id}:${item.editedAt}:${covers[index]?.url}`} {...cover} eager={index < 4} />
+              <ReportCover key={`${item.id}:${item.editedAt}:${covers[index]?.url}`} {...cover} eager={index < 3} />
             </div>
           </div>
           <div className="research-card-info">
