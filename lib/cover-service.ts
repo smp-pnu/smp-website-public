@@ -59,9 +59,11 @@ export async function reconcileReportCovers() {
   const deadline = Date.now() + 240_000
   const batch = coverBatch(result.items.filter(item => driveCoverUrl(item)))
   for (const item of batch) {
-    if (Date.now() > deadline) { failed++; break }
+    // A missing reader preview can take up to 80s plus thumbnail/metadata
+    // requests. Reserve time before starting so the 300s cron can finish.
+    if (Date.now() > deadline - 120_000) { failed++; break }
     checked++
-    try { if (await ensureReportCover(item, true)) prepared++ } catch { failed++ }
+    try { if (await ensureReportCover(item, true, true)) prepared++ } catch { failed++ }
   }
   // Clean only derived images, never the source PDF or Notion content.
   const allPaths = await coverStore.paths("report-covers/", new Date(Date.now() - 86_400_000))

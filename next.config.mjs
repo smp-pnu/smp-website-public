@@ -15,6 +15,7 @@ const nextConfig = {
   outputFileTracingIncludes: {
     "/api/content/research/*/cover": previewFiles,
     "/api/notion/webhook": previewFiles,
+    "/api/cron/report-covers": previewFiles,
   },
   images: {
     unoptimized: true,

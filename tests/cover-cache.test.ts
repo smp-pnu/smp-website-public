@@ -133,6 +133,12 @@ test("legacy cards gain a separate high-resolution reader image once without enl
   const retitled = await prepareCover({ ...options, item: updatedTitle, latestItem: async () => updatedTitle, fetchPreview })
   assert.deepEqual(retitled!.preview, upgraded!.preview)
   assert.equal(renders, 1, "metadata edits can reuse identical first-page pixels")
+  const reconciled = await prepareCover({ ...options, item: updatedTitle, latestItem: async () => updatedTitle, force: true, fetchPreview })
+  assert.deepEqual(reconciled!.preview, upgraded!.preview)
+  assert.equal(renders, 1, "daily checks reuse the saved reader without downloading the PDF again")
+  const replaced = await prepareCover({ ...options, item: updatedTitle, latestItem: async () => updatedTitle, force: true, fetchImage: () => png("red"), fetchPreview })
+  assert.ok(replaced!.preview)
+  assert.equal(renders, 2, "a replaced first page automatically regenerates its reader preview")
 })
 
 test("changed first pages invalidate a saved reader image and source revocation prevents publishing it", async () => {
