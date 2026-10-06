@@ -1,12 +1,13 @@
 import Link from "next/link"
 import { ArrowUpRight } from "lucide-react"
-import { contentHref, formatDate, type ContentItem, type ContentKind } from "@/lib/content-model"
+import { formatDate, type ContentItem, type ContentKind } from "@/lib/content-model"
+import { contentDetailHref, contentListHref, normalizeContentSearch, type ContentSearch } from "@/lib/content-navigation"
 import type { ContentResult } from "@/lib/notion"
 import { ResearchGrid } from "@/components/research-grid"
 import { CategoryTag } from "./category-tag"
 import { ContentSearchForm, type ContentSuggestion } from "./content-search-form"
 
-export type ContentSearch = { q?: string; category?: string; page?: string }
+export type { ContentSearch } from "@/lib/content-navigation"
 
 export function ContentState({ state, kind }: { state: ContentResult["state"]; kind: ContentKind }) {
   return <p role={state === "error" ? "alert" : "status"} className="border-y border-white/20 px-4 py-20 text-center leading-relaxed text-slate-300">
@@ -14,9 +15,9 @@ export function ContentState({ state, kind }: { state: ContentResult["state"]; k
   </p>
 }
 
-export function ContentRows({ items }: { items: ContentItem[] }) {
-  return <ul className="divide-y divide-white/20 border-y border-white/20">{items.map(item => <li key={item.id}>
-    <Link prefetch={false} href={contentHref(item)} className="group flex items-center justify-between gap-5 px-2 py-7 transition-colors hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-sky-300 sm:px-4">
+export function ContentRows({ items, listSearch }: { items: ContentItem[]; listSearch?: ContentSearch }) {
+  return <ul className="divide-y divide-white/20 border-y border-white/20">{items.map(item => <li key={item.id} id={`content-${item.id}`} className="scroll-mt-28">
+    <Link prefetch={false} href={contentDetailHref(item, listSearch)} className="group flex items-center justify-between gap-5 px-2 py-7 transition-colors hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-sky-300 sm:px-4">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
           {item.pinned && <span className="rounded border border-sky-300/40 px-2 py-1 text-sky-300">고정</span>}
@@ -35,27 +36,27 @@ export function ContentRows({ items }: { items: ContentItem[] }) {
 
 export function ContentList({ result, kind, search }: { result: ContentResult; kind: ContentKind; search: ContentSearch }) {
   const isResearch = kind === "research"
-  const query = typeof search.q === "string" ? search.q.trim().slice(0, 100) : ""
-  const category = typeof search.category === "string" ? search.category : ""
+  const { q: query, category, page: requestedPage } = normalizeContentSearch(search)
   const terms = query.toLocaleLowerCase().split(/\s+/).filter(Boolean)
   const categories = Array.from(new Set(result.items.map(item => item.category))).sort()
+  const filtered = result.items.filter(item => (!category || category === item.category) && terms.every(term => `${item.title} ${item.summary} ${item.author} ${item.category}`.toLocaleLowerCase().includes(term)))
+  const pageSize = kind === "research" ? 12 : 10
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const page = Math.min(totalPages, Number(requestedPage ?? 1))
+  const visibleItems = filtered.slice((page - 1) * pageSize, page * pageSize)
+  const listSearch = { q: query, category, page: String(page) }
+  const pageHref = (number: number) => contentListHref(kind, { ...listSearch, page: String(number) })
   const suggestions: ContentSuggestion[] = result.items.map(item => ({
     title: item.title,
     summary: item.summary,
     author: item.author,
     category: item.category,
-    href: contentHref(item),
+    href: contentDetailHref(item, listSearch),
   }))
-  const filtered = result.items.filter(item => (!category || category === item.category) && terms.every(term => `${item.title} ${item.summary} ${item.author} ${item.category}`.toLocaleLowerCase().includes(term)))
-  const pageSize = kind === "research" ? 12 : 10
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
-  const page = Math.min(totalPages, Math.max(1, Math.floor(Number(search.page) || 1)))
-  const visibleItems = filtered.slice((page - 1) * pageSize, page * pageSize)
-  const pageHref = (number: number) => `/${kind}?${new URLSearchParams({ ...(query ? { q: query } : {}), ...(category ? { category } : {}), page: String(number) })}`
   return <>
     <ContentSearchForm key={`${kind}:${query}:${category}`} kind={kind} query={query} category={category} categories={categories} suggestions={suggestions} />
     <div className={`mb-5 flex justify-between ${isResearch ? "mt-6 text-xs tracking-wide text-slate-400" : "mt-8 text-sm text-slate-300"}`}><p>총 {filtered.length}건</p>{(query || category) && <Link href={`/${kind}`} className="text-sky-300">검색 초기화</Link>}</div>
-    {result.state !== "ready" || !result.items.length ? <ContentState state={result.state} kind={kind} /> : filtered.length ? kind === "research" ? <ResearchGrid items={visibleItems} /> : <ContentRows items={visibleItems} /> : <p className="border-y border-white/20 py-20 text-center text-slate-300">검색 결과가 없습니다. 다른 검색어로 검색해보세요.</p>}
+    {result.state !== "ready" || !result.items.length ? <ContentState state={result.state} kind={kind} /> : filtered.length ? kind === "research" ? <ResearchGrid items={visibleItems} listSearch={listSearch} /> : <ContentRows items={visibleItems} listSearch={listSearch} /> : <p className="border-y border-white/20 py-20 text-center text-slate-300">검색 결과가 없습니다. 다른 검색어로 검색해보세요.</p>}
     {totalPages > 1 && <nav aria-label="목록 페이지" className="mt-8 flex items-center justify-center gap-6 text-sm text-slate-300">{page > 1 ? <Link href={pageHref(page - 1)} className="text-sky-300">이전</Link> : <span aria-disabled="true" className="text-slate-500">이전</span>}<span aria-current="page">{page} / {totalPages}</span>{page < totalPages ? <Link href={pageHref(page + 1)} className="text-sky-300">다음</Link> : <span aria-disabled="true" className="text-slate-500">다음</span>}</nav>}
   </>
 }

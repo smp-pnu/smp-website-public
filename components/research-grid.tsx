@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { ArrowUpRight } from "lucide-react"
-import { contentHref, formatDate, type ContentItem } from "@/lib/content-model"
+import { formatDate, type ContentItem } from "@/lib/content-model"
+import { contentDetailHref, type ContentSearch } from "@/lib/content-navigation"
 import { getPdfSources } from "@/lib/pdf-source"
 import { ResearchGridReveal } from "./research-grid-reveal"
 import { ReportCover } from "./report-cover"
@@ -8,7 +9,7 @@ import { savedReportCover } from "@/lib/cover-service"
 import { CategoryTag } from "./category-tag"
 import "./research-grid.css"
 
-export async function ResearchGrid({ items }: { items: ContentItem[] }) {
+export async function ResearchGrid({ items, listSearch }: { items: ContentItem[]; listSearch?: ContentSearch }) {
   const covers = await Promise.all(items.map(savedReportCover))
   return <ResearchGridReveal key={items.map(item => item.id).join(",")}>
     {items.map((item, index) => {
@@ -20,8 +21,8 @@ export async function ResearchGrid({ items }: { items: ContentItem[] }) {
         fallbackUrl: covers[index] ? `/api/content/research/${item.id}/cover` : undefined,
         pdfUrl: pdf && !isDrive ? `/api/content/research/${item.id}/pdf?${pdf.query}` : undefined,
       }
-      return <li key={item.id} className="research-grid-item">
-        <Link prefetch={false} href={contentHref(item)} className="research-card">
+      return <li key={item.id} id={`content-${item.id}`} className="research-grid-item scroll-mt-28">
+        <Link prefetch={false} href={contentDetailHref(item, listSearch)} className="research-card">
           <div className="research-card-frame">
             <div className="research-card-cover">
               <ReportCover key={`${item.id}:${item.editedAt}:${covers[index]?.url}`} {...cover} eager={index < 3} />
