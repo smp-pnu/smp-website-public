@@ -19,9 +19,9 @@ export async function ContentDetail({ kind, id, search }: { kind: ContentKind; i
   const pdfs = getPdfSources(item)
   const hasPreview = kind === "research" && !!driveCoverUrl(item)
   const [blocks, cover] = await Promise.all([getPublishedBlocks(item), hasPreview ? savedReportCover(item) : null])
-  const coverFallback = `/api/content/research/${item.id}/cover`
-  const preview = hasPreview ? { url: cover?.url ?? coverFallback, fallbackUrl: cover ? coverFallback : undefined,
-    width: cover?.width ?? 595, height: cover?.height ?? 842, title: item.title } : undefined
+  const coverFallback = `/api/content/research/${item.id}/cover?size=reader`
+  const preview = hasPreview ? { url: cover?.preview?.url ?? coverFallback, fallbackUrl: cover?.preview ? coverFallback : undefined,
+    width: cover?.preview?.width ?? cover?.width ?? 595, height: cover?.preview?.height ?? cover?.height ?? 842, title: item.title } : undefined
   const returnHref = contentReturnHref(item, search)
   return <><SiteHeader /><main className="relative z-10 mx-auto min-h-[75svh] max-w-4xl px-6 py-16 sm:py-20">
     <Link prefetch={false} href={returnHref} className="text-sm tracking-widest text-sky-300">← {kind === "notice" ? "NOTICE" : "RESEARCH"}</Link>

@@ -7,7 +7,7 @@ import { contentCacheTag } from "@/lib/content-catalog"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-export const maxDuration = 60
+export const maxDuration = 120
 const setupPath = "setup/notion-verification.enc"
 const reply = (body: object, status = 200) => Response.json(body, { status, headers: pdfHeaders })
 

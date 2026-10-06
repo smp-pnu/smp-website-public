@@ -3,6 +3,8 @@ import assert from "node:assert/strict"
 import { fetchReportCover } from "../lib/report-cover"
 import { GET } from "../app/api/content/research/[id]/cover/route"
 import { coverStore } from "../lib/cover-store"
+import { coverPrefix, sourceKey } from "../lib/cover-cache"
+import { toContentItem } from "../lib/content-model"
 
 const originalFetch = global.fetch
 const originalEnv = { ...process.env }
@@ -103,4 +105,19 @@ test("simultaneous thumbnail requests share only an in-flight publication lookup
   assert.equal(notionCalls, 1)
   global.fetch = async () => notion(false)
   assert.equal((await GET(request, { params })).status, 404)
+})
+
+test("reader requests reuse the full-size saved preview while cards retain the small image", async t => {
+  process.env.BLOB_READ_WRITE_TOKEN = "test-only"
+  const item = toContentItem(await notion().json(), "research")!
+  const image = (hash: string, width: number) => ({ hash, width, height: width * 2, bytes: 1234,
+    url: `https://test.public.blob.vercel-storage.com/${coverPrefix(id)}${hash}.webp` })
+  const saved = { version: 1, sourceKey: sourceKey(item), editedAt: "", ...image("a".repeat(64), 720), preview: image("b".repeat(64), 2048) }
+  t.mock.method(coverStore, "read", async () => ({ bytes: new TextEncoder().encode(JSON.stringify(saved)), etag: "test" }))
+  t.mock.method(coverStore, "write", async () => assert.fail("Existing previews must not be regenerated"))
+  global.fetch = async input => { assert.match(String(input), /^https:\/\/api.notion.com\//); return notion() }
+  assert.equal((await GET(request, { params })).headers.get("location"), saved.url)
+  const reader = await GET(new Request(`${request.url}?size=reader`), { params })
+  assert.equal(reader.status, 307)
+  assert.equal(reader.headers.get("location"), saved.preview.url)
 })

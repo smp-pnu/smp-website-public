@@ -113,3 +113,45 @@ test("cover refresh uses the current storage version when CDN metadata is stale"
   assert.equal(restored!.url, first!.url)
   assert.equal(JSON.parse(Buffer.from(store.values.get(path)!.bytes).toString()).url, first!.url)
 })
+
+test("legacy cards gain a separate high-resolution reader image once without enlarging list thumbnails", async () => {
+  const store = new MemoryStore()
+  const options = { store, item, fetchImage: () => png(), latestItem: async () => item }
+  const card = await prepareCover(options)
+  let renders = 0
+  const fetchPreview = async () => { renders++; return sharp({ create: { width: 2300, height: 3300, channels: 3, background: "white" } }).png().toBuffer() }
+  const upgraded = await prepareCover({ ...options, fetchPreview })
+  assert.equal(upgraded!.url, card!.url)
+  assert.equal(upgraded!.width, 720)
+  assert.equal(upgraded!.preview!.width, 2048)
+  assert.notEqual(upgraded!.preview!.url, upgraded!.url)
+  assert.equal(store.values.size, 3)
+  assert.deepEqual(await prepareCover({ ...options, fetchPreview }), upgraded)
+  assert.equal(renders, 1)
+  assert.deepEqual((await readCover(store, item.id)).cover, upgraded)
+  const updatedTitle = { ...item, title: "Updated", editedAt: "2026-02-01T00:00:00Z" }
+  const retitled = await prepareCover({ ...options, item: updatedTitle, latestItem: async () => updatedTitle, fetchPreview })
+  assert.deepEqual(retitled!.preview, upgraded!.preview)
+  assert.equal(renders, 1, "metadata edits can reuse identical first-page pixels")
+})
+
+test("changed first pages invalidate a saved reader image and source revocation prevents publishing it", async () => {
+  const store = new MemoryStore()
+  const options = { store, item, fetchImage: () => png(), latestItem: async () => item }
+  const saved = await prepareCover({ ...options, fetchPreview: () => png("white") })
+  assert.ok(saved?.preview)
+  const refreshed = await prepareCover({ ...options, force: true, fetchImage: () => png("red") })
+  assert.equal(refreshed!.preview, undefined)
+  const writes = store.writes
+  assert.equal(await prepareCover({ ...options, fetchPreview: () => png("white"), latestItem: async () => null }), null)
+  assert.equal(store.writes, writes)
+})
+
+test("reader preview URLs have the same strict ownership checks as card images", async () => {
+  const store = new MemoryStore()
+  const first = await prepareCover({ store, item, fetchImage: () => png(), fetchPreview: () => png("white"), latestItem: async () => item })
+  for (const url of ["https://evil.test/pixel", first!.preview!.url.replace(item.id, "22222222222242228222222222222222")]) {
+    store.values.set(`${coverPrefix(item.id)}current.json`, { bytes: Buffer.from(JSON.stringify({ ...first, preview: { ...first!.preview, url } })), etag: "tampered" })
+    await assert.rejects(readCover(store, item.id), /Invalid cover/)
+  }
+})

@@ -6,6 +6,7 @@ import { coverPrefix, currentCover, prepareCover, readCover, type SavedCover } f
 import { driveCoverUrl, fetchReportCover } from "./report-cover"
 import { createSavedCoverReader } from "./saved-cover-reader"
 import { coverBatch, dailyCoverLimit } from "./cover-schedule"
+import { getPdfSources } from "./pdf-source"
 
 async function latestReport(id: string) {
   return loadContentItem("research", id)
@@ -20,14 +21,18 @@ export async function savedReportCover(item: ContentItem) {
 }
 
 const pending = new Map<string, Promise<SavedCover | null>>()
-export async function ensureReportCover(item: ContentItem, force = false) {
+export async function ensureReportCover(item: ContentItem, force = false, reader = false) {
   const url = driveCoverUrl(item)
   if (!coverStorageEnabled() || !url) return null
-  const key = `${item.id}:${item.editedAt}:${url}:${force}`
+  const key = `${item.id}:${item.editedAt}:${url}:${force}:${reader}`
   const existing = pending.get(key)
   if (existing) return existing
   const work = prepareCover({ item, store: coverStore, force,
     fetchImage: async () => (await fetchReportCover(url.replace("w480", "w720"), AbortSignal.timeout(20_000))).bytes,
+    ...(reader ? { fetchPreview: async () => {
+      const { renderPdfPreview } = await import("./pdf-preview-render")
+      return renderPdfPreview(getPdfSources(item)[0].url)
+    } } : {}),
     latestItem: () => latestReport(item.id),
   })
   pending.set(key, work)
@@ -39,7 +44,7 @@ export async function syncReportCover(rawId: string, force = false) {
   if (!id) return null
   if (!coverStorageEnabled()) throw new Error("Cover storage is not configured")
   const item = await latestReport(id)
-  if (item) return ensureReportCover(item, force)
+  if (item) return ensureReportCover(item, force, true)
   // Publication was revoked or the page was deleted/moved out of the source.
   await coverStore.remove(await coverStore.paths(coverPrefix(id)))
   return null
@@ -72,7 +77,9 @@ export async function reconcileReportCovers() {
       if (!latest || !driveCoverUrl(latest)) { await coverStore.remove(paths); continue }
       const { cover } = await readCover(coverStore, id)
       if (!cover || !currentCover(cover, latest)) continue
-      await coverStore.remove(paths.filter(path => path !== `${coverPrefix(id)}current.json` && path !== `${coverPrefix(id)}${cover.hash}.webp`))
+      const keep = new Set([`${coverPrefix(id)}current.json`, `${coverPrefix(id)}${cover.hash}.webp`,
+        ...(cover.preview ? [`${coverPrefix(id)}${cover.preview.hash}.webp`] : [])])
+      await coverStore.remove(paths.filter(path => !keep.has(path)))
     } catch { failed++ }
   }
   return { prepared, failed, checked, total: result.items.length, limit: dailyCoverLimit }
