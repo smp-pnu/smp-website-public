@@ -48,7 +48,8 @@ function ResearchPagination({ page, totalPages, pageHref }: {
       {page > 1
         ? <Link prefetch={false} href={pageHref(page - 1)} rel="prev" className={`order-2 text-slate-300 md:order-1 ${stepClass}`}>이전</Link>
         : <span aria-disabled="true" className="order-2 inline-flex h-11 items-center px-3 text-sm text-slate-600 md:order-1">이전</span>}
-      <ol className="order-1 flex w-full max-w-[236px] flex-wrap justify-center gap-1 md:order-2 md:w-auto md:max-w-none">
+      <div className="order-1 flex w-full justify-center md:order-2 md:w-auto">
+      <ol className="flex w-full max-w-[236px] flex-wrap justify-center gap-1 md:w-auto md:max-w-none">
         {pages.map(number => <li key={number}>
           <Link prefetch={false} href={pageHref(number)} aria-label={`${number}페이지`} aria-current={number === page ? "page" : undefined}
             className={`flex h-11 min-w-11 items-center justify-center rounded-md border text-sm tabular-nums transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 ${number === page ? "border-sky-300/50 bg-sky-300/15 font-semibold text-sky-200" : "border-transparent text-slate-400 hover:border-white/15 hover:bg-white/5 hover:text-white"}`}>
@@ -56,6 +57,7 @@ function ResearchPagination({ page, totalPages, pageHref }: {
           </Link>
         </li>)}
       </ol>
+      </div>
       {page < totalPages
         ? <Link prefetch={false} href={pageHref(page + 1)} rel="next" className={`order-3 text-slate-300 ${stepClass}`}>다음</Link>
         : <span aria-disabled="true" className="order-3 inline-flex h-11 items-center px-3 text-sm text-slate-600">다음</span>}
