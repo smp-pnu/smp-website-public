@@ -9,13 +9,19 @@ import { contentReturnHref, type ContentSearch } from "@/lib/content-navigation"
 import { getContentItem } from "@/lib/notion"
 import { getPublishedBlocks } from "@/lib/content-catalog"
 import { getPdfSources } from "@/lib/pdf-source"
+import { savedReportCover } from "@/lib/cover-service"
+import { driveCoverUrl } from "@/lib/report-cover"
 import { CategoryTag } from "./category-tag"
 
 export async function ContentDetail({ kind, id, search }: { kind: ContentKind; id: string; search?: ContentSearch }) {
   const item = await getContentItem(kind, id)
   if (!item) notFound()
-  const blocks = await getPublishedBlocks(item)
   const pdfs = getPdfSources(item)
+  const hasPreview = kind === "research" && !!driveCoverUrl(item)
+  const [blocks, cover] = await Promise.all([getPublishedBlocks(item), hasPreview ? savedReportCover(item) : null])
+  const coverFallback = `/api/content/research/${item.id}/cover`
+  const preview = hasPreview ? { url: cover?.url ?? coverFallback, fallbackUrl: cover ? coverFallback : undefined,
+    width: cover?.width ?? 595, height: cover?.height ?? 842, title: item.title } : undefined
   const returnHref = contentReturnHref(item, search)
   return <><SiteHeader /><main className="relative z-10 mx-auto min-h-[75svh] max-w-4xl px-6 py-16 sm:py-20">
     <Link prefetch={false} href={returnHref} className="text-sm tracking-widest text-sky-300">← {kind === "notice" ? "NOTICE" : "RESEARCH"}</Link>
@@ -30,14 +36,14 @@ export async function ContentDetail({ kind, id, search }: { kind: ContentKind; i
       <div className="py-10"><NotionContent blocks={blocks} /></div>
       {(item.attachments.length > 0 || item.externalUrl) && <section aria-label="첨부 자료" className="border-t border-white/20 pt-7">
         <h2 className="text-lg text-white">첨부 자료</h2>
-        {pdfs.map(file => {
+        {pdfs.map((file, index) => {
           const url = `/api/content/${kind}/${item.id}/pdf?${file.query}`
           return <div key={file.query} className="mt-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h3 className="min-w-0 break-words text-sm text-slate-200">{file.name}</h3>
               <a href={`${url}&download=1`} download className="shrink-0 rounded-md bg-sky-300 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-sky-200">PDF 다운로드 ↓</a>
             </div>
-            <PdfViewer url={url} />
+            <PdfViewer url={url} preview={index === 0 ? preview : undefined} />
           </div>
         })}
         <ul className="mt-4 space-y-3">{item.attachments.map((file, index) => pdfs.some(pdf => pdf.query === `index=${index}`) ? null : <li key={`${file.name}-${index}`}><a href={`/api/content/${kind}/${item.id}/file?index=${index}`} target="_blank" rel="noopener noreferrer" className="break-words text-sky-300 underline underline-offset-4">{file.name} ↗</a></li>)}{item.externalUrl && !pdfs.some(pdf => pdf.query === "source=external") && <li><a href={item.externalUrl} target="_blank" rel="noopener noreferrer" className="text-sky-300 underline underline-offset-4">관련 링크 열기 ↗</a></li>}</ul>

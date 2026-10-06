@@ -51,7 +51,7 @@ test("PDF endpoint streams a fresh source and generates safe Korean download hea
     if (String(url).startsWith("https://api.notion.com/")) return notionResponse()
     assert.equal(init?.cache, "no-store")
     assert.equal(init?.redirect, "manual")
-    assert.equal(init?.headers, undefined)
+    assert.deepEqual(init?.headers, { "Accept-Encoding": "identity" })
     return new Response(pdfBytes, { headers: { "set-cookie": "secret=never-forward", "content-type": "application/octet-stream" } })
   }
   const result = await GET(new Request("https://smp.test/api/pdf?source=external&download=1"), { params: Promise.resolve({ kind: "research", id }) })
@@ -86,9 +86,10 @@ test("large PDF responses stay streamed and cancellation reaches upstream", asyn
       else controller.close()
     },
     cancel() { cancelled = true },
-  }))
+  }), { headers: { "content-length": String(pdfBytes.length + 19 * 1024 * 1024), "accept-ranges": "bytes" } })
   const result = await streamPdf(driveDownloadUrl(drive)!, "file.pdf", false, new AbortController().signal)
   assert.ok(produced < 5, "the complete file must not be buffered before returning")
+  assert.equal(result.headers.get("content-length"), String(pdfBytes.length + 19 * 1024 * 1024))
   assert.match(result.headers.get("content-disposition")!, /^inline;/)
   const reader = result.body!.getReader()
   assert.deepEqual((await reader.read()).value, pdfBytes)
@@ -106,5 +107,93 @@ test("PDF signature detection handles split network chunks and rejects invalid i
   global.fetch = async () => notionResponse()
   for (const query of ["index=-1", "index=NaN", "index=99", "url=http://localhost/private"]) {
     assert.equal((await GET(new Request(`https://smp.test/api/pdf?${query}`), { params: Promise.resolve({ kind: "research", id }) })).status, 404)
+  }
+})
+
+test("published PDF ranges keep authorization, byte offsets and safe headers across redirects", async () => {
+  let calls = 0
+  global.fetch = async (url, init) => {
+    if (String(url).startsWith("https://api.notion.com/")) return notionResponse()
+    calls++
+    assert.deepEqual(init?.headers, { "Accept-Encoding": "identity", Range: "bytes=10-19" })
+    if (calls === 1) return new Response(null, { status: 302, headers: { location: "https://drive.usercontent.google.com/download?id=redirected" } })
+    return new Response(pdfBytes.slice(10, 20), { status: 206, headers: {
+      "content-range": `bytes 10-19/${pdfBytes.length}`, "content-length": "10", "accept-ranges": "bytes",
+      "content-type": "application/octet-stream", "set-cookie": "never-forward", "last-modified": "Mon, 05 Oct 2026 00:00:00 GMT",
+    } })
+  }
+  const request = new Request("https://smp.test/api/pdf?source=external", { headers: { Range: "bytes=10-19" } })
+  const result = await GET(request, { params: Promise.resolve({ kind: "research", id }) })
+  assert.equal(result.status, 206)
+  assert.equal(result.headers.get("content-range"), `bytes 10-19/${pdfBytes.length}`)
+  assert.equal(result.headers.get("content-length"), "10")
+  assert.equal(result.headers.get("accept-ranges"), "bytes")
+  assert.equal(result.headers.get("last-modified"), "Mon, 05 Oct 2026 00:00:00 GMT")
+  assert.equal(result.headers.get("set-cookie"), null)
+  assert.match(result.headers.get("cache-control")!, /no-store/)
+  assert.deepEqual(new Uint8Array(await result.arrayBuffer()), pdfBytes.slice(10, 20))
+  assert.equal(calls, 2)
+  global.fetch = async () => notionResponse(false)
+  assert.equal((await GET(request, { params: Promise.resolve({ kind: "research", id }) })).status, 404)
+})
+
+test("initial ranges validate PDF signatures and clamp to the final byte", async () => {
+  global.fetch = async () => new Response(pdfBytes, { status: 206, headers: {
+    "content-range": `bytes 0-${pdfBytes.length - 1}/${pdfBytes.length}`, "content-type": "application/pdf",
+  } })
+  const result = await streamPdf(driveDownloadUrl(drive)!, "file", false, new AbortController().signal, "bytes=0-999")
+  assert.equal(result.status, 206)
+  assert.equal(result.headers.get("content-length"), String(pdfBytes.length))
+  assert.deepEqual(new Uint8Array(await result.arrayBuffer()), pdfBytes)
+  global.fetch = async () => new Response("<html>", { status: 206, headers: { "content-range": "bytes 0-5/6", "content-type": "application/pdf" } })
+  await assert.rejects(streamPdf(driveDownloadUrl(drive)!, "file", false, new AbortController().signal, "bytes=0-999"))
+})
+
+test("malformed or inconsistent partial responses are rejected before serving bytes", async () => {
+  const valid = { "content-range": "bytes 10-19/100", "content-length": "10", "content-type": "application/pdf" }
+  const invalidHeaders: Record<string, string>[] = [
+    { "content-range": "bytes 9-18/100" }, { "content-range": "bytes 10-18/100" },
+    { "content-range": "bytes 10-19/19" }, { "content-range": "bytes 10-19/*" },
+    { "content-length": "9" }, { "content-type": "text/html" }, { "content-encoding": "gzip" },
+  ]
+  for (const invalid of invalidHeaders) {
+    global.fetch = async () => new Response(new Uint8Array(10), { status: 206, headers: { ...valid, ...invalid } })
+    await assert.rejects(streamPdf(driveDownloadUrl(drive)!, "file", false, new AbortController().signal, "bytes=10-19"))
+  }
+  global.fetch = async () => new Response(new Uint8Array(10), { status: 206, headers: valid })
+  await assert.rejects(streamPdf(driveDownloadUrl(drive)!, "file", false, new AbortController().signal))
+})
+
+test("range requests fall back to validated full responses and preserve file length", async () => {
+  global.fetch = async () => new Response(pdfBytes, { headers: { "content-length": String(pdfBytes.length), "accept-ranges": "bytes" } })
+  const result = await streamPdf(driveDownloadUrl(drive)!, "file", false, new AbortController().signal, "bytes=0-999")
+  assert.equal(result.status, 200)
+  assert.equal(result.headers.get("content-length"), String(pdfBytes.length))
+  assert.equal(result.headers.get("content-range"), null)
+  assert.deepEqual(new Uint8Array(await result.arrayBuffer()), pdfBytes)
+})
+
+test("unsupported and unsatisfiable ranges do not turn into full downloads", async () => {
+  let calls = 0
+  global.fetch = async () => { calls++; return new Response(null, { status: 416, headers: { "content-range": "bytes */100" } }) }
+  for (const range of ["bytes=0-9,20-29", "bytes=-", "bytes=-0", "bytes=20-10", "bytes=0-9007199254740992"]) {
+    const result = await streamPdf(driveDownloadUrl(drive)!, "file", false, new AbortController().signal, range)
+    assert.equal(result.status, 416)
+  }
+  assert.equal(calls, 0)
+  const result = await streamPdf(driveDownloadUrl(drive)!, "file", false, new AbortController().signal, "bytes=100-200")
+  assert.equal(result.status, 416)
+  assert.equal(result.headers.get("content-range"), "bytes */100")
+  assert.equal(calls, 1)
+})
+
+test("open and suffix ranges remain compatible with native readers and resumed downloads", async () => {
+  global.fetch = async () => new Response(pdfBytes.slice(-10), { status: 206, headers: {
+    "content-type": "application/pdf", "content-range": `bytes ${pdfBytes.length - 10}-${pdfBytes.length - 1}/${pdfBytes.length}`,
+  } })
+  for (const range of ["bytes=-10", `bytes=${pdfBytes.length - 10}-`]) {
+    const result = await streamPdf(driveDownloadUrl(drive)!, "file", false, new AbortController().signal, range)
+    assert.equal(result.status, 206)
+    assert.deepEqual(new Uint8Array(await result.arrayBuffer()), pdfBytes.slice(-10))
   }
 })

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Document, Page } from "react-pdf"
 import { pdfOptions } from "./pdf-config"
 import "react-pdf/dist/Page/TextLayer.css"
@@ -8,7 +8,7 @@ import "react-pdf/dist/Page/AnnotationLayer.css"
 
 const buttonClass = "rounded border border-white/25 px-3 py-2 text-sm text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-2 focus-visible:outline-sky-300"
 
-export default function PdfCanvas({ url }: { url: string }) {
+export default function PdfCanvas({ url, onReady, onRetry }: { url: string; onReady: () => void; onRetry: () => void }) {
   const viewport = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
   const [pages, setPages] = useState(0)
@@ -16,6 +16,7 @@ export default function PdfCanvas({ url }: { url: string }) {
   const [zoom, setZoom] = useState(1)
   const [attempt, setAttempt] = useState(0)
   const [failed, setFailed] = useState(false)
+  const fail = useCallback(() => { setFailed(true); onReady() }, [onReady])
   useEffect(() => {
     const element = viewport.current
     if (!element) return
@@ -32,7 +33,7 @@ export default function PdfCanvas({ url }: { url: string }) {
   const error = <div role="alert" className="p-6 text-sm leading-7 text-slate-200">
     <p>PDF를 표시하지 못했습니다. 잠시 후 다시 시도하거나 위의 PDF 다운로드를 이용해주세요.</p>
     <p>계속 열리지 않으면 학회에 문의해주세요.</p>
-    <button className={`${buttonClass} mt-3`} onClick={() => { setFailed(false); setPages(0); setPage(1); setAttempt(value => value + 1) }}>다시 시도</button>
+    <button className={`${buttonClass} mt-3`} onClick={() => { onRetry(); setFailed(false); setPages(0); setPage(1); setAttempt(value => value + 1) }}>다시 시도</button>
   </div>
 
   return <div className="overflow-hidden rounded-lg border border-white/20 bg-slate-950/80">
@@ -55,12 +56,13 @@ export default function PdfCanvas({ url }: { url: string }) {
       </label>
     </div>
     <div ref={viewport} tabIndex={0} aria-label="PDF 문서" className="overflow-x-auto bg-slate-800">
-      {width > 0 && <Document key={attempt} file={url} options={pdfOptions} suspense={false}
-        loading={failed ? error : <p role="status" className="p-6 text-sm text-slate-200">PDF를 불러오고 있습니다…</p>}
-        error={error} onLoadError={() => setFailed(true)} onLoadSuccess={pdf => { setPages(pdf.numPages); setFailed(false) }}
-        onPassword={() => setFailed(true)} externalLinkTarget="_blank" onItemClick={({ pageNumber }) => { if (pageNumber) navigate(pageNumber) }}>
-        {failed ? error : <Page pageNumber={page} width={width} scale={zoom} devicePixelRatio={Math.min(window.devicePixelRatio || 1, 2)}
-          loading={<p role="status" className="p-6 text-slate-200">페이지를 표시하고 있습니다…</p>} error={error} />}
+      {failed ? error : width > 0 && <Document key={attempt} file={url} options={pdfOptions} suspense={false}
+        loading={<p role="status" className="p-6 text-sm text-slate-200">PDF를 불러오고 있습니다…</p>}
+        error={error} onLoadError={fail} onSourceError={fail} onLoadSuccess={pdf => setPages(pdf.numPages)}
+        onPassword={fail} externalLinkTarget="_blank" onItemClick={({ pageNumber }) => { if (pageNumber) navigate(pageNumber) }}>
+        <Page pageNumber={page} width={width} scale={zoom} devicePixelRatio={Math.min(window.devicePixelRatio || 1, 2)}
+          onRenderSuccess={onReady} onLoadError={fail} onRenderError={fail}
+          loading={<p role="status" className="p-6 text-slate-200">페이지를 표시하고 있습니다…</p>} error={error} />
       </Document>}
     </div>
   </div>
