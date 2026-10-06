@@ -19,7 +19,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         const saved = await ensureReportCover(item, false, reader)
         const image = reader ? saved?.preview : saved
         if (image) return new Response(null, { status: 307, headers: { ...pdfHeaders, Location: image.url } })
-      } catch { /* Storage quota/outage: retain a readable Drive cover. */ }
+      } catch (error) {
+        // Keep the fallback readable, with enough diagnostics to repair a
+        // missing renderer asset or temporary storage failure in production.
+        console.warn("[SMP cover] Preparation failed:", error instanceof Error ? error.message.slice(0, 300) : "Unavailable")
+      }
     }
     const url = driveCoverUrl(item)
     if (!url) return new Response("Not found", { status: 404, headers: pdfHeaders })

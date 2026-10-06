@@ -1,7 +1,7 @@
 import "server-only"
 import path from "node:path"
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs"
-import type { Canvas } from "@napi-rs/canvas"
+import { createCanvas, type Canvas } from "@napi-rs/canvas"
 import { streamPdf } from "./pdf-response"
 
 const maxPdfBytes = 128 * 1024 * 1024
@@ -58,10 +58,9 @@ export async function renderFirstPage(data: Uint8Array, signal = AbortSignal.tim
     const base = page.getViewport({ scale: 1 })
     const scale = Math.min(2048 / base.width, Math.sqrt(8_000_000 / (base.width * base.height)))
     const viewport = page.getViewport({ scale })
-    const factory = doc.canvasFactory as { create(width: number, height: number): { canvas: Canvas; context: CanvasRenderingContext2D } }
-    const target = factory.create(Math.ceil(viewport.width), Math.ceil(viewport.height))
-    canvas = target.canvas
-    await page.render({ canvas: null, canvasContext: target.context, viewport }).promise
+    canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height))
+    const context = canvas.getContext("2d") as unknown as CanvasRenderingContext2D
+    await page.render({ canvas: null, canvasContext: context, viewport }).promise
     signal.throwIfAborted()
     return canvas.toBuffer("image/png")
   } finally {
