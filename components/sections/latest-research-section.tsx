@@ -1,10 +1,10 @@
+import { Suspense } from "react"
 import Link from "next/link"
 import { FileText, ArrowRight } from "lucide-react"
 import { getContent } from "@/lib/content-catalog"
-import { ContentRows } from "@/components/content-list"
+import { ContentRows } from "@/components/content-rows"
 
-export async function LatestResearchSection() {
-  const result = await getContent("research")
+export function LatestResearchSection() {
   return (
     <section className="px-6 py-16 sm:py-20">
       <div className="mx-auto max-w-6xl">
@@ -18,12 +18,9 @@ export async function LatestResearchSection() {
           </p>
         </div>
 
-        {result.items.length ? <div className="mt-12"><ContentRows items={result.items.slice(0, 3)} /></div> : <div className="mx-auto mt-12 flex max-w-md flex-col items-center gap-4 rounded-lg border border-dashed border-white/20 bg-white/5 px-8 py-16 text-center backdrop-blur-sm">
-          <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white/70">
-            <FileText className="h-5 w-5" aria-hidden="true" />
-          </span>
-          <p className="text-base leading-relaxed text-slate-300">{result.state === "error" ? "리포트를 불러오지 못했습니다. 잠시 후 다시 시도해주세요." : "공개 리포트를 준비하고 있습니다."}</p>
-        </div>}
+        <Suspense fallback={<p role="status" className="mt-12 py-16 text-center text-slate-400">최신 리포트를 불러오는 중입니다.</p>}>
+          <LatestResearchRows />
+        </Suspense>
 
         <div className="mt-10 flex justify-center">
           <Link
@@ -39,3 +36,13 @@ export async function LatestResearchSection() {
   )
 }
 
+async function LatestResearchRows() {
+  const result = await getContent("research")
+  if (result.items.length) return <div className="mt-12"><ContentRows items={result.items.slice(0, 3)} /></div>
+  return <div className="mx-auto mt-12 flex max-w-md flex-col items-center gap-4 rounded-lg border border-dashed border-white/20 bg-white/5 px-8 py-16 text-center backdrop-blur-sm">
+    <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white/70">
+      <FileText className="h-5 w-5" aria-hidden="true" />
+    </span>
+    <p className="text-base leading-relaxed text-slate-300">{result.state === "error" ? "리포트를 불러오지 못했습니다. 잠시 후 다시 시도해주세요." : "공개 리포트를 준비하고 있습니다."}</p>
+  </div>
+}

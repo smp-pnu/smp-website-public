@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import { fetchReportCover } from "../lib/report-cover"
 import { GET } from "../app/api/content/research/[id]/cover/route"
 import { coverStore } from "../lib/cover-store"
-import { coverPrefix, sourceKey } from "../lib/cover-cache"
+import { coverPrefix, sourceKey } from "../lib/cover-metadata"
 import { toContentItem } from "../lib/content-model"
 
 const originalFetch = global.fetch

@@ -10,7 +10,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --conditions=react-server --test tests/*.test.ts"
+    "test": "node --import tsx --conditions=react-server --test tests/*.test.ts",
+    "test:bundles": "node scripts/check-read-bundles.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

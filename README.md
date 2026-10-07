@@ -7,6 +7,8 @@ SMP 공지사항 및 PDF 리포트 웹사이트 — Notion CMS, GitHub 동기화
 - 운영 코드: [smp-pnu/smp-website-public](https://github.com/smp-pnu/smp-website-public), `main` 브랜치
 - 배포 관리: [Vercel SMP / smp-pnu](https://vercel.com/smp-07ee/smp-pnu), Hobby
 
+코드 수정 담당자는 [코드 구조와 변경 안내](docs/architecture.md)에서 기능별 수정 위치, 캐시·공개 검사 규칙, 로컬 검증 방법을 먼저 확인하세요.
+
 기존 비공개 저장소는 원본 보관용입니다. 앞으로 웹사이트 코드 수정은 이 공개 저장소에서 진행합니다. 공개 저장소에는 내부 편집 문서, 실제 연결 정보와 원본 Git 이력을 포함하지 않았습니다.
 
 ## 콘텐츠 관리

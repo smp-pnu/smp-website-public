@@ -2,22 +2,14 @@ import "server-only"
 import { normalizeId, type ContentItem } from "./content-model"
 import { loadContent, loadContentItem } from "./notion"
 import { coverStore, coverStorageEnabled } from "./cover-store"
-import { coverPrefix, currentCover, prepareCover, readCover, type SavedCover } from "./cover-cache"
+import { coverPrefix, currentCover, readCover, type SavedCover } from "./cover-metadata"
+import { prepareCover } from "./cover-generation"
 import { driveCoverUrl, fetchReportCover } from "./report-cover"
-import { createSavedCoverReader } from "./saved-cover-reader"
 import { coverBatch, dailyCoverLimit } from "./cover-schedule"
 import { getPdfSources } from "./pdf-source"
 
 async function latestReport(id: string) {
   return loadContentItem("research", id)
-}
-
-const readSavedCover = createSavedCoverReader(coverStore)
-export async function savedReportCover(item: ContentItem) {
-  if (!coverStorageEnabled() || !driveCoverUrl(item)) return null
-  try {
-    return await readSavedCover(item)
-  } catch { return null }
 }
 
 const pending = new Map<string, Promise<SavedCover | null>>()

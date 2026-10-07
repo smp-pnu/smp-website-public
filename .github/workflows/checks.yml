@@ -23,4 +23,5 @@ jobs:
       - run: pnpm test
       - run: pnpm audit --audit-level=high
       - run: pnpm build
+      - run: pnpm test:bundles
       - run: pnpm typecheck

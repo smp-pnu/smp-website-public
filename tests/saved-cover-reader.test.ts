@@ -1,7 +1,7 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import { createSavedCoverReader } from "../lib/saved-cover-reader"
-import { coverPrefix, sourceKey, type SavedCover } from "../lib/cover-cache"
+import { coverPrefix, sourceKey, type SavedCover } from "../lib/cover-metadata"
 import type { CoverStore, StoredValue } from "../lib/cover-store"
 import type { ContentItem } from "../lib/content-model"
 

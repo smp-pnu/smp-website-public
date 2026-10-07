@@ -1,7 +1,8 @@
 import "server-only"
 import type { ContentItem } from "./content-model"
-import type { CoverStore } from "./cover-store"
-import { currentCover, readCover, sourceKey, type SavedCover } from "./cover-cache"
+import { coverStore, coverStorageEnabled, type CoverStore } from "./cover-store"
+import { driveCoverUrl } from "./report-cover"
+import { currentCover, readCover, sourceKey, type SavedCover } from "./cover-metadata"
 
 const ttl = 60_000
 const maxEntries = 256
@@ -31,4 +32,12 @@ export function createSavedCoverReader(store: CoverStore, now = Date.now) {
     pending.set(key, work)
     try { return await work } finally { pending.delete(key) }
   }
+}
+
+const readSavedCover = createSavedCoverReader(coverStore)
+export async function savedReportCover(item: ContentItem) {
+  if (!coverStorageEnabled() || !driveCoverUrl(item)) return null
+  try {
+    return await readSavedCover(item)
+  } catch { return null }
 }

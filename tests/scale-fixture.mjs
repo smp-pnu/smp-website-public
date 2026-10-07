@@ -45,6 +45,7 @@ globalThis.fetch = async (input, init) => {
   if (current.unavailable) return new Response(null, { status: 503, headers: { "retry-after": "60" } })
   await new Promise(resolve => setTimeout(resolve, 20))
   if (url.pathname.includes("data_sources")) {
+    if (current.listDelayMs) await new Promise(resolve => setTimeout(resolve, current.listDelayMs))
     const kind = url.pathname.includes(process.env.NOTION_REPORTS_DATA_SOURCE_ID) ? "research" : "notice"
     const start = Number(JSON.parse(String(init?.body)).start_cursor ?? 0)
     const end = Math.min(start + 100, counts[kind])
@@ -57,5 +58,7 @@ globalThis.fetch = async (input, init) => {
     if (!(index > 0 && index <= counts[kind])) return new Response(null, { status: 404 })
     return Response.json(page(index, kind, current))
   }
+  if (current.blockDelayMs) await new Promise(resolve => setTimeout(resolve, current.blockDelayMs))
+  if (current.blockUnavailable) return new Response(null, { status: 400 })
   return Response.json({ results: [{ id: "test-body", type: "paragraph", paragraph: { rich_text: text("로컬 부하 검증 본문입니다.") } }], has_more: false, next_cursor: null })
 }

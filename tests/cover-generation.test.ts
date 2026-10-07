@@ -1,7 +1,8 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import sharp from "sharp"
-import { prepareCover, readCover, currentCover, sourceKey, coverPrefix } from "../lib/cover-cache"
+import { prepareCover } from "../lib/cover-generation"
+import { readCover, currentCover, sourceKey, coverPrefix } from "../lib/cover-metadata"
 import type { CoverStore, StoredValue } from "../lib/cover-store"
 import type { ContentItem } from "../lib/content-model"
 
