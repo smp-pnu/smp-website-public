@@ -4,8 +4,8 @@ import Image from "next/image"
 import { ChevronDown } from "lucide-react"
 import { memberGenerations, type MemberResult } from "@/lib/member-model"
 
-export function MembersDirectory({ result, initialGeneration }: { result: MemberResult; initialGeneration?: number }) {
-  const generations = memberGenerations(result.items)
+export function MembersDirectory({ result, initialGeneration, reservedGenerations = [] }: { result: MemberResult; initialGeneration?: number; reservedGenerations?: number[] }) {
+  const generations = memberGenerations(result.items, reservedGenerations)
   const [requested, setSelected] = useState(initialGeneration)
   const selected = requested && generations.includes(requested) ? requested : generations[0]
   const profiles = result.items.filter(member => member.generation === selected)

@@ -50,8 +50,8 @@ export function sortMembers(items: Member[]) {
     || a.name.localeCompare(b.name, "ko") || a.id.localeCompare(b.id))
 }
 
-export function memberGenerations(items: Member[]) {
-  return [...new Set(items.map(member => member.generation))].sort((a, b) => b - a)
+export function memberGenerations(items: Member[], reserved: number[] = []) {
+  return [...new Set([...reserved, ...items.map(member => member.generation)])].sort((a, b) => b - a)
 }
 
 export function memberSearchEntries(items: Member[]) {
