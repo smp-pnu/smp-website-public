@@ -103,7 +103,7 @@ export function SiteHeader() {
         </button>
         </div>
       </div>
-      {searchOpen && <div id="site-search" className="border-t border-white/10 bg-[#050c18]/95 px-6 py-6" onKeyDown={event => { if (event.key === "Escape") { setSearchOpen(false); document.querySelector<HTMLButtonElement>('button[aria-controls="site-search"]')?.focus() } }}>
+      {searchOpen && <div id="site-search" className="max-h-[calc(100svh-4.5rem)] overflow-y-auto overscroll-contain border-t border-white/10 bg-[#07111e]/98 px-6 py-6 shadow-[0_16px_32px_-20px_rgba(0,0,0,0.6)] sm:py-8" onKeyDown={event => { if (event.key === "Escape") { setSearchOpen(false); document.querySelector<HTMLButtonElement>('button[aria-controls="site-search"]')?.focus() } }}>
         <SiteSearchForm onNavigate={() => setSearchOpen(false)} />
       </div>}
 
