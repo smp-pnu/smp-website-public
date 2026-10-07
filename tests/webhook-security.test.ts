@@ -62,3 +62,17 @@ test("configured webhook rejects unsigned events and handshake replacement witho
     else delete process.env.NOTION_WEBHOOK_VERIFICATION_TOKEN
   }
 })
+
+test("unsigned setup is disabled by default even before a webhook token is configured", async () => {
+  const oldToken = process.env.NOTION_WEBHOOK_VERIFICATION_TOKEN
+  const oldFlag = process.env.NOTION_WEBHOOK_SETUP_ENABLED
+  delete process.env.NOTION_WEBHOOK_VERIFICATION_TOKEN
+  delete process.env.NOTION_WEBHOOK_SETUP_ENABLED
+  try {
+    const response = await webhook(new Request("https://smp.test/api/notion/webhook", { method: "POST", body: JSON.stringify({ verification_token: "secret_untrusted_setup_token_1234567890" }) }))
+    assert.equal(response.status, 401)
+  } finally {
+    if (oldToken) process.env.NOTION_WEBHOOK_VERIFICATION_TOKEN = oldToken
+    if (oldFlag) process.env.NOTION_WEBHOOK_SETUP_ENABLED = oldFlag
+  }
+})

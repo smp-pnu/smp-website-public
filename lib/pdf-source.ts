@@ -29,6 +29,11 @@ export function isNotionFileUrl(value: string) {
     || (url.hostname === "s3.us-west-2.amazonaws.com" && url.pathname.startsWith("/secure.notion-static.com/")))
 }
 
+// A first-party redirect may only point at our established file providers.
+export function isTrustedAttachmentUrl(value: string) {
+  return !!driveDownloadUrl(value) || isNotionFileUrl(value)
+}
+
 export type PdfSource = { name: string; url: string; query: string }
 
 export function getPdfSources(item: ContentItem): PdfSource[] {

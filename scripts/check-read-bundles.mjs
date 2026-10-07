@@ -3,7 +3,7 @@
 import assert from "node:assert/strict"
 import { readFile } from "node:fs/promises"
 
-const routes = ["page", "research/page", "research/[id]/page", "notice/page", "notice/[id]/page"]
+const routes = ["page", "research/page", "research/[id]/page", "notice/page", "notice/[id]/page", "api/content/research/[id]/cover/route", "api/search/route"]
 for (const route of routes) {
   const trace = JSON.parse(await readFile(`.next/server/app/${route}.js.nft.json`, "utf8"))
   const generationFiles = trace.files.filter(file => /node_modules\/(sharp|@napi-rs\/canvas|pdfjs-dist)|sharp-libvips/.test(file))

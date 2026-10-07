@@ -223,7 +223,7 @@ function smpRun_(preview) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(1000)) throw new Error('Cleanup already running');
   const props = PropertiesService.getScriptProperties();
-  const stats = { startedAt: new Date().toISOString(), preview: !!preview, reports: 0, candidates: 0, trashed: 0, shared: 0, skipped: 0, pendingReferences: false };
+  const stats = { startedAt: new Date().toISOString(), preview: !!preview, reports: 0, candidates: 0, trashed: 0, shared: 0, skipped: 0, pendingReferences: false, safetyStop: false };
   try {
     const cfg = smpConfig_(), state = smpLoad_(cfg);
     if (!preview && !cfg.enabled) return { disabled: true };
@@ -240,6 +240,12 @@ function smpRun_(preview) {
       delete state.pending[id];
     }
     const ids = Array.from(new Set(Object.keys(state.pending).concat(Object.keys(state.reports).filter(id => !active.has(id) && !state.reports[id].done))));
+    // An unexpected mass removal must not cascade into Drive. Keep the queue
+    // intact for administrator review; preview is safe and never clears it.
+    if (ids.length > 10) {
+      stats.candidates = ids.length; stats.safetyStop = true;
+      smpSave_(state); return stats;
+    }
     const candidates = [];
     for (const id of ids.slice(0, 30)) {
       // A 404, permission loss or failed read aborts without guessing deletion.

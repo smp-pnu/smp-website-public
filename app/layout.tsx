@@ -16,6 +16,10 @@ const notoSansKr = Noto_Sans_KR({
 const heroFont = localFont({ src: './fonts/cormorant-garamond-latin-300.woff2', weight: '300', style: 'normal', variable: '--font-hero', display: 'swap' })
 
 
+// A fresh CSP nonce must be rendered with each document, never cached in HTML.
+// Explicit unstable_cache catalog/block caches remain shared across requests.
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'SMP | 부산대학교 금융투자학회',
   description:

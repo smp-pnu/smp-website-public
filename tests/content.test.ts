@@ -12,7 +12,7 @@ function page(overrides: Partial<NotionPage> = {}): NotionPage {
     "제목": { type: "title", title: [{ plain_text: "공개 공지" }] },
     "공개": { type: "checkbox", checkbox: true },
     "게시일": { type: "date", date: { start: "2026-01-01" } },
-    "첨부파일": { type: "files", files: [{ name: "report.pdf", type: "file", file: { url: "https://example.com/report.pdf?signature=fresh" } }] },
+    "첨부파일": { type: "files", files: [{ name: "report.pdf", type: "file", file: { url: "https://secure.notion-static.com/report.pdf?signature=fresh" } }] },
   }, ...overrides }
 }
 const originalFetch = global.fetch
@@ -251,4 +251,13 @@ test("a missing next cursor fails rather than silently dropping the rest of a pa
   global.fetch = async () => response([page()], true, null)
   assert.deepEqual(await loadContent("notice"), { items: [], state: "error" })
   await assert.rejects(getContentBlocks(id), /Invalid Notion pagination/)
+})
+
+test("published CMS entries cannot use the site's file route to redirect to an unrelated host", async () => {
+  const item = page()
+  item.properties["첨부파일"].files![0].file!.url = "https://unrelated.example/file.pdf"
+  global.fetch = async () => Response.json(item)
+  const response = await GET(new Request("https://smp.test/api/file?index=0"), { params: Promise.resolve({ kind: "notice", id }) })
+  assert.equal(response.status, 404)
+  assert.equal(response.headers.get("location"), null)
 })

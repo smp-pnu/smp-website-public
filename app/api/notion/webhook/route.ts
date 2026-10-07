@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     const raw = await limitedBody(request)
     const event = JSON.parse(raw)
     const token = process.env.NOTION_WEBHOOK_VERIFICATION_TOKEN
-    if (!token && typeof event.verification_token === "string" && /^secret_[\w-]{20,200}$/.test(event.verification_token)) {
+    if (!token && process.env.NOTION_WEBHOOK_SETUP_ENABLED === "true" && typeof event.verification_token === "string" && /^secret_[\w-]{20,200}$/.test(event.verification_token)) {
       // Notion's initial handshake is unsigned. It only stages ciphertext;
       // an authenticated administrator must verify it in Notion and install
       // the token before any event can run. Never share CRON_SECRET in a URL.
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     if (!coverStorageEnabled()) return reply({ received: true, prepared: false })
     // Fetch current source-scoped content; delayed/duplicate events cannot
     // republish an old state. Failures return 503 so Notion can retry.
-    const cover = await syncReportCover(event.entity.id, true)
+    const cover = await syncReportCover(event.entity.id, false)
     return reply({ received: true, prepared: !!cover })
   } catch {
     return reply({ error: "Content update unavailable" }, 503)

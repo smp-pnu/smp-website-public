@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import { Menu, X, Search } from "lucide-react"
+import { SiteSearchForm } from "@/components/site-search-form"
 import { LogoSymbol } from "@/components/logo"
 import { NAV_ITEMS } from "@/lib/site-config"
 import { cn } from "@/lib/utils"
@@ -103,11 +104,7 @@ export function SiteHeader() {
         </div>
       </div>
       {searchOpen && <div id="site-search" className="border-t border-white/10 bg-[#050c18]/95 px-6 py-6" onKeyDown={event => { if (event.key === "Escape") { setSearchOpen(false); document.querySelector<HTMLButtonElement>('button[aria-controls="site-search"]')?.focus() } }}>
-        <form action="/search" role="search" className="mx-auto flex max-w-3xl gap-3">
-          <label htmlFor="header-query" className="sr-only">사이트 검색</label>
-          <input autoFocus id="header-query" name="q" type="search" required maxLength={100} placeholder="페이지, 이름, 학과, 수상 내역 검색" className="min-w-0 flex-1 border-b border-white/40 bg-transparent px-2 py-3 text-white outline-none focus:border-sky-300" />
-          <button className="px-4 text-sm text-sky-300" type="submit">검색</button>
-        </form>
+        <SiteSearchForm onNavigate={() => setSearchOpen(false)} />
       </div>}
 
       {open && (

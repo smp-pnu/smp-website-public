@@ -175,3 +175,19 @@ test("relay sends only a signed page ID and reports worker rejections for Notion
     if (oldToken) process.env.NOTION_TOKEN = oldToken; else delete process.env.NOTION_TOKEN
   }
 })
+
+test("a batch of more than ten missing reports pauses before any Drive mutation", () => {
+  const x = fixture()
+  for (let i = 1; i <= 11; i++) { const id = i.toString(16).padStart(32, "0"); x.pages[id] = page(id, reports, "") }
+  x.run()
+  for (const item of Object.values(x.pages)) item.in_trash = true
+  assert.equal(x.run().safetyStop, true)
+  assert.equal(x.f.mutations, 0)
+  assert.equal(x.run(true).safetyStop, true)
+  assert.equal(x.f.mutations, 0)
+  // Restoring accidental deletions reduces the pending set; normal cleanup resumes.
+  for (const item of Object.values(x.pages)) item.in_trash = false
+  x.pages[pageId].in_trash = true
+  assert.equal(x.run().safetyStop, false)
+  assert.equal(x.f.mutations, 1)
+})

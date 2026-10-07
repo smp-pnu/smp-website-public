@@ -1,7 +1,7 @@
 import { Suspense } from "react"
 import { PdfViewer } from "./pdf-viewer"
 import type { ContentItem } from "@/lib/content-model"
-import { getPdfSources } from "@/lib/pdf-source"
+import { getPdfSources, isTrustedAttachmentUrl } from "@/lib/pdf-source"
 import { savedReportCover } from "@/lib/saved-cover-reader"
 import { driveCoverUrl } from "@/lib/report-cover"
 
@@ -30,13 +30,13 @@ export function ContentAttachments({ item }: { item: ContentItem }) {
       {item.attachments.map((file, index) => {
         if (pdfs.some(pdf => pdf.query === `index=${index}`)) return null
         return <li key={`${file.name}-${index}`}>
-          <a href={`/api/content/${kind}/${item.id}/file?index=${index}`} target="_blank" rel="noopener noreferrer"
-            className="break-words text-sky-300 underline underline-offset-4">{file.name} ↗</a>
+          <a href={isTrustedAttachmentUrl(file.url) ? `/api/content/${kind}/${item.id}/file?index=${index}` : file.url} target="_blank" rel="noopener noreferrer"
+            className="break-words text-sky-300 underline underline-offset-4">{file.name}{!isTrustedAttachmentUrl(file.url) && ` · ${new URL(file.url).hostname}`} ↗</a>
         </li>
       })}
       {item.externalUrl && !pdfs.some(pdf => pdf.query === "source=external") && <li>
         <a href={item.externalUrl} target="_blank" rel="noopener noreferrer"
-          className="text-sky-300 underline underline-offset-4">관련 링크 열기 ↗</a>
+          className="text-sky-300 underline underline-offset-4">관련 링크 열기 · {new URL(item.externalUrl).hostname} ↗</a>
       </li>}
     </ul>
   </section>

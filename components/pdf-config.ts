@@ -11,7 +11,6 @@ export const pdfOptions = {
   cMapUrl: `${assetPath}/cmaps/`,
   standardFontDataUrl: `${assetPath}/standard_fonts/`,
   wasmUrl: `${assetPath}/wasm/`,
-  isEvalSupported: false,
   disableRange: false,
   // Keep the main transfer flowing: older PDFs scatter their page tree across
   // the file. Range-only loading adds serial Drive round trips for those files.

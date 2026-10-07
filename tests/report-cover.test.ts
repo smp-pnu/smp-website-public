@@ -121,3 +121,20 @@ test("reader requests reuse the full-size saved preview while cards retain the s
   assert.equal(reader.status, 307)
   assert.equal(reader.headers.get("location"), saved.preview.url)
 })
+
+test("a missing saved cover never writes Blob or downloads/parses a PDF on a public GET", async t => {
+  process.env.BLOB_READ_WRITE_TOKEN = "test-only"
+  // Use a new ID to bypass the metadata cache populated by earlier tests.
+  const newId = "44444444444444448444444444444444"
+  t.mock.method(coverStore, "read", async () => null)
+  t.mock.method(coverStore, "write", async () => assert.fail("Public GET must never generate a cover"))
+  global.fetch = async input => {
+    const url = new URL(String(input))
+    if (url.hostname === "api.notion.com") return notion(true, newId)
+    assert.equal(url.hostname, "drive.google.com")
+    assert.equal(url.pathname, "/thumbnail")
+    return new Response(imageBytes)
+  }
+  const response = await GET(request, { params: Promise.resolve({ id: newId }) })
+  assert.equal(response.status, 200)
+})

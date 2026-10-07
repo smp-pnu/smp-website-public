@@ -1,3 +1,4 @@
+import { guardPublicRequest } from "@/lib/request-security"
 import { getContentItem } from "@/lib/notion"
 import { getPdfSources } from "@/lib/pdf-source"
 import { pdfHeaders, streamPdf } from "@/lib/pdf-response"
@@ -10,6 +11,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ kind
   const { kind, id } = await params
   if (kind !== "notice" && kind !== "research") return new Response("Not found", { status: 404, headers: pdfHeaders })
   const search = new URL(request.url).searchParams
+  const denied = guardPublicRequest(request, search.get("download") === "1" ? "download" : "pdf")
+  if (denied) return denied
   const query = search.get("source") === "external" ? "source=external" : `index=${search.get("index") ?? "0"}`
   try {
     const item = await getContentItem(kind, id)
