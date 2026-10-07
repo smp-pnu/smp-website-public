@@ -1,5 +1,4 @@
 import Link from "next/link"
-import { LayoutGrid, List, X } from "lucide-react"
 import type { ContentKind } from "@/lib/content-model"
 import { contentDetailHref, contentListHref, type ContentSearch } from "@/lib/content-navigation"
 import type { ContentResult } from "@/lib/notion"
@@ -38,23 +37,14 @@ export function ContentList({ result, kind, search }: { result: ContentResult; k
   else content = isResearch && !listView ? <ResearchGrid items={visibleItems} listSearch={listSearch} /> : <ContentRows items={visibleItems} listSearch={listSearch} />
 
   return <>
-    {isResearch ? <ResearchSearchForm key={JSON.stringify(listSearch)} search={listSearch} semesters={semesters} industries={industries} reportTypes={reportTypes} activities={activities}
+    {isResearch ? <ResearchSearchForm key={JSON.stringify(listSearch)} search={listSearch} total={total} semesters={semesters} industries={industries} reportTypes={reportTypes} activities={activities}
       suggestions={result.items.map(({ id, title, summary, author, category, company, ticker, industry, semester, reportType, activity }) => ({ id, kind: "research", title, summary, author, category, company, ticker, industry, semester, reportType, activity }))} />
       : <ContentSearchForm key={`${kind}:${query}:${category}`} kind={kind} query={query} category={category} categories={categories} suggestions={suggestions} />}
-    {isResearch && activeFilters.length > 0 && <div aria-label="적용한 검색 조건" className="mt-4 flex flex-wrap items-center gap-2">
-      {activeFilters.map(({ key, value }) => <Link key={key} prefetch={false} href={contentListHref(kind, { ...listSearch, [key]: undefined, page: undefined })} aria-label={`${value} 조건 해제`}
-        className="inline-flex items-center gap-2 rounded-[3px] border border-white/15 px-2.5 py-1.5 text-xs text-slate-300 hover:bg-white/5">{key === "q" ? `검색: ${value}` : value}<X size={12} aria-hidden="true" /></Link>)}
-    </div>}
-    <div className={`mb-5 flex items-center justify-between gap-3 ${isResearch ? "mt-5 text-xs tracking-wide text-slate-400" : "mt-8 text-sm text-slate-300"}`}>
+    {!isResearch && <div className="mb-5 mt-8 flex items-center justify-between gap-3 text-sm text-slate-300">
       <div className="flex items-center gap-4"><p aria-live="polite">총 {total}건</p>
         {activeFilters.length > 0 && <Link prefetch={false} href={contentListHref(kind, { view: listSearch.view })} className="text-sky-300">검색 초기화</Link>}
       </div>
-      {isResearch && <nav aria-label="리포트 보기 방식" className="flex gap-1">
-        {[{ view: undefined, label: "그리드 보기", Icon: LayoutGrid, active: !listView }, { view: "list", label: "목록 보기", Icon: List, active: listView }].map(({ view, label, Icon, active }) =>
-          <Link key={label} prefetch={false} scroll={false} href={contentListHref(kind, { ...listSearch, view })} aria-label={label} title={label} aria-current={active ? "true" : undefined}
-            className={`inline-flex h-10 w-10 items-center justify-center rounded-[2px] border transition-colors ${active ? "border-white/25 bg-white/10 text-white" : "border-transparent text-slate-400 hover:bg-white/5 hover:text-white"}`}><Icon size={17} strokeWidth={1.5} aria-hidden="true" /></Link>)}
-      </nav>}
-    </div>
+    </div>}
     {content}
     {totalPages > 1 && (isResearch
       ? <ResearchPagination page={page} totalPages={totalPages} pageHref={pageHref} />
