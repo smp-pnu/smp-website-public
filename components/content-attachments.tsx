@@ -19,7 +19,8 @@ export function ContentAttachments({ item }: { item: ContentItem }) {
       return <div key={file.query} className="mt-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h3 className="min-w-0 break-words text-sm text-slate-200">{file.name}</h3>
-          <a href={`${url}&download=1`} download className="shrink-0 rounded-md bg-sky-300 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-sky-200">PDF 다운로드 ↓</a>
+          {/* The first research PDF already has a download action in the header. */}
+          {(kind !== "research" || index > 0) && <a href={`${url}&download=1`} download className="shrink-0 rounded-md bg-sky-300 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-sky-200">PDF 다운로드 ↓</a>}
         </div>
         {index === 0 && hasPreview ? <Suspense fallback={<div role="status" className="aspect-[595/842] rounded-lg bg-white/5 p-6 text-sm text-slate-400">PDF 미리보기를 불러오는 중입니다.</div>}>
           <ReportPdfViewer item={item} url={url} />
