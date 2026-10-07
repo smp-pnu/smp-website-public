@@ -47,7 +47,7 @@ const cachedMembers = unstable_cache(async (_namespace: string) => {
   const result = await loadMembers()
   if (result.state === "error") throw new Error("Member catalogue unavailable")
   return { result, fetchedAt: Date.now() }
-}, ["member-catalog-v1"], { revalidate: 60, tags: [memberCacheTag] })
+}, ["member-catalog-v2"], { revalidate: 60, tags: [memberCacheTag] })
 
 export const getMembers = cache(async (): Promise<MemberResult> => {
   try {

@@ -57,6 +57,26 @@ test("new generations and alumni transfers determine selectors and search destin
   assert.deepEqual(sortMembers([older, unordered, newer]).map(p => p.id), [newer.id, "z", older.id])
 })
 
+test("the category supports membership plus officer roles without losing existing members", () => {
+  const p = page()
+  const legacy = toMember(p, source)!
+  p.properties["구분"] = { type: "multi_select", multi_select: [{ name: "MEMBERS" }] }
+  assert.deepEqual(toMember(p, source), legacy)
+  p.properties["구분"].multi_select = ["기장", "MEMBERS", "회장", "회장", "내부 메모"].map(name => ({ name }))
+  const officer = toMember(p, source)!
+  assert.deepEqual(officer.roles, ["회장", "기장"])
+  assert.equal(officer.group, "members")
+  assert.ok(memberSearchEntries([officer])[0].text.includes("회장 · 기장"))
+  assert.ok(!JSON.stringify(officer).includes("내부 메모"))
+  p.properties["구분"].multi_select = ["ALUMNI", "부회장"].map(name => ({ name }))
+  assert.equal(toMember(p, source)?.group, "alumni")
+  assert.deepEqual(toMember(p, source)?.roles, ["부회장"])
+  for (const names of [["회장"], ["MEMBERS", "ALUMNI", "기장"], []]) {
+    p.properties["구분"].multi_select = names.map(name => ({ name }))
+    assert.equal(toMember(p, source), null)
+  }
+})
+
 test("628 members paginate once for 100 overlapping reads; later reads reflect withdrawal, and failures expose no stale roster", async () => {
   const originalFetch = globalThis.fetch, originalToken = process.env.NOTION_TOKEN, originalSource = process.env.NOTION_MEMBERS_DATA_SOURCE_ID
   process.env.NOTION_TOKEN = "member-test-only"

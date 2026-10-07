@@ -21,6 +21,7 @@ type Property = {
   checkbox?: boolean
   date?: { start: string } | null
   select?: { name: string; color?: string } | null
+  multi_select?: { name: string; color?: string }[]
   number?: number | null
   url?: string | null
   files?: NotionFile[]

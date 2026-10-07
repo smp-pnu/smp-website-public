@@ -29,7 +29,12 @@ export function MembersDirectory({ result, initialGeneration }: { result: Member
             {member.image && <div className="relative mb-5 aspect-[4/5] overflow-hidden bg-black/25">
               <Image src={member.image} alt={member.name} fill sizes="(min-width: 1024px) 350px, (min-width: 640px) 50vw, 100vw" className="object-cover object-top" />
             </div>}
-            <h3 className="text-xl font-normal text-white">{member.name}</h3>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <h3 className="text-xl font-normal text-white">{member.name}</h3>
+              {!!member.roles?.length && <ul aria-label="직책" className="flex flex-wrap gap-1.5">
+                {member.roles.map(role => <li key={role} className="rounded-full border border-sky-200/20 bg-sky-200/[0.07] px-2.5 py-0.5 text-xs font-medium leading-5 text-sky-200">{role}</li>)}
+              </ul>}
+            </div>
             {(member.department || member.year) && <p className="mt-3 text-sm leading-relaxed">{[member.department, member.year].filter(Boolean).join(" / ")}</p>}
           </article>)}
         </div>}

@@ -18,7 +18,7 @@ globalThis.fetch = async (input, init) => {
       parent: { type: "data_source_id", data_source_id: process.env.NOTION_MEMBERS_DATA_SOURCE_ID },
       properties: {
         "이름": { title: rich(`[검증회원] ${index}`) }, "기수": { number: index > 626 ? 41 : index > 620 ? 40 : 35 },
-        "구분": { select: { name: index > 620 ? "MEMBERS" : "ALUMNI" } },
+        "구분": { multi_select: [index > 620 ? "MEMBERS" : "ALUMNI", ...(index === 628 ? ["회장", "기장"] : index === 627 ? ["부회장"] : [])].map(name => ({ name })) },
         "학과": { rich_text: rich("경제학과") }, "학번": { rich_text: rich("26학번") },
         "공개": { checkbox: !(state.memberHidden && index === 628) }, "표시 순서": { number: index },
         "비공개 메모": { rich_text: rich("private-member-note-must-not-appear") },
