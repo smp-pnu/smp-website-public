@@ -1,7 +1,7 @@
 # SMP-Website
 SMP 공지사항 및 PDF 리포트 웹사이트 — Notion CMS, GitHub 동기화, Vercel 배포
 
-2026-10-02 전달받은 배포 소스를 가져온 Next.js App Router 프로젝트입니다. 웹사이트 코드는 GitHub에서 관리하고, 공지와 리포트는 Notion에서 작성합니다. Notion 글을 수정할 때마다 GitHub 커밋이나 재배포를 할 필요는 없습니다.
+2026-10-02 전달받은 배포 소스를 가져온 Next.js App Router 프로젝트입니다. 웹사이트 코드는 GitHub에서 관리하고, 공지·리포트·기수별 회원 명단은 Notion에서 작성합니다. Notion 내용을 수정할 때마다 GitHub 커밋이나 재배포를 할 필요는 없습니다.
 
 - 운영 사이트: [smp-pnu.vercel.app](https://smp-pnu.vercel.app)
 - 운영 코드: [smp-pnu/smp-website-public](https://github.com/smp-pnu/smp-website-public), `main` 브랜치
@@ -14,6 +14,8 @@ SMP 공지사항 및 PDF 리포트 웹사이트 — Notion CMS, GitHub 동기화
 ## 콘텐츠 관리
 
 학회 운영진이 Notion에서 공지와 리포트를 작성합니다. 관리 페이지와 DB 주소, 연결 토큰 및 실제 데이터 소스 ID는 비공개 인수인계 자료와 서버 환경변수로 관리합니다.
+
+**회원 명단:** `SMP 명단 관리`에서 기수별로 편집합니다. 공개 체크한 회원만 MEMBERS / ALUMNI 및 검색에 표시되며 새 기수도 자동 반영됩니다. [명단 관리 방법](docs/member-management.md)을 참고하세요.
 
 각 DB에 비공개 작성 예시가 있습니다. 복제한 뒤 제목, 게시일, 분류, 작성자, 요약과 본문을 작성합니다. PDF는 **학회 구글 드라이브에 업로드하고 파일 공유 주소를 `외부 링크`에 입력**합니다. 검토 후 `공개`를 체크하면 웹에 게시됩니다. 공지의 `상단 고정`은 최신순보다 우선합니다.
 
@@ -75,7 +77,7 @@ Notion 무료 요금제의 파일당 5MB 제한을 피하기 위해 PDF는 구�
 기존 학회 환경에 연결할 때는 비공개 인수인계 자료의 연결 정보를 사용합니다. 새 환경에서만 아래 설정을 진행하고, 기존 `.env.local` 파일을 덮어쓰지 마세요. 토큰을 재발급하면 운영 서버의 값도 함께 교체해야 합니다.
 
 1. 학회 Notion의 `설정 → 개발자 → 개발자 도구 열기 → 신규 연결`에서 `SMP Website`라는 API 토큰 방식 연결을 만들고 콘텐츠 읽기 권한만 줍니다. 삽입·수정·댓글·사용자 정보 권한은 웹사이트에 필요하지 않습니다. [Notion 개발자 도구](https://www.notion.so/profile/integrations).
-2. Notion 관리 페이지의 `연결`에서 해당 Integration을 추가합니다. 하위 공지·리포트 DB에도 접근 가능한지 확인합니다.
+2. Notion 관리 페이지의 `연결`에서 해당 Integration을 추가합니다. 하위 공지·리포트·회원 명단 DB에도 접근 가능한지 확인합니다.
 3. `.env.example`을 `.env.local`로 복사하고 `NOTION_TOKEN`을 입력합니다. 두 데이터 소스 ID도 입력합니다. DB 주소의 ID와 데이터 소스 ID는 다릅니다.
 4. 배포 서비스에도 같은 세 환경변수를 등록한 후 배포합니다. 토큰을 GitHub, Notion 본문, 채팅 또는 `NEXT_PUBLIC_` 변수에 넣지 마세요.
 
@@ -103,6 +105,7 @@ Vercel을 선택하면 배포할 GitHub 저장소를 Import하고 Framework를 N
 NOTION_TOKEN=(읽기 전용 Integration 토큰)
 NOTION_NOTICES_DATA_SOURCE_ID=(공지 DB 데이터 소스 ID)
 NOTION_REPORTS_DATA_SOURCE_ID=(리포트 DB 데이터 소스 ID)
+NOTION_MEMBERS_DATA_SOURCE_ID=(회원 명단 DB 데이터 소스 ID)
 ```
 
 이 앱은 서버에서 Notion API를 호출하므로 정적 GitHub Pages 배포 대상이 아닙니다. 배포 후 공개 글 한 건으로 공지 목록→상세→첨부파일과 리포트→홈 최신 리포트→통합 검색을 확인하고, 공개를 해제한 뒤 새로고침하여 사라지는지 확인합니다.
@@ -114,7 +117,7 @@ NOTION_REPORTS_DATA_SOURCE_ID=(리포트 DB 데이터 소스 ID)
 1. 학회 Notion의 `SMP 웹사이트 관리`에서 공지·리포트 DB와 비공개 작성 예시를 확인합니다. 예시를 복제해서 글을 작성하고, 제목·게시일과 `공개` 체크를 확인합니다.
 2. 학회 Notion·Google 계정의 로그인·복구 수단을 다음 담당자가 관리할 수 있게 이전하고, GitHub 조직 관리자 권한과 Vercel SMP 프로젝트 접근을 확인합니다. Google Drive의 `SMP 리포트 PDF` 폴더에 업로드·공유할 수 있는지도 확인합니다. 비밀번호나 복구 코드는 이 저장소나 공개 문서에 기록하지 않습니다.
 3. 다음 담당자가 직접 테스트 글을 공개하여 사이트 목록·상세·검색을 확인하고 다시 비공개로 전환합니다. 실제 학회 PDF를 처음 올릴 때는 사이트의 첨부 자료 링크까지 열어 확인합니다.
-4. 일상적인 공지·리포트 수정은 Notion에서 처리합니다. 메뉴·소개·회원 정보·디자인 변경은 GitHub 코드 수정이 필요합니다. DB 속성 이름과 API 연결 권한을 임의로 바꾸지 않습니다.
+4. 일상적인 공지·리포트·회원 명단 수정은 Notion에서 처리합니다. 메뉴·소개·디자인 변경은 GitHub 코드 수정이 필요합니다. DB 속성 이름과 API 연결 권한을 임의로 바꾸지 않습니다.
 
 글이 안 보이면 `공개`, 제목, 현재 또는 과거의 `게시일`을 먼저 확인합니다. 전체 목록에 연결 오류가 나오면 Vercel의 Logs, Production 환경변수, Notion 연결의 두 DB 접근 권한을 확인합니다. 코드 배포 실패는 Vercel Deployments의 Build Logs에서 확인합니다.
 

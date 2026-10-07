@@ -1,6 +1,7 @@
 import { DistributionChart } from "@/components/distribution-chart"
 import { CompanyLogo } from "@/components/company-logo"
 import { MembersDirectory } from "@/components/members-directory"
+import type { MemberResult } from "@/lib/member-model"
 import { NetworkTabs } from "@/components/network-tabs"
 
 const distribution = [
@@ -9,7 +10,7 @@ const distribution = [
 ]
 const companies = ["BNK투자증권", "상상인증권", "한화투자증권", "흥국자산운용", "라이나생명", "한국자산관리공사", "한국IR협의회", "우리은행", "펌텍코리아", "NH투자증권", "하나은행", "IBK기업은행", "트로이투자일임", "iM증권", "LS증권", "유안타증권", "한국산업은행", "타이거자산운용투자일임", "KB투자증권", "한국투자증권", "신용보증기금", "한국투자신탁운용", "신한투자증권", "미래에셋증권", "주택도시보증공사", "코리아에셋투자증권", "수협", "타임폴리오자산운용", "NICE평가정보", "노을", "PwC", "한국기업평가", "한국주택금융공사", "넥센타이어", "신한은행"]
 
-export function AlumniOverview({ generation = 35 }: { generation?: number }) {
+export function AlumniOverview({ generation, members }: { generation?: number; members: MemberResult }) {
   return <main className="relative z-10 mx-auto max-w-6xl px-6 py-14 text-white">
     <NetworkTabs active="alumni" />
     <section className="pb-24 sm:pb-32">
@@ -22,6 +23,6 @@ export function AlumniOverview({ generation = 35 }: { generation?: number }) {
       <DistributionChart items={distribution} />
     </section>
     <section className="border-t border-white/20 py-20"><p className="text-xs tracking-[.3em] text-sky-300">COMPANIES</p><h2 className="mt-5 text-4xl font-light">재직 현황</h2><p className="mt-5 text-sm text-slate-300">SMP 선배들이 진출한 기업과 기관</p><div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">{companies.map((company, index) => <div key={company} className="relative flex min-h-28 items-center justify-center overflow-hidden rounded-xl border border-white/15 bg-black/30 px-5 py-4"><CompanyLogo index={index} name={company} /></div>)}</div><p className="mt-5 text-xs leading-relaxed text-slate-300">기업·기관명은 제공된 Alumni 자료 기준입니다.</p></section>
-    <section className="border-t border-white/20 py-20"><p className="text-xs tracking-[.3em] text-sky-300">OUR PEOPLE · 1기 ~ 5기</p><h2 className="mt-5 text-4xl font-light">ALUMNI</h2><MembersDirectory group="alumni" initialGeneration={generation} /></section>
+    <section className="border-t border-white/20 py-20"><p className="text-xs tracking-[.3em] text-sky-300">OUR PEOPLE</p><h2 className="mt-5 text-4xl font-light">ALUMNI</h2><MembersDirectory key={generation} result={members} initialGeneration={generation} /></section>
   </main>
 }

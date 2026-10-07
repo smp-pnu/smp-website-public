@@ -2,15 +2,15 @@
 import { useState } from "react"
 import Image from "next/image"
 import { ChevronDown } from "lucide-react"
-import importedMembers from "@/lib/members.json"
+import { memberGenerations, type MemberResult } from "@/lib/member-model"
 
-type Member = { generation: number; name: string; department: string; image?: string; year?: string }
-const members: Member[] = [...importedMembers, { generation: 40, name: "김시영", department: "미디어커뮤니케이션학·경제학", year: "21학번", image: "/kim-siyoung.png" }]
-
-export function MembersDirectory({ group, initialGeneration }: { group: "alumni" | "members"; initialGeneration: number }) {
-  const [selected, setSelected] = useState(initialGeneration)
-  const generations = group === "alumni" ? Array.from({ length: 35 }, (_, i) => i + 1) : [36, 37, 38, 39, 40]
-  const profiles = members.filter(member => member.generation === selected)
+export function MembersDirectory({ result, initialGeneration }: { result: MemberResult; initialGeneration?: number }) {
+  const generations = memberGenerations(result.items)
+  const [requested, setSelected] = useState(initialGeneration)
+  const selected = requested && generations.includes(requested) ? requested : generations[0]
+  const profiles = result.items.filter(member => member.generation === selected)
+  if (result.state !== "ready") return <p role="status" className="mt-10 text-sm leading-7 text-slate-300">{result.state === "error" ? "회원 명단을 불러오지 못했습니다. 잠시 후 다시 확인해주세요." : "회원 명단을 준비하고 있습니다."}</p>
+  if (!generations.length) return <p className="mt-10 text-sm text-slate-300">공개된 회원 정보가 없습니다.</p>
   return <div className="mt-10">
     <div className="mx-auto w-full max-w-xs">
       <label htmlFor="generation-select" className="mb-3 block text-center text-xs tracking-[0.2em] text-sky-300">기수 선택</label>
@@ -22,10 +22,10 @@ export function MembersDirectory({ group, initialGeneration }: { group: "alumni"
       </div>
     </div>
     <section id="generation-panel" aria-live="polite" className="mt-12">
-      <h2 className="text-2xl font-normal text-white">SMP {selected}기</h2>
+      <div className="flex items-baseline justify-between gap-4"><h2 className="text-2xl font-normal text-white">SMP {selected}기</h2><p className="text-sm text-slate-400">{profiles.length}명</p></div>
       {profiles.length === 0 ? <p className="mt-6 text-sm text-slate-300">회원 정보를 준비하고 있습니다.</p> :
         <div className="mt-8 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
-          {profiles.map((member, index) => <article key={`${selected}-${index}`} className="border-t border-white/20 pt-6 text-slate-300">
+          {profiles.map(member => <article key={member.id} className="border-t border-white/20 pt-6 text-slate-300">
             {member.image && <div className="relative mb-5 aspect-[4/5] overflow-hidden bg-black/25">
               <Image src={member.image} alt={member.name} fill sizes="(min-width: 1024px) 350px, (min-width: 640px) 50vw, 100vw" className="object-cover object-top" />
             </div>}

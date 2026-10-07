@@ -43,7 +43,7 @@ try {
   await writeFile(stateFile, JSON.stringify({ unavailable: true }))
   await invalidateCatalog()
   const failed = await (await fetch(`${base}/search?q=ABOUT`)).text()
-  assert.ok(failed.includes("공지·리포트 검색 결과 일부를 불러오지 못했습니다."))
+  assert.ok(failed.includes("검색 결과 일부를 불러오지 못했습니다."))
   assert.ok(failed.includes('href="/about"'), "Static search must still work when Notion is unavailable")
   console.log("PASS: search failure is visible and static results remain available")
 } finally {

@@ -50,7 +50,7 @@ async function SearchResults({ query }: { query: string }) {
   const results = siteSearchMatches(index.entries, query)
   return <>
     <p className="mt-8 break-words text-sm leading-6 text-slate-300">{`“${query}” 검색 결과 ${results.length}건`}</p>
-    {index.partial && <p role="status" className="mt-3 text-sm text-slate-300">공지·리포트 검색 결과 일부를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</p>}
+    {index.partial && <p role="status" className="mt-3 text-sm text-slate-300">검색 결과 일부를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</p>}
     {!results.length ? <div className="mt-5 border-y border-white/15 bg-[#050c18]/60 px-6 py-14 text-center">
       <p className="text-base text-white">일치하는 검색 결과가 없습니다.</p>
       <p className="mt-2 text-sm leading-7 text-slate-400">철자를 확인하거나 더 짧은 검색어로 다시 검색해보세요.</p>

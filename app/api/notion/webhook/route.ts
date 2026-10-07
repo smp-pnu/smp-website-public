@@ -4,6 +4,7 @@ import { authorizedSync, limitedBody, openToken, sealToken, validNotionSignature
 import { pdfHeaders } from "@/lib/pdf-response"
 import { revalidateTag } from "next/cache"
 import { contentCacheTag } from "@/lib/content-catalog"
+import { memberCacheTag } from "@/lib/member-catalog"
 import { queueDriveCleanup } from "@/lib/drive-cleanup-relay"
 
 export const runtime = "nodejs"
@@ -29,8 +30,9 @@ export async function POST(request: Request) {
     }
     if (!validNotionSignature(raw, request.headers.get("x-notion-signature"), token)) return reply({ error: "Invalid signature" }, 401)
     if (event.entity?.type !== "page" || typeof event.entity?.id !== "string" || !/^page\./.test(event.type)) return reply({ ignored: true })
-    // Invalidate notices as well as reports, even during a Blob outage.
+    // Invalidate content and members, even during a Blob outage.
     revalidateTag(contentCacheTag, { expire: 0 })
+    revalidateTag(memberCacheTag, { expire: 0 })
     // Retain deletion hints even for a page created and deleted between polls.
     // The worker checks current state; unpublishing never enqueues a deletion.
     if (event.type === "page.deleted") await queueDriveCleanup(event.entity.id)

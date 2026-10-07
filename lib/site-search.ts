@@ -1,5 +1,6 @@
 import "server-only"
-import members from "./members.json"
+import { getMembers } from "./member-catalog"
+import { memberSearchEntries } from "./member-model"
 import { awardGroups } from "./awards"
 import { getContent } from "./content-catalog"
 import { contentHref } from "./content-model"
@@ -15,21 +16,19 @@ const pages = [
   { title: "NOTICE", text: "공지 공지사항", href: "/notice" },
   { title: "CONTACT", text: "문의 이메일 smppnu@gmail.com 인스타그램 네이버 카페 연락", href: "/contact" },
 ]
-const memberEntries = [...members, { generation: 40, name: "김시영", department: "미디어커뮤니케이션학·경제학" }].map(member => ({
-  title: member.name, text: `${member.generation}기 · ${member.department}`, href: `/network?group=${member.generation <= 35 ? "alumni" : "members"}&generation=${member.generation}`,
-}))
-const staticEntries = [...pages, ...memberEntries, ...awardGroups.flatMap((group, index) => group.awards.map(([title, result]) => ({ title, text: `${group.year} · ${result}`, href: `/achievements#awards-${index}` })))]
+const staticEntries = [...pages, ...awardGroups.flatMap((group, index) => group.awards.map(([title, result]) => ({ title, text: `${group.year} · ${result}`, href: `/achievements#awards-${index}` })))]
 
 // Only explicitly selected public fields enter the browser's search index.
 // The catalog already applies publication/date checks and a shared 60s cache.
 export async function getSiteSearchIndex() {
-  const content = await Promise.all([getContent("research"), getContent("notice")])
+  const [research, notices, members] = await Promise.all([getContent("research"), getContent("notice"), getMembers()])
+  const content = [research, notices]
   const entries: SiteSearchEntry[] = content.flatMap(result => result.items.map(item => ({
     title: item.title,
     text: [item.category, item.summary, item.author].filter(Boolean).join(" · "),
     href: contentHref(item),
     label: item.kind === "research" ? "리포트" : "공지",
   })))
-  entries.push(...staticEntries.map(item => ({ ...item, label: item.href.startsWith("/network?") ? "회원" : item.href.startsWith("/achievements#") ? "수상" : "페이지" })))
-  return { entries, partial: content.some(result => result.state === "error") }
+  entries.push(...memberSearchEntries(members.items), ...staticEntries.map(item => ({ ...item, label: item.href.startsWith("/achievements#") ? "수상" : "페이지" })))
+  return { entries, partial: members.state === "error" || content.some(result => result.state === "error") }
 }
