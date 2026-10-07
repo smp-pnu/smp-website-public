@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "RESEARCH | SMP" }
 export const dynamic = "force-dynamic"
 export default async function ResearchPage({ searchParams }: { searchParams: Promise<ContentSearch> }) {
   const [result, search] = await Promise.all([getContent("research"), searchParams])
-  return <><SiteHeader /><main className="relative z-10 mx-auto min-h-[75svh] max-w-7xl px-6 py-20 sm:py-24">
+  return <><SiteHeader /><main className="relative z-10 mx-auto min-h-[75svh] max-w-7xl px-6 py-12 sm:py-16">
     <header className="text-center">
       <p className="text-[11px] tracking-[0.3em] text-sky-200/80">SMP PUBLICATIONS</p>
       <h1 className="mt-4 text-4xl font-light tracking-wide text-white sm:text-5xl">RESEARCH</h1>

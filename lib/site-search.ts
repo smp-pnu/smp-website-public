@@ -25,7 +25,7 @@ export async function getSiteSearchIndex() {
   const content = [research, notices]
   const entries: SiteSearchEntry[] = content.flatMap(result => result.items.map(item => ({
     title: item.title,
-    text: [item.category, item.summary, item.author].filter(Boolean).join(" · "),
+    text: [item.category, item.summary, item.author, item.company, item.ticker, item.industry].filter(Boolean).join(" · "),
     href: contentHref(item),
     label: item.kind === "research" ? "리포트" : "공지",
   })))

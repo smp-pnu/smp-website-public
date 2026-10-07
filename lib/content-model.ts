@@ -50,6 +50,12 @@ export type ContentItem = {
   pinned: boolean
   semester?: string
   semesterOrder?: number
+  industry?: string
+  company?: string
+  ticker?: string
+  reportType?: string
+  activity?: string
+  investmentPoints?: string[]
   attachments: { name: string; url: string }[]
   externalUrl: string | null
   editedAt?: string
@@ -100,6 +106,14 @@ export function toContentItem(page: NotionPage, kind: ContentKind, now = Date.no
     semester: kind === "research" && /^\d{4}-[12]$/.test(semester) ? semester : undefined,
     semesterOrder: kind === "research" && typeof semesterOrder === "number" && Number.isFinite(semesterOrder) && semesterOrder > 0
       ? semesterOrder : undefined,
+    ...(kind === "research" ? {
+      industry: props["업종"]?.select?.name?.trim() || undefined,
+      company: plainText(props["기업명"]?.rich_text).trim() || undefined,
+      ticker: plainText(props["종목코드"]?.rich_text).trim() || undefined,
+      reportType: props["보고서 종류"]?.select?.name || undefined,
+      activity: props["활동"]?.select?.name || undefined,
+      investmentPoints: plainText(props["투자 포인트"]?.rich_text).split(/\r?\n/).map(line => line.trim()).filter(Boolean).slice(0, 3),
+    } : {}),
     externalUrl: safeUrl(props["외부 링크"]?.url),
     attachments: (props["첨부파일"]?.files ?? []).flatMap(file => {
       const url = fileUrl(file)
@@ -126,6 +140,6 @@ export function formatDate(date: string) {
   return new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(date))
 }
 
-export function contentHref(item: ContentItem) {
+export function contentHref(item: Pick<ContentItem, "kind" | "id">) {
   return `/${item.kind}/${item.id}`
 }

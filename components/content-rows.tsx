@@ -11,6 +11,8 @@ export function ContentRows({ items, listSearch }: { items: ContentItem[]; listS
         <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
           {item.pinned && <span className="rounded border border-sky-300/40 px-2 py-1 text-sky-300">고정</span>}
           {item.kind === "research" ? <CategoryTag name={item.category} color={item.categoryColor} /> : <span className="text-sky-300">{item.category}</span>}
+          {item.industry && <span className="text-slate-400">{item.industry}</span>}
+          {item.ticker && <span className="font-mono text-slate-400">{item.ticker}</span>}
           <time dateTime={item.date}>{formatDate(item.date)}</time>
           {item.author && <span>{item.author}</span>}
         </div>

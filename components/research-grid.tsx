@@ -23,9 +23,11 @@ export function ResearchGrid({ items, listSearch }: { items: ContentItem[]; list
             </div>
           </div>
           <div className="research-card-info">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <CategoryTag name={item.category} color={item.categoryColor} />
-              <time dateTime={item.date} className="text-[11px] tabular-nums tracking-wide text-slate-400">{formatDate(item.date)}</time>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-2.5"><span className="shrink-0"><CategoryTag name={item.category} color={item.categoryColor} /></span>
+                {item.industry && <span title={item.industry} className="truncate text-xs text-slate-400">{item.industry}</span>}
+              </div>
+              <time dateTime={item.date} className="shrink-0 text-[11px] tabular-nums tracking-wide text-slate-400">{formatDate(item.date)}</time>
             </div>
             <h2 className="mt-3 line-clamp-2 break-words text-xl font-medium leading-7 tracking-tight text-white">
               {item.title}

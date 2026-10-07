@@ -16,7 +16,7 @@ const cachedCatalog = unstable_cache(async (kind: ContentKind, _namespace: strin
   const result = await loadContent(kind)
   if (result.state === "error") throw new Error("Content catalogue unavailable")
   return { result, fetchedAt: Date.now() }
-}, ["published-catalog-semester-v2"], { revalidate: 60, tags: [contentCacheTag] })
+}, ["published-catalog-research-metadata-v3"], { revalidate: 60, tags: [contentCacheTag] })
 
 export const getContent = cache(async (kind: ContentKind): Promise<ContentResult> => {
   try {

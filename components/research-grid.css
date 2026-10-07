@@ -47,6 +47,10 @@
 .research-card-arrow { transition: transform 350ms ease; }
 .research-card:focus-visible .research-card-info { transform: translate3d(0, var(--cover-overlap), 0); }
 .research-card:focus-visible .research-card-action { color: #bae6fd; }
+@media (max-width: 639px), (hover: none) {
+  [data-card-grid] { --cover-overlap: 0px; row-gap: 32px; }
+  .research-card-info { will-change: auto; }
+}
 @media (hover: hover) and (pointer: fine) {
   .research-card:hover .research-card-info {
     transform: translate3d(0, var(--cover-overlap), 0);

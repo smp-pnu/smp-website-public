@@ -12,8 +12,8 @@ export function ContentAttachments({ item }: { item: ContentItem }) {
   const { kind } = item
   const pdfs = getPdfSources(item)
   const hasPreview = kind === "research" && !!driveCoverUrl(item)
-  return <section aria-label="첨부 자료" className="border-t border-white/20 pt-7">
-    <h2 className="text-lg text-white">첨부 자료</h2>
+  return <section aria-label="첨부 자료" className={kind === "research" ? "" : "border-t border-white/20 pt-7"}>
+    <h2 className={kind === "research" ? "sr-only" : "text-lg text-white"}>첨부 자료</h2>
     {pdfs.map((file, index) => {
       const url = `/api/content/${kind}/${item.id}/pdf?${file.query}`
       return <div key={file.query} className="mt-5">
