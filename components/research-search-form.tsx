@@ -14,14 +14,13 @@ type Props = {
   search: ContentSearch
   semesters: string[]
   industries: string[]
-  reportTypes: string[]
-  activities: string[]
+  categories: string[]
   suggestions: ResearchSuggestion[]
   total: number
 }
 const semesterLabel = (value: string) => `${value.replace("-", "년 ")}학기`
 
-export function ResearchSearchForm({ search, semesters, industries, reportTypes, activities, suggestions, total }: Props) {
+export function ResearchSearchForm({ search, semesters, industries, categories, suggestions, total }: Props) {
   const router = useRouter()
   const id = useId()
   const listboxId = `${id}-results`
@@ -33,6 +32,9 @@ export function ResearchSearchForm({ search, semesters, industries, reportTypes,
   const index = useMemo(() => createContentSearchIndex(suggestions), [suggestions])
   const matches = value.trim() ? findContentMatches(index, value, current.category, 6, current) : []
   const showSuggestions = open && Boolean(value.trim())
+  // Old bookmarked type/activity filters remain visible until a new category
+  // replaces them. The unified menu follows the same Notion field as the cards.
+  const classification = current.category || [current.reportType, current.activity].filter(Boolean).join(" · ")
   const activeFilters = (["q", "category", "semester", "industry", "reportType", "activity"] as const)
     .flatMap(key => current[key] ? [{ key, value: current[key] as string }] : [])
 
@@ -57,16 +59,14 @@ export function ResearchSearchForm({ search, semesters, industries, reportTypes,
     }
   }
   const filters = [
-    { name: "semester", label: "학기", placeholder: "전체 학기", options: semesters.map(value => ({ value, label: semesterLabel(value) })) },
-    { name: "reportType", label: "보고서 종류", placeholder: "모든 종류", options: reportTypes.map(value => ({ value, label: value })) },
-    { name: "industry", label: "업종", placeholder: "모든 업종", options: industries.map(value => ({ value, label: value })) },
-    { name: "activity", label: "활동", placeholder: "모든 활동", options: activities.map(value => ({ value, label: value })) },
+    { name: "semester", label: "기간", placeholder: "전체 기간", value: current.semester || "", options: semesters.map(value => ({ value, label: semesterLabel(value) })) },
+    { name: "industry", label: "산업", placeholder: "전체 산업", value: current.industry || "", options: industries.map(value => ({ value, label: value })) },
+    { name: "category", label: "분류", placeholder: "전체 분류", value: classification, options: categories.map(value => ({ value, label: value })) },
   ] as const
   return <Form action="/research" prefetch={false} role="search" aria-label="리포트 검색" aria-busy={isPending}
     onSubmit={event => { event.preventDefault(); navigate(contentListHref("research", { ...current, q: value, page: undefined })) }}
     className="mb-7 mt-10 border-b border-white/15 pb-5 sm:mt-12">
     {current.view && <input type="hidden" name="view" value={current.view} />}
-    {current.category && <input type="hidden" name="category" value={current.category} />}
     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-4 lg:gap-y-5">
       <div className="col-start-1 row-start-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h2 className="text-base font-normal tracking-tight text-white sm:text-lg">{activeFilters.length ? "검색 결과" : "전체 리포트"}</h2>
@@ -99,10 +99,14 @@ export function ResearchSearchForm({ search, semesters, industries, reportTypes,
           <button type="submit" onMouseDown={event => event.preventDefault()} className="flex min-h-11 w-full items-center justify-between border-t border-white/10 px-4 py-3 text-sm text-sky-200 hover:bg-white/5">전체 검색결과 보기<span aria-hidden="true">→</span></button>
         </div>}
       </div>
-      <div className="col-span-2 col-start-1 row-start-3 grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4 lg:col-span-1 lg:row-start-2 lg:max-w-[680px]">
-        {filters.map(({ name, label, placeholder, options }) => <ResearchFilterSelect key={name} name={name} label={label} value={current[name] || ""}
+      <div className="col-span-2 col-start-1 row-start-3 grid min-w-0 grid-cols-3 gap-2 lg:col-span-1 lg:row-start-2 lg:max-w-[510px]">
+        {filters.map(({ name, label, placeholder, options, value: selected }) => <ResearchFilterSelect key={name} name={name} label={label} value={selected}
+          displayValue={name === "semester" && selected ? selected : undefined}
           options={[{ value: "", label: placeholder }, ...options]} disabled={isPending}
-          onChange={next => navigate(contentListHref("research", { ...current, q: value, [name]: next, page: undefined }))} />)}
+          onChange={next => navigate(contentListHref("research", {
+            ...current, q: value, [name]: next, page: undefined,
+            ...(name === "category" ? { reportType: undefined, activity: undefined } : {}),
+          }))} />)}
       </div>
       <nav aria-label="리포트 보기 방식" className="col-start-2 row-start-1 flex h-11 items-center gap-0.5 rounded-[4px] border border-white/10 bg-white/[0.025] p-1 lg:row-start-2 lg:justify-self-end">
         {[{ view: undefined, label: "그리드 보기", Icon: LayoutGrid, active: current.view !== "list" }, { view: "list", label: "목록 보기", Icon: List, active: current.view === "list" }].map(({ view, label, Icon, active }) =>

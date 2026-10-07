@@ -19,7 +19,7 @@ function ContentState({ state, kind }: { state: ContentResult["state"]; kind: Co
 
 export function ContentList({ result, kind, search }: { result: ContentResult; kind: ContentKind; search: ContentSearch }) {
   const isResearch = kind === "research"
-  const { query, category, categories, semesters, industries, reportTypes, activities, total, totalPages, page, visibleItems, listSearch } = selectContentPage(result.items, kind, search)
+  const { query, category, categories, semesters, industries, total, totalPages, page, visibleItems, listSearch } = selectContentPage(result.items, kind, search)
   const listView = listSearch.view === "list"
   const activeFilters = (["q", "category", "semester", "industry", "reportType", "activity"] as const)
     .flatMap(key => listSearch[key] ? [{ key, value: listSearch[key] as string }] : [])
@@ -37,7 +37,7 @@ export function ContentList({ result, kind, search }: { result: ContentResult; k
   else content = isResearch && !listView ? <ResearchGrid items={visibleItems} listSearch={listSearch} /> : <ContentRows items={visibleItems} listSearch={listSearch} />
 
   return <>
-    {isResearch ? <ResearchSearchForm key={JSON.stringify(listSearch)} search={listSearch} total={total} semesters={semesters} industries={industries} reportTypes={reportTypes} activities={activities}
+    {isResearch ? <ResearchSearchForm key={JSON.stringify(listSearch)} search={listSearch} total={total} semesters={semesters} industries={industries} categories={categories}
       suggestions={result.items.map(({ id, title, summary, author, category, company, ticker, industry, semester, reportType, activity }) => ({ id, kind: "research", title, summary, author, category, company, ticker, industry, semester, reportType, activity }))} />
       : <ContentSearchForm key={`${kind}:${query}:${category}`} kind={kind} query={query} category={category} categories={categories} suggestions={suggestions} />}
     {!isResearch && <div className="mb-5 mt-8 flex items-center justify-between gap-3 text-sm text-slate-300">

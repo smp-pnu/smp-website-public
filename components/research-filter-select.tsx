@@ -8,21 +8,22 @@ type Props = {
   name: string
   label: string
   value: string
+  displayValue?: string
   options: Option[]
   disabled: boolean
   onChange: (value: string) => void
 }
 
 /** One visual and keyboard interaction pattern for every research filter. */
-export function ResearchFilterSelect({ name, label, value, options, disabled, onChange }: Props) {
+export function ResearchFilterSelect({ name, label, value, displayValue, options, disabled, onChange }: Props) {
   // Keep a bookmarked condition visible even if its last report was unpublished.
   const items = value && !options.some(option => option.value === value)
     ? [...options, { value, label: value }] : options
   return <Select.Root name={name} value={value} items={items} disabled={disabled} modal={false}
     onValueChange={next => { if (next !== null && next !== value) onChange(next) }}>
     <Select.Trigger aria-label={label} title={items.find(item => item.value === value)?.label}
-      className={`group flex h-11 w-full min-w-0 items-center justify-between gap-3 rounded-[4px] border px-3 text-left text-[13px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-200 disabled:cursor-wait disabled:opacity-60 ${value ? "border-sky-200/30 bg-sky-200/[0.07] text-sky-100" : "border-white/10 bg-white/[0.025] text-slate-300 hover:border-white/25 hover:bg-white/[0.05]"}`}>
-      <Select.Value className="truncate" />
+      className={`group flex h-11 w-full min-w-0 items-center justify-between gap-1 rounded-[4px] border px-2 text-left text-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-200 disabled:cursor-wait disabled:opacity-60 sm:gap-3 sm:px-3 sm:text-[13px] ${value ? "border-sky-200/30 bg-sky-200/[0.07] text-sky-100" : "border-white/10 bg-white/[0.025] text-slate-300 hover:border-white/25 hover:bg-white/[0.05]"}`}>
+      <Select.Value className="truncate">{displayValue}</Select.Value>
       <Select.Icon className="shrink-0 text-slate-400 transition-transform duration-150 group-data-[popup-open]:rotate-180 motion-reduce:transition-none"><ChevronDown size={14} strokeWidth={1.5} /></Select.Icon>
     </Select.Trigger>
     <Select.Portal>
