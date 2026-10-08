@@ -26,14 +26,10 @@ export function matchesIndustry(industry: string | undefined, selected: string) 
 }
 
 export function industryOptions(industries: string[]) {
-  const present = new Set(industries)
-  const groups = wicsSectors.flatMap(sector => {
-    const members = sector.industries.filter(industry => present.has(industry))
-    if (!members.length && !present.has(sector.name)) return []
-    return [{ value: sector.name, label: `${sector.name} 전체`, group: sector.name },
-      ...members.map(value => ({ value, label: value, group: sector.name }))]
-  })
-  return [...groups, ...industries.filter(value => !industrySector(value)).map(value => ({ value, label: value, group: "기타" }))]
+  const present = new Set(industries.map(industrySector))
+  return wicsSectors
+    .filter(sector => present.has(sector.name))
+    .map(sector => ({ value: sector.name, label: sector.name }))
 }
 
 // Notion select option names cannot contain commas.

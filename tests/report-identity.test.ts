@@ -19,7 +19,7 @@ test("WICS names map deterministically, including Notion's comma-safe names", ()
   assert.equal(canonicalIndustry(notionIndustry("호텔,레스토랑,레저")), "호텔,레스토랑,레저")
   assert.ok(matchesIndustry("건강관리장비와용품", "건강관리"))
   assert.ok(!matchesIndustry("소프트웨어", "산업재"))
-  assert.deepEqual(industryOptions(["전기제품", "전기장비"]).map(item => item.value), ["산업재", "전기장비", "IT", "전기제품"])
+  assert.deepEqual(industryOptions(["전기제품", "전기장비", "소프트웨어", "IT"]).map(item => item.value), ["산업재", "IT"])
 })
 
 test("known company and former name fill an identity without downloading the PDF", async () => {
