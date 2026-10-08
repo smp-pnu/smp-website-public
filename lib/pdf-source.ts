@@ -36,7 +36,7 @@ export function isTrustedAttachmentUrl(value: string) {
 
 export type PdfSource = { name: string; url: string; query: string }
 
-export function getPdfSources(item: ContentItem): PdfSource[] {
+export function getPdfSources(item: Pick<ContentItem, "title" | "attachments" | "externalUrl">): PdfSource[] {
   const files = item.attachments.flatMap((file, index) => {
     const driveUrl = driveDownloadUrl(file.url)
     if (driveUrl) return [{ name: file.name, url: driveUrl, query: `index=${index}` }]

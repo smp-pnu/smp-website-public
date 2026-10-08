@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { ArrowRight, ArrowUpRight, LayoutGrid, List, RotateCcw, Search, X } from "lucide-react"
 import { contentDetailHref, contentListHref, normalizeContentSearch, type ContentSearch } from "@/lib/content-navigation"
 import { createContentSearchIndex, findContentMatches, type SearchFields } from "@/lib/content-query"
+import { industryOptions } from "@/lib/wics"
 import { ResearchFilterSelect } from "./research-filter-select"
 
 export type ResearchSuggestion = SearchFields & { id: string; kind: "research" }
@@ -60,7 +61,7 @@ export function ResearchSearchForm({ search, semesters, industries, categories, 
   }
   const filters = [
     { name: "semester", label: "기간", placeholder: "전체 기간", value: current.semester || "", options: semesters.map(value => ({ value, label: semesterLabel(value) })) },
-    { name: "industry", label: "산업", placeholder: "전체 산업", value: current.industry || "", options: industries.map(value => ({ value, label: value })) },
+    { name: "industry", label: "산업", placeholder: "전체 산업", value: current.industry || "", options: industryOptions(industries) },
     { name: "category", label: "분류", placeholder: "전체 분류", value: classification, options: categories.map(value => ({ value, label: value })) },
   ] as const
   return <Form action="/research" prefetch={false} role="search" aria-label="리포트 검색" aria-busy={isPending}

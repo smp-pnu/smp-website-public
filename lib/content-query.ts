@@ -1,5 +1,6 @@
 import type { ContentItem, ContentKind } from "./content-model"
 import { normalizeContentSearch, type ContentSearch } from "./content-navigation"
+import { industrySector, matchesIndustry } from "./wics"
 import { reportActivity, reportCompany, reportType } from "./research-metadata"
 
 export type SearchFields = Pick<ContentItem, "title" | "summary" | "author" | "category">
@@ -8,7 +9,7 @@ export type ResearchFilters = Pick<ReturnType<typeof normalizeContentSearch>, "s
 
 export function createContentSearchIndex<T extends SearchFields>(items: T[]) {
   return items.map(item => ({ item, text: [item.title, item.summary, item.author, item.category,
-    reportCompany(item), item.ticker, item.industry, item.semester, item.reportType, item.activity].filter(Boolean).join(" ").toLocaleLowerCase() }))
+    reportCompany(item), item.ticker, item.industry, industrySector(item.industry), item.semester, item.reportType, item.activity].filter(Boolean).join(" ").toLocaleLowerCase() }))
 }
 
 // The list and autocomplete use the same matching rules. Build the index once,
@@ -23,7 +24,7 @@ export function findContentMatches<T extends SearchFields>(
   for (const entry of index) {
     if (category && entry.item.category !== category) continue
     if (filters.semester && entry.item.semester !== filters.semester) continue
-    if (filters.industry && entry.item.industry !== filters.industry) continue
+    if (filters.industry && !matchesIndustry(entry.item.industry, filters.industry)) continue
     if (filters.reportType && reportType(entry.item) !== filters.reportType) continue
     if (filters.activity && reportActivity(entry.item) !== filters.activity) continue
     if (!terms.every(term => entry.text.includes(term))) continue

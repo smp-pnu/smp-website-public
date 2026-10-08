@@ -1,0 +1,878 @@
+[
+  {
+    "ticker": "031980",
+    "company": "피에스케이홀딩스",
+    "industry": "반도체와반도체장비"
+  },
+  {
+    "ticker": "327260",
+    "company": "RF머트리얼즈",
+    "industry": "우주항공과국방"
+  },
+  {
+    "ticker": "161890",
+    "company": "한국콜마",
+    "industry": "화장품"
+  },
+  {
+    "ticker": "041830",
+    "company": "인바디",
+    "industry": "건강관리장비와용품"
+  },
+  {
+    "ticker": "403870",
+    "company": "HPSP",
+    "industry": "반도체와반도체장비"
+  },
+  {
+    "ticker": "298040",
+    "company": "효성중공업",
+    "industry": "전기장비"
+  },
+  {
+    "ticker": "010120",
+    "company": "LS ELECTRIC",
+    "industry": "전기장비"
+  },
+  {
+    "ticker": "028050",
+    "company": "삼성E&A",
+    "industry": "건설"
+  },
+  {
+    "ticker": "079550",
+    "company": "LIG디펜스앤에어로스페이스",
+    "industry": "우주항공과국방",
+    "aliases": [
+      "LIG넥스원"
+    ]
+  },
+  {
+    "ticker": "329180",
+    "company": "HD현대중공업",
+    "industry": "조선"
+  },
+  {
+    "ticker": "047050",
+    "company": "포스코인터내셔널",
+    "industry": "무역회사와판매업체"
+  },
+  {
+    "ticker": "458870",
+    "company": "씨어스",
+    "industry": "건강관리기술"
+  },
+  {
+    "ticker": "348210",
+    "company": "넥스틴",
+    "industry": "반도체와반도체장비"
+  },
+  {
+    "ticker": "195870",
+    "company": "해성디에스",
+    "industry": "반도체와반도체장비"
+  },
+  {
+    "ticker": "352820",
+    "company": "하이브",
+    "industry": "방송과엔터테인먼트"
+  },
+  {
+    "ticker": "090460",
+    "company": "비에이치",
+    "industry": "전자장비와기기"
+  },
+  {
+    "ticker": "016360",
+    "company": "삼성증권",
+    "industry": "증권"
+  },
+  {
+    "ticker": "189300",
+    "company": "인텔리안테크",
+    "industry": "통신장비"
+  },
+  {
+    "ticker": "259630",
+    "company": "엠플러스",
+    "industry": "전기제품"
+  },
+  {
+    "ticker": "394800",
+    "company": "쓰리빌리언",
+    "industry": "건강관리기술"
+  },
+  {
+    "ticker": "034020",
+    "company": "두산에너빌리티",
+    "industry": "기계"
+  },
+  {
+    "ticker": "066970",
+    "company": "엘앤에프",
+    "industry": "전기제품"
+  },
+  {
+    "ticker": "086280",
+    "company": "현대글로비스",
+    "industry": "항공화물운송과물류"
+  },
+  {
+    "ticker": "236200",
+    "company": "슈프리마",
+    "industry": "전자장비와기기"
+  },
+  {
+    "ticker": "103590",
+    "company": "일진전기",
+    "industry": "전기장비"
+  },
+  {
+    "ticker": "140860",
+    "company": "파크시스템스",
+    "industry": "전자장비와기기"
+  },
+  {
+    "ticker": "119850",
+    "company": "지엔씨에너지",
+    "industry": "전기장비"
+  },
+  {
+    "ticker": "060370",
+    "company": "LS마린솔루션",
+    "industry": "건설",
+    "aliases": [
+      "KT서브마린"
+    ]
+  },
+  {
+    "ticker": "009150",
+    "company": "삼성전기",
+    "industry": "전자장비와기기"
+  },
+  {
+    "ticker": "356860",
+    "company": "티엘비",
+    "industry": "반도체와반도체장비"
+  },
+  {
+    "ticker": "013890",
+    "company": "지누스",
+    "industry": "가구"
+  },
+  {
+    "ticker": "183300",
+    "company": "코미코",
+    "industry": "반도체와반도체장비"
+  },
+  {
+    "ticker": "214150",
+    "company": "클래시스",
+    "industry": "건강관리장비와용품"
+  },
+  {
+    "ticker": "395400",
+    "company": "SK리츠",
+    "industry": "부동산"
+  },
+  {
+    "ticker": "000720",
+    "company": "현대건설",
+    "industry": "건설"
+  },
+  {
+    "ticker": "034230",
+    "company": "파라다이스",
+    "industry": "호텔,레스토랑,레저"
+  },
+  {
+    "ticker": "473980",
+    "company": "노머스",
+    "industry": "방송과엔터테인먼트"
+  },
+  {
+    "ticker": "064350",
+    "company": "현대로템",
+    "industry": "우주항공과국방"
+  },
+  {
+    "ticker": "010620",
+    "company": "HD현대미포",
+    "industry": "조선",
+    "historical": true
+  },
+  {
+    "ticker": "141080",
+    "company": "리가켐바이오",
+    "industry": "제약"
+  },
+  {
+    "ticker": "298380",
+    "company": "에이비엘바이오",
+    "industry": "생물공학"
+  },
+  {
+    "ticker": "062040",
+    "company": "산일전기",
+    "industry": "전기장비"
+  },
+  {
+    "ticker": "033500",
+    "company": "동성화인텍",
+    "industry": "화학"
+  },
+  {
+    "ticker": "005850",
+    "company": "에스엘",
+    "industry": "자동차부품"
+  },
+  {
+    "ticker": "007660",
+    "company": "이수페타시스",
+    "industry": "반도체와반도체장비"
+  },
+  {
+    "ticker": "178320",
+    "company": "서진시스템",
+    "industry": "전기장비"
+  },
+  {
+    "ticker": "095340",
+    "company": "ISC",
+    "industry": "반도체와반도체장비"
+  },
+  {
+    "ticker": "278470",
+    "company": "에이피알",
+    "industry": "화장품",
+    "aliases": [
+      "APR"
+    ]
+  },
+  {
+    "ticker": "100090",
+    "company": "SK오션플랜트",
+    "industry": "에너지장비및서비스",
+    "aliases": [
+      "삼강엠앤티"
+    ]
+  },
+  {
+    "ticker": "014830",
+    "company": "유니드",
+    "industry": "화학"
+  },
+  {
+    "ticker": "196170",
+    "company": "알테오젠",
+    "industry": "생물공학"
+  },
+  {
+    "ticker": "259960",
+    "company": "크래프톤",
+    "industry": "게임엔터테인먼트"
+  },
+  {
+    "ticker": "030200",
+    "company": "KT",
+    "industry": "다각화된통신서비스"
+  },
+  {
+    "ticker": "145020",
+    "company": "휴젤",
+    "industry": "생물공학"
+  },
+  {
+    "ticker": "052690",
+    "company": "한전기술",
+    "industry": "전기유틸리티"
+  },
+  {
+    "ticker": "257720",
+    "company": "실리콘투",
+    "industry": "인터넷과카탈로그소매"
+  },
+  {
+    "ticker": "267260",
+    "company": "HD현대일렉트릭",
+    "industry": "전기장비",
+    "aliases": [
+      "현대일렉트릭"
+    ]
+  },
+  {
+    "ticker": "082740",
+    "company": "한화엔진",
+    "industry": "조선",
+    "aliases": [
+      "HSD엔진"
+    ]
+  },
+  {
+    "ticker": "186230",
+    "company": "그린플러스",
+    "industry": "건축자재"
+  },
+  {
+    "ticker": "338220",
+    "company": "뷰노",
+    "industry": "건강관리기술"
+  },
+  {
+    "ticker": "021240",
+    "company": "코웨이",
+    "industry": "가정용기기와용품"
+  },
+  {
+    "ticker": "041510",
+    "company": "에스엠",
+    "industry": "방송과엔터테인먼트"
+  },
+  {
+    "ticker": "023160",
+    "company": "태광",
+    "industry": "기계"
+  },
+  {
+    "ticker": "453860",
+    "company": "에이에스텍",
+    "industry": "화장품"
+  },
+  {
+    "ticker": "033780",
+    "company": "KT&G",
+    "industry": "담배"
+  },
+  {
+    "ticker": "215200",
+    "company": "메가스터디교육",
+    "industry": "교육서비스"
+  },
+  {
+    "ticker": "353200",
+    "company": "대덕전자",
+    "industry": "전자장비와기기"
+  },
+  {
+    "ticker": "194480",
+    "company": "데브시스터즈",
+    "industry": "게임엔터테인먼트"
+  },
+  {
+    "ticker": "000120",
+    "company": "CJ대한통운",
+    "industry": "항공화물운송과물류"
+  },
+  {
+    "ticker": "192820",
+    "company": "코스맥스",
+    "industry": "화장품"
+  },
+  {
+    "ticker": "251970",
+    "company": "펌텍코리아",
+    "industry": "포장재"
+  },
+  {
+    "ticker": "475150",
+    "company": "SK이터닉스",
+    "industry": "에너지장비및서비스"
+  },
+  {
+    "ticker": "036620",
+    "company": "감성코퍼레이션",
+    "industry": "섬유,의류,신발,호화품"
+  },
+  {
+    "ticker": "032830",
+    "company": "삼성생명",
+    "industry": "생명보험"
+  },
+  {
+    "ticker": "058470",
+    "company": "리노공업",
+    "industry": "반도체와반도체장비"
+  },
+  {
+    "ticker": "104460",
+    "company": "디와이피엔에프",
+    "industry": "기계"
+  },
+  {
+    "ticker": "083650",
+    "company": "비에이치아이",
+    "industry": "에너지장비및서비스"
+  },
+  {
+    "ticker": "006060",
+    "company": "화승인더",
+    "industry": "섬유,의류,신발,호화품"
+  },
+  {
+    "ticker": "237690",
+    "company": "에스티팜",
+    "industry": "제약"
+  },
+  {
+    "ticker": "168360",
+    "company": "펨트론",
+    "industry": "전자장비와기기"
+  },
+  {
+    "ticker": "104540",
+    "company": "코렌텍",
+    "industry": "건강관리장비와용품"
+  },
+  {
+    "ticker": "033100",
+    "company": "제룡전기",
+    "industry": "전기장비"
+  },
+  {
+    "ticker": "064760",
+    "company": "티씨케이",
+    "industry": "반도체와반도체장비"
+  },
+  {
+    "ticker": "310200",
+    "company": "애니플러스",
+    "industry": "방송과엔터테인먼트"
+  },
+  {
+    "ticker": "215000",
+    "company": "골프존",
+    "industry": "호텔,레스토랑,레저"
+  },
+  {
+    "ticker": "448710",
+    "company": "코츠테크놀로지",
+    "industry": "우주항공과국방"
+  },
+  {
+    "ticker": "335890",
+    "company": "비올",
+    "industry": "건강관리장비와용품",
+    "historical": true
+  },
+  {
+    "ticker": "229000",
+    "company": "젠큐릭스",
+    "industry": "건강관리장비와용품"
+  },
+  {
+    "ticker": "054950",
+    "company": "제이브이엠",
+    "industry": "건강관리장비와용품"
+  },
+  {
+    "ticker": "094360",
+    "company": "칩스앤미디어",
+    "industry": "반도체와반도체장비"
+  },
+  {
+    "ticker": "092870",
+    "company": "엑시콘",
+    "industry": "반도체와반도체장비"
+  },
+  {
+    "ticker": "082920",
+    "company": "비츠로셀",
+    "industry": "전기제품"
+  },
+  {
+    "ticker": "282880",
+    "company": "코윈로보틱스",
+    "industry": "기계",
+    "aliases": [
+      "코윈테크"
+    ]
+  },
+  {
+    "ticker": "376300",
+    "company": "디어유",
+    "industry": "양방향미디어와서비스"
+  },
+  {
+    "ticker": "253450",
+    "company": "스튜디오드래곤",
+    "industry": "방송과엔터테인먼트"
+  },
+  {
+    "ticker": "263720",
+    "company": "디앤씨미디어",
+    "industry": "출판"
+  },
+  {
+    "ticker": "005180",
+    "company": "빙그레",
+    "industry": "식품"
+  },
+  {
+    "ticker": "099430",
+    "company": "바이오플러스",
+    "industry": "건강관리장비와용품"
+  },
+  {
+    "ticker": "086710",
+    "company": "선진뷰티사이언스",
+    "industry": "화장품"
+  },
+  {
+    "ticker": "419530",
+    "company": "SAMG엔터",
+    "industry": "방송과엔터테인먼트"
+  },
+  {
+    "ticker": "159010",
+    "company": "아스플로",
+    "industry": "기계"
+  },
+  {
+    "ticker": "039840",
+    "company": "디오",
+    "industry": "건강관리장비와용품"
+  },
+  {
+    "ticker": "004000",
+    "company": "롯데정밀화학",
+    "industry": "화학"
+  },
+  {
+    "ticker": "370090",
+    "company": "퓨런티어",
+    "industry": "전자장비와기기"
+  },
+  {
+    "ticker": "248070",
+    "company": "솔루엠",
+    "industry": "전자장비와기기"
+  },
+  {
+    "ticker": "352480",
+    "company": "씨앤씨인터내셔널",
+    "industry": "화장품"
+  },
+  {
+    "ticker": "099190",
+    "company": "아이센스",
+    "industry": "건강관리장비와용품"
+  },
+  {
+    "ticker": "137400",
+    "company": "피엔티",
+    "industry": "전기제품"
+  },
+  {
+    "ticker": "075580",
+    "company": "세진중공업",
+    "industry": "조선"
+  },
+  {
+    "ticker": "036930",
+    "company": "주성엔지니어링",
+    "industry": "반도체와반도체장비"
+  },
+  {
+    "ticker": "287410",
+    "company": "제이시스메디칼",
+    "industry": "건강관리장비와용품",
+    "historical": true
+  },
+  {
+    "ticker": "085370",
+    "company": "루트로닉",
+    "industry": "건강관리장비와용품",
+    "historical": true
+  },
+  {
+    "ticker": "101490",
+    "company": "에스앤에스텍",
+    "industry": "반도체와반도체장비"
+  },
+  {
+    "ticker": "101160",
+    "company": "월덱스",
+    "industry": "반도체와반도체장비"
+  },
+  {
+    "ticker": "232680",
+    "company": "라온로보틱스",
+    "industry": "반도체와반도체장비",
+    "aliases": [
+      "라온테크"
+    ]
+  },
+  {
+    "ticker": "036010",
+    "company": "아비코전자",
+    "industry": "전기제품"
+  },
+  {
+    "ticker": "271560",
+    "company": "오리온",
+    "industry": "식품"
+  },
+  {
+    "ticker": "005300",
+    "company": "롯데칠성",
+    "industry": "음료"
+  },
+  {
+    "ticker": "043650",
+    "company": "국순당",
+    "industry": "음료"
+  },
+  {
+    "ticker": "280360",
+    "company": "롯데웰푸드",
+    "industry": "식품",
+    "aliases": [
+      "롯데제과"
+    ]
+  },
+  {
+    "ticker": "365340",
+    "company": "성일하이텍",
+    "industry": "전기제품"
+  },
+  {
+    "ticker": "091580",
+    "company": "상신이디피",
+    "industry": "전기제품"
+  },
+  {
+    "ticker": "192080",
+    "company": "더블유게임즈",
+    "industry": "게임엔터테인먼트"
+  },
+  {
+    "ticker": "078340",
+    "company": "컴투스",
+    "industry": "게임엔터테인먼트"
+  },
+  {
+    "ticker": "112610",
+    "company": "씨에스윈드",
+    "industry": "에너지장비및서비스"
+  },
+  {
+    "ticker": "051600",
+    "company": "한전KPS",
+    "industry": "전기유틸리티"
+  },
+  {
+    "ticker": "322000",
+    "company": "HD현대에너지솔루션",
+    "industry": "에너지장비및서비스",
+    "aliases": [
+      "현대에너지솔루션"
+    ]
+  },
+  {
+    "ticker": "079810",
+    "company": "APS이노베이션",
+    "industry": "전기제품",
+    "aliases": [
+      "디이엔티"
+    ]
+  },
+  {
+    "ticker": "357780",
+    "company": "솔브레인",
+    "industry": "반도체와반도체장비"
+  },
+  {
+    "ticker": "281740",
+    "company": "레이크머티리얼즈",
+    "industry": "화학"
+  },
+  {
+    "ticker": "067920",
+    "company": "이글루",
+    "industry": "IT서비스",
+    "aliases": [
+      "이글루시큐리티"
+    ]
+  },
+  {
+    "ticker": "003340",
+    "company": "SK에코플랜트",
+    "industry": "건설",
+    "historical": true
+  },
+  {
+    "ticker": "088980",
+    "company": "맥쿼리인프라",
+    "industry": "운송인프라"
+  },
+  {
+    "ticker": "036490",
+    "company": "SK머티리얼즈",
+    "industry": "반도체와반도체장비",
+    "historical": true
+  },
+  {
+    "ticker": "048260",
+    "company": "오스템임플란트",
+    "industry": "건강관리장비와용품",
+    "historical": true
+  },
+  {
+    "ticker": "009450",
+    "company": "경동나비엔",
+    "industry": "가정용기기와용품"
+  },
+  {
+    "ticker": "010130",
+    "company": "고려아연",
+    "industry": "비철금속"
+  },
+  {
+    "ticker": "011200",
+    "company": "HMM",
+    "industry": "해운사"
+  },
+  {
+    "ticker": "012510",
+    "company": "더존비즈온",
+    "industry": "소프트웨어",
+    "historical": true
+  },
+  {
+    "ticker": "278280",
+    "company": "천보",
+    "industry": "전기제품"
+  },
+  {
+    "ticker": "060250",
+    "company": "NHN KCP",
+    "industry": "IT서비스",
+    "aliases": [
+      "NHN한국사이버결제"
+    ]
+  },
+  {
+    "ticker": "270870",
+    "company": "뉴트리",
+    "industry": "건강관리업체및서비스"
+  },
+  {
+    "ticker": "204270",
+    "company": "제이앤티씨",
+    "industry": "핸드셋",
+    "aliases": [
+      "제이엔티씨"
+    ]
+  },
+  {
+    "ticker": "053580",
+    "company": "웹케시",
+    "industry": "소프트웨어"
+  },
+  {
+    "ticker": "213420",
+    "company": "덕산네오룩스",
+    "industry": "디스플레이 장비 및 부품"
+  },
+  {
+    "ticker": "192440",
+    "company": "슈피겐코리아",
+    "industry": "핸드셋"
+  },
+  {
+    "ticker": "060570",
+    "company": "드림어스컴퍼니",
+    "industry": "방송과엔터테인먼트",
+    "aliases": [
+      "아이리버"
+    ]
+  },
+  {
+    "ticker": "033320",
+    "company": "제이씨현시스템",
+    "industry": "컴퓨터와주변기기"
+  },
+  {
+    "ticker": "006400",
+    "company": "삼성SDI",
+    "industry": "전기제품"
+  },
+  {
+    "ticker": "264450",
+    "company": "유비쿼스",
+    "industry": "통신장비"
+  },
+  {
+    "ticker": "063570",
+    "company": "NICE인프라",
+    "industry": "상업서비스와공급품",
+    "aliases": [
+      "한국전자금융"
+    ]
+  },
+  {
+    "ticker": "029960",
+    "company": "코엔텍",
+    "industry": "상업서비스와공급품",
+    "historical": true
+  },
+  {
+    "ticker": "063760",
+    "company": "이엘피",
+    "industry": "디스플레이 장비 및 부품"
+  },
+  {
+    "ticker": "151860",
+    "company": "KG에코솔루션",
+    "industry": "자동차",
+    "aliases": [
+      "KG ETS"
+    ]
+  },
+  {
+    "ticker": "161580",
+    "company": "필옵틱스",
+    "industry": "전자장비와기기"
+  },
+  {
+    "ticker": "067160",
+    "company": "SOOP",
+    "industry": "양방향미디어와서비스",
+    "aliases": [
+      "아프리카TV"
+    ]
+  },
+  {
+    "ticker": "143240",
+    "company": "사람인",
+    "industry": "상업서비스와공급품",
+    "aliases": [
+      "사람인에이치알"
+    ]
+  },
+  {
+    "ticker": "100130",
+    "company": "동국S&C",
+    "industry": "에너지장비및서비스"
+  },
+  {
+    "ticker": "068270",
+    "company": "셀트리온",
+    "industry": "제약"
+  },
+  {
+    "ticker": "052400",
+    "company": "코나아이",
+    "industry": "IT서비스"
+  },
+  {
+    "ticker": "138070",
+    "company": "신진에스엠",
+    "industry": "기계"
+  },
+  {
+    "ticker": "072470",
+    "company": "우리산업홀딩스",
+    "industry": "자동차부품"
+  }
+]

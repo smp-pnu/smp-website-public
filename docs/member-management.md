@@ -30,7 +30,7 @@
 
 ## 개발·운영
 
-- 서버 환경변수 `NOTION_MEMBERS_DATA_SOURCE_ID`에 **데이터 소스 ID**를 등록합니다. DB ID와 다릅니다. 기존 읽기 전용 Notion 연결이 관리 페이지의 하위 명단 DB를 읽을 수 있어야 합니다.
+- 서버 환경변수 `NOTION_MEMBERS_DATA_SOURCE_ID`에 **데이터 소스 ID**를 등록합니다. DB ID와 다릅니다. 기존 Notion 연결이 관리 페이지의 하위 명단 DB를 읽을 수 있어야 합니다.
 - `lib/member-model.ts`: 공개 검사, 필요한 필드만 선택, 정렬, 기수 목록, 검색 항목.
 - `lib/member-catalog.ts`: 페이지 나눔 조회, 동시 요청 병합, 서버 캐시.
 - `components/members-directory.tsx`: 전달받은 공개 명단을 기수별로 표시. 기수 선택은 브라우저에서 처리하므로 Notion을 다시 호출하지 않습니다.

@@ -3,7 +3,7 @@
 import { Select } from "@base-ui/react/select"
 import { Check, ChevronDown } from "lucide-react"
 
-type Option = { value: string; label: string }
+type Option = { value: string; label: string; group?: string }
 type Props = {
   name: string
   label: string
@@ -19,6 +19,12 @@ export function ResearchFilterSelect({ name, label, value, displayValue, options
   // Keep a bookmarked condition visible even if its last report was unpublished.
   const items = value && !options.some(option => option.value === value)
     ? [...options, { value, label: value }] : options
+  const groups = Array.from(new Set(items.map(item => item.group)))
+  const renderItem = (item: Option) => <Select.Item key={item.value} value={item.value}
+    className="relative flex min-h-11 cursor-default items-center rounded-[2px] py-2 pl-3 pr-9 text-[13px] text-slate-300 outline-none data-[highlighted]:bg-white/[0.07] data-[highlighted]:text-white data-[selected]:text-sky-200">
+    <Select.ItemText>{item.label}</Select.ItemText>
+    <Select.ItemIndicator className="absolute right-3"><Check size={14} strokeWidth={1.5} /></Select.ItemIndicator>
+  </Select.Item>
   return <Select.Root name={name} value={value} items={items} disabled={disabled} modal={false}
     onValueChange={next => { if (next !== null && next !== value) onChange(next) }}>
     <Select.Trigger aria-label={label} title={items.find(item => item.value === value)?.label}
@@ -30,11 +36,10 @@ export function ResearchFilterSelect({ name, label, value, displayValue, options
       <Select.Positioner align="start" sideOffset={6} alignItemWithTrigger={false} className="z-50 outline-none">
         <Select.Popup className="min-w-[var(--anchor-width)] max-w-[calc(100vw-32px)] overflow-hidden rounded-[4px] border border-white/15 bg-[#14191f] p-1 shadow-xl shadow-black/30 outline-none">
           <Select.List className="max-h-[min(18rem,var(--available-height))] overflow-y-auto overscroll-contain [scrollbar-color:#475569_transparent] [scrollbar-width:thin]">
-            {items.map(item => <Select.Item key={item.value} value={item.value}
-              className="relative flex min-h-11 cursor-default items-center rounded-[2px] py-2 pl-3 pr-9 text-[13px] text-slate-300 outline-none data-[highlighted]:bg-white/[0.07] data-[highlighted]:text-white data-[selected]:text-sky-200">
-              <Select.ItemText>{item.label}</Select.ItemText>
-              <Select.ItemIndicator className="absolute right-3"><Check size={14} strokeWidth={1.5} /></Select.ItemIndicator>
-            </Select.Item>)}
+            {groups.map(group => group ? <Select.Group key={group}>
+              <Select.GroupLabel className="border-t border-white/10 px-3 pb-1 pt-3 text-[11px] tracking-wide text-slate-500">{group}</Select.GroupLabel>
+              {items.filter(item => item.group === group).map(renderItem)}
+            </Select.Group> : items.filter(item => !item.group).map(renderItem))}
           </Select.List>
         </Select.Popup>
       </Select.Positioner>

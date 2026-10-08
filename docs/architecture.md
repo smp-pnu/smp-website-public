@@ -7,6 +7,9 @@
 | 변경할 내용 | 담당 파일 |
 | --- | --- |
 | Notion 속성 이름, 공개 조건, 학기/순번 정렬 | `lib/content-model.ts` |
+| WICS 분류/산업 필터 | `lib/wics.ts` |
+| 기업정보 자동 입력/정합성 검사 | `lib/report-metadata-service.ts`, `report-identity.ts`, `company-lookup.ts` |
+| 업로드 시 PDF 텍스트 추출 | `lib/report-pdf-text.ts` |
 | Notion API, 재시도, 페이지네이션 | `lib/notion-request.ts` |
 | 목록·단일 페이지·본문 조회, DB 범위 검사와 동시 요청 합치기 | `lib/notion.ts` |
 | 공개 목록/본문의 60초 캐시와 120초 오래된 데이터 제한 | `lib/content-catalog.ts` |

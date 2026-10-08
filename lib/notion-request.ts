@@ -27,14 +27,14 @@ export async function* notionPages<T>(path: string, body?: Record<string, unknow
   } while (cursor)
 }
 
-export async function notionRequest<T>(path: string, body?: unknown): Promise<T> {
+export async function notionRequest<T>(path: string, body?: unknown, method?: "PATCH"): Promise<T> {
   const connection = process.env.NOTION_TOKEN ?? ""
   const remaining = Math.ceil(((backoff.get(connection) ?? 0) - Date.now()) / 1000)
   if (remaining > 0) throw new NotionRequestError(429, remaining)
   backoff.delete(connection)
   for (let attempt = 0; attempt < 3; attempt++) {
     const response = await fetch(`https://api.notion.com/v1/${path}`, {
-      method: body ? "POST" : "GET",
+      method: method ?? (body ? "POST" : "GET"),
       headers: {
         Authorization: `Bearer ${process.env.NOTION_TOKEN}`,
         "Notion-Version": "2025-09-03",

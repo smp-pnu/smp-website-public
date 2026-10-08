@@ -28,7 +28,7 @@
 
 | 속성 | 값 |
 | --- | --- |
-| `NOTION_TOKEN` | 웹사이트와 같은 Notion 읽기 전용 연결 토큰 |
+| `NOTION_TOKEN` | 웹사이트와 같은 Notion 연결 토큰. 삭제 연동은 조회만 사용 |
 | `REPORTS_DATA_SOURCE_ID` | 리포트 데이터 소스 ID |
 | `NOTICES_DATA_SOURCE_ID` | 공유 파일 참조를 확인할 공지 데이터 소스 ID |
 | `DRIVE_REPORTS_ROOT_ID` | 리포트 전용 상위 폴더 ID |

@@ -76,7 +76,7 @@ Notion 무료 요금제의 파일당 5MB 제한을 피하기 위해 PDF는 구�
 
 기존 학회 환경에 연결할 때는 비공개 인수인계 자료의 연결 정보를 사용합니다. 새 환경에서만 아래 설정을 진행하고, 기존 `.env.local` 파일을 덮어쓰지 마세요. 토큰을 재발급하면 운영 서버의 값도 함께 교체해야 합니다.
 
-1. 학회 Notion의 `설정 → 개발자 → 개발자 도구 열기 → 신규 연결`에서 `SMP Website`라는 API 토큰 방식 연결을 만들고 콘텐츠 읽기 권한만 줍니다. 삽입·수정·댓글·사용자 정보 권한은 웹사이트에 필요하지 않습니다. [Notion 개발자 도구](https://www.notion.so/profile/integrations).
+1. 학회 Notion의 `설정 → 개발자 → 개발자 도구 열기 → 신규 연결`에서 `SMP Website`라는 API 토큰 방식 연결을 만들고 콘텐츠 읽기 권한을 줍니다. 기업정보 자동 입력을 사용할 때만 콘텐츠 업데이트 권한을 추가합니다. 삽입·댓글·사용자 정보 권한은 필요하지 않습니다. [Notion 개발자 도구](https://www.notion.so/profile/integrations).
 2. Notion 관리 페이지의 `연결`에서 해당 Integration을 추가합니다. 하위 공지·리포트·회원 명단 DB에도 접근 가능한지 확인합니다.
 3. `.env.example`을 `.env.local`로 복사하고 `NOTION_TOKEN`을 입력합니다. 두 데이터 소스 ID도 입력합니다. DB 주소의 ID와 데이터 소스 ID는 다릅니다.
 4. 배포 서비스에도 같은 세 환경변수를 등록한 후 배포합니다. 토큰을 GitHub, Notion 본문, 채팅 또는 `NEXT_PUBLIC_` 변수에 넣지 마세요.
@@ -102,7 +102,7 @@ Vercel Hobby는 비공개 GitHub 조직 저장소의 Git 연동 배포를 지원
 Vercel을 선택하면 배포할 GitHub 저장소를 Import하고 Framework를 Next.js로 선택합니다. 저장소 루트를 프로젝트 루트로 사용하고 다음 환경변수를 Production과 필요한 Preview 환경에 설정합니다. 다른 호스팅을 선택하면 해당 서비스에 맞는 빌드·배포 설정과 검증이 추가로 필요합니다.
 
 ```text
-NOTION_TOKEN=(읽기 전용 Integration 토큰)
+NOTION_TOKEN=(서버 전용 Integration 토큰)
 NOTION_NOTICES_DATA_SOURCE_ID=(공지 DB 데이터 소스 ID)
 NOTION_REPORTS_DATA_SOURCE_ID=(리포트 DB 데이터 소스 ID)
 NOTION_MEMBERS_DATA_SOURCE_ID=(회원 명단 DB 데이터 소스 ID)
@@ -150,7 +150,7 @@ pnpm start
 
 자동 테스트는 모의 Notion 응답을 사용합니다. 2026-10-03에는 실제 학회 Notion API와 로컬 개발 서버로 다음을 추가 확인했습니다.
 
-- 읽기 전용 연결로 두 DB 접근 성공, 연결 범위 밖 DB 접근 불가.
+- CMS 조회는 공유된 DB만 사용합니다. 기업정보 자동 입력은 리포트 DB와 허용된 속성으로 쓰기 범위를 제한합니다.
 - 공지 공개 시 목록·상세 본문·검색 반영, 리포트 공개 시 목록·상세 본문·홈 최신 리포트·검색 반영.
 - 두 작성 예시의 공개를 해제하고 게시일을 비운 뒤, 목록·검색·홈에서 제외되고 상세 주소가 404를 반환함. 예시는 비공개 상태로 복원 완료.
 - 검사한 웹 응답에 API 토큰이 포함되지 않음.

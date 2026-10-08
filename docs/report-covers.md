@@ -2,7 +2,7 @@
 
 ## 구성
 
-Notion의 읽기 전용 연결이 리포트 변경 웹훅을 보냅니다. 서버는 서명을 검증하고 현재 공개 상태를 다시 읽은 다음, 목록용 최대 너비 720px WebP와 상세 뷰어용 2048px WebP를 Vercel Blob에 저장합니다. 상세 이미지는 Drive 축소판을 확대하지 않고 원본 PDF 첫 페이지를 직접 렌더링합니다. 목록에서는 PDF와 Drive를 거치지 않고 가벼운 720px 이미지를 사용하고, 상세 화면은 저장된 고화질 이미지를 먼저 보여줍니다.
+Notion 연결이 리포트 변경 웹훅을 보냅니다. 서버는 서명을 검증하고 현재 공개 상태를 다시 읽은 다음, 목록용 최대 너비 720px WebP와 상세 뷰어용 2048px WebP를 Vercel Blob에 저장합니다. 상세 이미지는 Drive 축소판을 확대하지 않고 원본 PDF 첫 페이지를 직접 렌더링합니다. 목록에서는 PDF와 Drive를 거치지 않고 가벼운 720px 이미지를 사용하고, 상세 화면은 저장된 고화질 이미지를 먼저 보여줍니다.
 
 새 파일을 Drive에 올리고 Notion의 외부 링크를 입력한 뒤 공개를 체크하면 두 이미지가 자동으로 준비됩니다. 이미지를 따로 업로드할 필요는 없습니다. 제목·요약만 수정하고 원본 표지가 같으면 고화질 이미지를 재사용하므로 PDF를 다시 다운로드하거나 렌더링하지 않습니다. 최초 생성은 원본 PDF 다운로드가 필요하므로 게시 직후 잠시 준비 시간이 생길 수 있습니다.
 
@@ -15,7 +15,7 @@ Notion의 읽기 전용 연결이 리포트 변경 웹훅을 보냅니다. 서�
 1. 학회 Vercel 프로젝트에 **Public Blob** 저장소를 생성·연결합니다. Production에 `BLOB_READ_WRITE_TOKEN`을 연결하고 Preview에는 운영 저장소 토큰을 주지 않습니다. 기존 `.env.local`은 덮어쓰지 않습니다.
 2. 암호학적으로 안전한 32바이트 이상의 임의 값을 `CRON_SECRET`으로 생성하여 Production과 관리자 로컬 `.env.local`에 저장합니다. 값은 채팅·Git·Notion 본문·로그에 기록하지 않습니다.
 3. 코드를 배포합니다. 저장소가 설정되지 않은 상태에서도 기존 미리보기는 작동하지만 자동 저장은 아직 활성화되지 않습니다.
-4. Notion 개발자 도구의 기존 `SMP Website` 연결 → 웹훅에서 구독을 추가합니다. URL은 `https://<운영 도메인>/api/notion/webhook`입니다. URL에는 비밀값을 넣지 않습니다. API 버전 `2025-09-03`과 `page.created`, `page.properties_updated`, `page.content_updated`, `page.deleted`, `page.undeleted`, `page.moved` 이벤트를 선택합니다. API 읽기 권한을 삽입·수정 권한으로 바꿀 필요가 없습니다.
+4. Notion 개발자 도구의 기존 `SMP Website` 연결 → 웹훅에서 구독을 추가합니다. URL은 `https://<운영 도메인>/api/notion/webhook`입니다. URL에는 비밀값을 넣지 않습니다. API 버전 `2025-09-03`과 `page.created`, `page.properties_updated`, `page.content_updated`, `page.deleted`, `page.undeleted`, `page.moved` 이벤트를 선택합니다. 표지 기능만 사용한다면 읽기 권한으로 충분합니다. 기업정보 자동 입력을 함께 쓸 때는 [리포트 관리](research-management.md)에 따라 콘텐츠 업데이트 권한도 필요합니다.
 5. 최초 설정 동안에만 Vercel의 `NOTION_WEBHOOK_SETUP_ENABLED=true`를 설정하고 배포합니다. 최초 Notion 확인 토큰은 암호화된 임시 파일 `setup/notion-verification.enc`로만 저장됩니다. 같은 `CRON_SECRET`을 Bearer 인증에 사용해 `GET /api/notion/webhook`에서 토큰을 안전하게 받아 Notion 구독 확인란에 입력합니다. 서버의 `NOTION_WEBHOOK_VERIFICATION_TOKEN`에도 저장하고 `NOTION_WEBHOOK_SETUP_ENABLED=false`로 되돌린 뒤 재배포합니다. 이 시점부터 모든 이벤트의 원문 HMAC-SHA256 서명이 필수입니다. 토큰이 설정된 뒤에는 GET으로 토큰을 다시 노출하지 않습니다.
 6. `CRON_SECRET` Bearer 인증으로 `GET /api/cron/report-covers`를 한 번 호출해 순환 점검 대상 최대 20개 표지를 준비합니다. 400개 최초 이관은 별도 배치로 준비해야 하며 이 API를 한 번 호출해 전체 표지가 만들어지는 것은 아닙니다. 응답의 `failed`가 0인지 확인합니다. 작업은 이미지 파생본만 생성/삭제하고 원본 PDF나 Notion 글을 수정하지 않습니다.
 7. 저장소의 임시 `setup/notion-verification.enc` 파일을 삭제합니다. 활성 웹훅은 환경변수의 확인 토큰을 사용하므로 이 파일이 필요 없습니다.

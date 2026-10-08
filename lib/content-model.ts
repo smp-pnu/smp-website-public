@@ -1,3 +1,5 @@
+import { canonicalIndustry } from "./wics"
+
 export type ContentKind = "notice" | "research"
 
 export type RichText = {
@@ -107,7 +109,7 @@ export function toContentItem(page: NotionPage, kind: ContentKind, now = Date.no
     semesterOrder: kind === "research" && typeof semesterOrder === "number" && Number.isFinite(semesterOrder) && semesterOrder > 0
       ? semesterOrder : undefined,
     ...(kind === "research" ? {
-      industry: props["업종"]?.select?.name?.trim() || undefined,
+      industry: canonicalIndustry(props["업종"]?.select?.name?.trim() ?? "") ?? (props["업종"]?.select?.name?.trim() || undefined),
       company: plainText(props["기업명"]?.rich_text).trim() || undefined,
       ticker: plainText(props["종목코드"]?.rich_text).trim() || undefined,
       reportType: props["보고서 종류"]?.select?.name || undefined,
