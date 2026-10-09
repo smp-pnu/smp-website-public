@@ -6,3 +6,4 @@ minimumReleaseAgeExclude:
 
 allowBuilds:
   esbuild: true
+  workerd: true

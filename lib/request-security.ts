@@ -7,9 +7,9 @@ export type PublicResource = "pdf" | "download" | "cover" | "search" | "file"
 // safety net, not a distributed quota or a replacement for Vercel's firewall.
 const limits: Record<PublicResource, number> = { pdf: 6000, download: 600, cover: 3000, search: 600, file: 600 }
 const responseHeaders = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" }
-export function createRequestGuard(now = Date.now, vercel = () => process.env.VERCEL === "1", maxEntries = 4096) {
+export function createRequestGuard(now = Date.now, trustedProxy = () => process.env.VERCEL === "1" || process.env.SMP_RUNTIME === "cloudflare", maxEntries = 4096) {
   const buckets = new Map<string, { tokens: number; updated: number }>()
-  const salt = randomBytes(16)
+  let salt: Buffer | undefined
   return function guard(request: Request, resource: PublicResource) {
     // Stop third-party embedding, while allowing links opened by real visitors.
     // Fetch Metadata is browser-provided; server clients still need rate limits.
@@ -17,11 +17,14 @@ export function createRequestGuard(now = Date.now, vercel = () => process.env.VE
       && request.headers.get("sec-fetch-mode") !== "navigate") {
       return new Response("Cross-origin embedding is not allowed", { status: 403, headers: responseHeaders })
     }
-    if (!vercel()) return null
-    // Vercel overwrites this header. Do not trust arbitrary X-Forwarded-For on
-    // self-hosted/local servers; configure the edge before changing this guard.
-    const raw = request.headers.get("x-vercel-forwarded-for")?.trim() ?? ""
+    if (!trustedProxy()) return null
+    // Enable only on the matching edge deployment, whose ingress overwrites
+    // the chosen header. Never trust these headers on arbitrary Node hosts.
+    const header = process.env.SMP_RUNTIME === "cloudflare" ? "cf-connecting-ip" : "x-vercel-forwarded-for"
+    const raw = request.headers.get(header)?.trim() ?? ""
     const ip = isIP(raw) ? raw : "unknown"
+    // Workers permits randomness in a request, not during module evaluation.
+    salt ??= randomBytes(16)
     const key = resource + createHash("sha256").update(salt).update(ip).digest("hex")
     const time = now()
     let bucket = buckets.get(key)

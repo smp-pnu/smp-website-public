@@ -4,11 +4,11 @@ import { normalizeId } from "./content-model"
 
 // Apps Script owns Drive authorization. This server only relays a signed page
 // ID; the worker independently reads Notion and verifies the PDF and its folder.
-export async function queueDriveCleanup(rawId: string) {
-  const endpoint = process.env.DRIVE_CLEANUP_WEB_APP_URL
+export async function queueDriveCleanup(rawId: string, config: { DRIVE_CLEANUP_WEB_APP_URL?: string; NOTION_TOKEN?: string } = { DRIVE_CLEANUP_WEB_APP_URL: process.env.DRIVE_CLEANUP_WEB_APP_URL, NOTION_TOKEN: process.env.NOTION_TOKEN }) {
+  const endpoint = config.DRIVE_CLEANUP_WEB_APP_URL
   if (!endpoint) return
   const id = normalizeId(rawId)
-  const token = process.env.NOTION_TOKEN
+  const token = config.NOTION_TOKEN
   if (!id || !token || !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(endpoint)) {
     throw new Error("Drive cleanup is not configured correctly")
   }

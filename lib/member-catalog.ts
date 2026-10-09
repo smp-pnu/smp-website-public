@@ -5,6 +5,7 @@ import { unstable_cache } from "next/cache"
 import { normalizeId, type NotionPage } from "./content-model"
 import { notionPages } from "./notion-request"
 import { sortMembers, toMember, type Member, type MemberResult } from "./member-model"
+import { singleFlight } from "./single-flight"
 
 export const memberCacheTag = "smp-published-members-v1"
 const pending = new Map<string, Promise<MemberResult>>()
@@ -49,11 +50,12 @@ const cachedMembers = unstable_cache(async (_namespace: string) => {
   return { result, fetchedAt: Date.now() }
 }, ["member-catalog-v2"], { revalidate: 60, tags: [memberCacheTag] })
 
-export const getMembers = cache(async (): Promise<MemberResult> => {
+const memberFlight = singleFlight<MemberResult>()
+export const getMembers = cache(async (): Promise<MemberResult> => memberFlight(namespace(), async () => {
   try {
     const snapshot = await cachedMembers(namespace())
     // A withdrawn profile must not remain public through an extended outage.
     if (Date.now() - snapshot.fetchedAt > 120_000) return loadMembers()
     return snapshot.result
   } catch { return { items: [], state: "error" } }
-})
+}))

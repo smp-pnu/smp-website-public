@@ -1,4 +1,77 @@
 # SMP-Website
+
+## 무료 운영 구조 — 전환 검증 중 (2026-10-09)
+
+이 작업 사본의 `free/`는 **정적 React 화면 + Cloudflare Workers API + D1 + GitHub Actions 게시 작업**입니다. 아래의 Vercel 설명은 기존 운영 방식에 관한 기록입니다. [운영 검증 사이트](https://smp-website-free.smp-website.workers.dev)에 공개 리포트 191건의 고화질 표지·본문, 공지 2건과 회원 628건을 연결했습니다. 도메인과 GitHub 예약 게시 연결은 아직 완료하지 않았습니다. 합성 자료 시험 주소와 운영 검증 주소는 DB와 Worker가 분리되어 있습니다.
+
+```mermaid
+flowchart LR
+  N[Notion: 글·공개 여부·명단] --> S[짧은 변경 동기화]
+  S --> D[D1: 준비된 목록·본문·작업 상태]
+  N --> J[GitHub Actions: 게시 준비]
+  G[Drive: PDF 원본] --> J
+  J --> A[Cloudflare 정적 화면·표지·이미지]
+  J --> D
+  V[방문자] --> A
+  V --> W[경량 API]
+  W --> D
+  W -->|상세·다운로드 공개 확인| N
+  W -->|PDF 스트리밍| G
+```
+
+- `free/client`: 기존 카드·필터·검색·PDF 뷰어·명단 디자인을 재사용합니다. 검색·정렬·페이지 이동은 브라우저에서 처리합니다. HTML/JS/CSS/표지는 Static Assets에서 제공하며 서버에서 React 화면을 다시 만들지 않습니다.
+- `free/server`: 준비된 목록 JSON을 D1에서 전달합니다. 같은 계정 안의 예약 Worker 3개(`smp-sync-research`, `smp-sync-notice`, `smp-sync-members`)가 각각 담당 DB를 조회하며 공개 주소는 없습니다. 홈페이지 Worker(`smp-website-free`)와 별도로 작은 작업 단위로 실행하되 Notion·D1 할당량은 공유합니다. 상세·PDF·본문 첨부와 회원 사진은 Notion 공개 여부 및 DB 소속을 새로 확인합니다. PDF는 허용된 호스트에서만 스트리밍합니다. 관리용 게시 API는 인터넷에 노출하지 않습니다.
+- `free/jobs`: 신뢰된 Node 실행 환경에서 본문·2048px PDF 첫 페이지·720px 카드 이미지를 준비합니다. Notion 업로드 이미지는 게시 시 WebP로 복사하여 만료된 서명 URL에 의존하지 않습니다. 외부 이미지 링크는 원래 공급자의 가용성에 영향을 받습니다. `lib/`의 검증된 변환·기업정보 로직을 공유합니다.
+- 게시 작업은 새 이미지 배포가 성공한 뒤에만 D1의 완료 상태를 갱신합니다. 캐시가 사라지면 현재 사이트의 이미지와 해시를 대조해 복구하며, 복구 실패 시 현재 배포를 유지합니다. 실패 작업은 최대 5회 후 대기열에 남습니다. 자동 삭제·무제한 재시도는 하지 않습니다.
+
+### 자동 반영과 제한
+
+- 목록 변경은 서명 검증 웹훅 또는 매분 작은 변경 조회로 반영됩니다. 동기화가 90초 이상 확인되지 않으면 오래된 목록을 계속 공개하지 않고 대기 안내를 표시합니다. 브라우저 목록 캐시는 최대 30초입니다. 일시적 Notion 장애 때 목록 이용이 제한될 수 있습니다.
+- 본문·표지 준비, 누락된 삭제 알림 복구와 예약 게시 확인은 약 15분마다 실행됩니다. GitHub 예약 작업은 지연될 수 있으므로 정확히 15분을 보장하지 않습니다. 한 실행당 4건, 하루 50건 준비가 상한입니다. PDF를 새로 생성하는 최초 대량 등록은 여러 날에 나누어 진행합니다. 이번 이전에서는 이미 생성된 Blob 이미지를 해시로 검증해 복사했으며 191건 모두 준비를 마쳤습니다.
+- 하루 공개 API 요청 12,000건, 전체 Notion 호출 하루 8,000건·분당 120건으로 보수적으로 제한했습니다. 상세·PDF·사진·목록 호출의 합계이며 다운로드 파일 개수와 같지 않습니다. 상한은 고정 UTC 구간을 기준으로 초기화됩니다. 실제 사용량을 본 뒤 서비스 한도 안에서 조정할 수 있습니다.
+- Notion 429/일시 장애는 `Retry-After`를 공유 저장소에 기록하고 기다립니다. 브라우저도 429의 대기 시간을 지킵니다. 제한 응답을 계속 보내는 공격 트래픽 자체까지 요금제 요청 횟수에서 제외할 수는 없습니다.
+- 이미 공개되어 내려받은 파일·표지와 브라우저 캐시는 회수할 수 없습니다. Drive는 장기 보관 원본으로 유지하며 파일 다운로드 제한은 Google 정책의 영향을 받습니다.
+- 무료 플랜은 무중단·무제한·10년 무점검 보장이 아닙니다. 계정 복구 수단, 실패 알림, 의존성 보안 업데이트와 무료 정책은 담당자 교체 때 점검합니다. 공개 저장소의 GitHub 예약 워크플로는 장기간 저장소 활동이 없으면 자동 중지될 수 있으며, Actions에서 재활성화해야 합니다. 이를 우회하는 자동 커밋은 넣지 않았습니다.
+- SPA 전환으로 첫 HTML의 메타정보는 공통입니다. 게시물 제목은 화면에서 갱신하지만, JavaScript를 실행하지 않는 검색봇·메신저의 게시물별 미리보기는 기존 SSR보다 제한됩니다.
+
+### 재현 가능한 시험
+
+```sh
+pnpm install --frozen-lockfile
+pnpm test
+pnpm typecheck
+pnpm seed:free:fixture
+pnpm build:free:fixture
+# 로컬 D1에 0002_free_runtime.sql, 0003_free_guards.sql, 0004_document_versions.sql과
+# .smp-cache/fixture-seed.sql을 순서대로 적용한 후:
+wrangler dev --config dist/free/wrangler.json --port 3005 --persist-to .wrangler/free-state
+pnpm test:free:http
+pnpm deploy:free
+```
+
+`deploy:free`는 fixture 빌드일 때 지정된 시험 Worker만 배포합니다. fixture는 실제 Notion 토큰·Drive 파일을 사용하지 않으며 검색엔진 수집을 차단합니다. `.smp-cache/`와 `test-results/`는 Git에 넣지 않습니다.
+
+### 실제 전환 순서
+
+1. 시험 D1과 다른 운영 D1을 만들고 `cloudflare/migrations/0002_free_runtime.sql`, `0003_free_guards.sql`, `0004_document_versions.sql`을 적용합니다. 계정은 Workers **Free**로 유지합니다. R2·Blob·유료 플랜은 필요하지 않습니다.
+2. GitHub의 `free-production` 환경에 **학회 계정에 한정한 Workers Scripts Write + D1 Write 토큰**과 기존 Notion 토큰/데이터 소스 ID를 암호화된 Secrets로 등록합니다. 토큰 생성·새 저장 위치 연결은 계정 담당자가 승인한 후 진행합니다. PR/fork에는 운영 비밀값을 전달하지 않습니다.
+3. 환경 Variables에 `CLOUDFLARE_ACCOUNT_ID`, `SMP_FREE_DATABASE_ID`, `SMP_FREE_ORIGIN`을 설정합니다. `SMP_FREE_DEPLOY_APPROVED=1`을 사용한 최초 운영 빌드로 별도 Worker를 배포하고, 기존 Notion 4개 연결 값·삭제 relay URL·웹훅 검증 토큰을 홈페이지 Worker의 Secrets로 등록합니다. 예약 Worker 각각에는 `NOTION_TOKEN`과 담당 데이터 소스 ID만 등록합니다. 기존 `.env.local` 전체를 복사하지 않습니다.
+4. 한 번의 수동 게시 실행으로 목록·본문·표지를 준비합니다. 표지 대기 항목은 텍스트 카드/PDF로 이용 가능합니다. 실제 Notion에서 공개→수정→비공개→삭제, 공지 이미지, 실제 큰 PDF 범위 요청, Drive 삭제 연동, 크론 CPU 사용량을 확인합니다. 외부 시스템 오류나 새 CPU 병목이 남으면 전환하지 않습니다.
+5. 기존 Notion 웹훅 목적지·Drive relay의 허용 호출 설정을 확인한 뒤 변경하고, **저장소 Variables**에 `SMP_FREE_PUBLISH_ENABLED=true`를 설정해 예약 게시를 켭니다. 이 활성화 변수는 job 조건에서 읽으므로 환경 Variables가 아니라 저장소 범위에 둡니다. `free-production`은 `main` 브랜치만 허용하도록 제한합니다. 기존 Vercel 배포·사용량을 늘리는 작업은 중지합니다. 실제 도메인 변경은 이 검증 뒤에 진행하며, 문제가 생기면 새 예약 작업과 도메인 전환을 되돌립니다.
+
+인수인계 시 관리자는 평소대로 Notion과 Drive를 사용합니다. 글이 안 뜨면 먼저 공개·게시일·제목을 확인하고, 이후 GitHub Actions의 마지막 게시 결과와 Cloudflare Worker 오류/사용량을 확인합니다. 재시도 5회에 도달한 항목은 원인을 수정한 뒤 Notion 내용을 수정하면 새 작업으로 등록됩니다. DB 속성 이름·토큰·폴더 권한을 임의로 변경하지 않습니다.
+
+공식 기준: [Workers 제한](https://developers.cloudflare.com/workers/platform/limits/), [정적 파일 과금](https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/), [D1 제한](https://developers.cloudflare.com/d1/platform/limits/), [Notion 호출 제한](https://developers.notion.com/reference/request-limits), [GitHub Actions 제한](https://docs.github.com/en/actions/reference/limits).
+
+
+## 기존 SSR 시험 기록
+
+`cloudflare/`의 vinext 시험에서는 목록 요청 CPU가 109~210ms로 측정되어 무료 운영 경로로 채택하지 않았습니다. 현재 운영 후보는 위의 `free/` 정적 구조입니다. `build:vinext`, `deploy:vinext`는 비교 시험 전용이며 실제 CMS를 연결하지 않습니다.
+
+정적 구조의 합성 자료 시험에서는 100개 동시 혼합 요청이 모두 성공했고, 목록 단독 CPU는 2~3ms였습니다. 상세 요청 한 건에서 11ms가 관측됐습니다. 이 결과만으로 실제 대용량 PDF 100개 동시 다운로드를 보장하지 않습니다. 실제 CMS 시험 결과와 한계는 `cloudflare/trial-results.json`에 추가 기록합니다.
+
+## 기존 운영 안내
+
 SMP 공지사항 및 PDF 리포트 웹사이트 — Notion CMS, GitHub 동기화, Vercel 배포
 
 2026-10-02 전달받은 배포 소스를 가져온 Next.js App Router 프로젝트입니다. 웹사이트 코드는 GitHub에서 관리하고, 공지·리포트·기수별 회원 명단은 Notion에서 작성합니다. Notion 내용을 수정할 때마다 GitHub 커밋이나 재배포를 할 필요는 없습니다.
@@ -55,7 +128,7 @@ Notion 무료 요금제의 파일당 5MB 제한을 피하기 위해 PDF는 구�
 
 목록 로딩은 `공개` 필터를 적용한 Notion 조회 한 번에 날짜·분류 색상까지 가져옵니다(100건을 넘으면 API 페이지당 한 번 추가). 카드마다 Notion 속성이나 본문을 따로 읽지 않습니다. 목록과 본문은 Next.js 서버 데이터 캐시에 60초간 저장하며, 120초보다 오래된 결과는 새 조회로 확인합니다. 서명된 Notion 웹훅은 공지·리포트 캐시를 즉시 만료시킵니다. 상세·파일·표지 API는 해당 페이지 하나의 DB 소속과 공개 여부를 매번 직접 확인합니다. 같은 서버의 겹치는 목록·페이지·본문 요청은 합칩니다. 카드 링크의 미리 불러오기를 끄고 마우스 애니메이션은 CSS로 처리해 호버로 API 호출이 늘지 않습니다. 표지 메타데이터는 현재 페이지의 최대 12개만 Blob에서 읽고 이미지 지연 로딩을 유지합니다. 저장된 표지가 없거나 오래된 경우에만 표지 경로에서 공개 여부 확인과 이미지 생성을 수행합니다.
 
-### 표지 자동 저장
+### 표지 자동 저장 — 아래 내용은 이전 Vercel 방식
 
 표지 저장소와 웹훅 연결을 완료하면, 운영진은 기존과 같이 **Drive에 PDF 업로드 → Notion에 파일 링크 입력 → 공개 체크**만 합니다. 별도 표지 이미지 업로드는 필요하지 않습니다.
 

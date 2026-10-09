@@ -1,0 +1,1 @@
+ALTER TABLE free_documents ADD COLUMN version INTEGER NOT NULL DEFAULT 0;

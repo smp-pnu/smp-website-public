@@ -3,18 +3,9 @@ import { cache } from "react"
 import { notionPages, notionRequest, NotionRequestError } from "./notion-request"
 import { normalizeId, sortContent, toContentItem, type ContentItem, type ContentKind, type NotionFile, type NotionPage, type RichText } from "./content-model"
 
-type BlockValue = NotionFile & {
-  rich_text?: RichText[]; caption?: RichText[]; url?: string; language?: string
-  checked?: boolean; cells?: RichText[][]; has_column_header?: boolean; has_row_header?: boolean
-}
-export type ContentBlock = {
-  id: string; type: string; has_children?: boolean; archived?: boolean; in_trash?: boolean
-  children?: ContentBlock[]
-  [key: string]: unknown
-}
-export function blockValue(block: ContentBlock) { return (block[block.type] ?? {}) as BlockValue }
-
-export type ContentResult = { items: ContentItem[]; state: "ready" | "unconfigured" | "error" }
+export { blockValue } from "./notion-model"
+export type { ContentBlock, ContentResult } from "./notion-model"
+import type { ContentBlock, ContentResult } from "./notion-model"
 
 function sourceId(kind: ContentKind) {
   const value = kind === "notice" ? process.env.NOTION_NOTICES_DATA_SOURCE_ID : process.env.NOTION_REPORTS_DATA_SOURCE_ID

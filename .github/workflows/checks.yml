@@ -29,3 +29,4 @@ jobs:
       - run: pnpm build
       - run: pnpm test:bundles
       - run: pnpm typecheck
+      - run: pnpm seed:free:fixture && pnpm build:free:fixture

@@ -1,0 +1,129 @@
+{
+  "date": "2026-10-09",
+  "legacySsr": {
+    "date": "2026-10-09",
+    "site": "https://smp-fixture-preview.smp-website.workers.dev",
+    "workerVersion": "3c75c13d-46f4-4bef-add0-84dd6bb3b77f",
+    "plan": "Workers Free (dashboard confirmed)",
+    "data": {
+      "reports": 600,
+      "notices": 300,
+      "synthetic": true,
+      "pdfPages": 1
+    },
+    "unitTests": {
+      "passed": 115,
+      "failed": 0
+    },
+    "localHttp": {
+      "burstRequests": 500,
+      "failed": 0
+    },
+    "remote": {
+      "run": "mv0xpzpn",
+      "requests": 106,
+      "concurrentBurst": 100,
+      "failed": 0,
+      "cpuTraceSamplesInBurst": 90,
+      "serialListCpuMs": {
+        "samples": 5,
+        "min": 109,
+        "median": 141,
+        "max": 210
+      },
+      "responseP95Ms": {
+        "list50Requests": 2008,
+        "detail30Requests": 1720,
+        "pdf20Requests": 1061
+      }
+    },
+    "confirmed": [
+      "typecheck",
+      "fixture build and deployment",
+      "D1 schema",
+      "PDF byte ranges",
+      "browser autocomplete and search navigation",
+      "browser PDF render",
+      "local CSP nonce and immediate withdrawal",
+      "local signed webhook queue"
+    ],
+    "unverified": [
+      "actual Notion and Drive workloads on Cloudflare",
+      "large PDF concurrent transfer",
+      "replacement cover store",
+      "background job execution and recovery",
+      "production cutover"
+    ],
+    "decision": "Current per-request SSR exceeds the documented 10 ms CPU free limit in this test. Do not cut production over on the assumption of reliable free operation."
+  },
+  "staticFixture": {
+    "site": "https://smp-fixture-preview.smp-website.workers.dev",
+    "version": "429aacfa-ecc5-47cd-af0f-44ea4bace028",
+    "data": {
+      "reports": 600,
+      "notices": 300,
+      "pdfPages": 1,
+      "synthetic": true
+    },
+    "burst": {
+      "requests": 100,
+      "failed": 0,
+      "wallP95Ms": {
+        "catalog": 731,
+        "detail": 1031,
+        "pdf": 909
+      }
+    },
+    "catalogSerialCpuMs": {
+      "min": 2,
+      "max": 3
+    },
+    "burstCpuMs": {
+      "catalogMax": 9,
+      "detailMax": 11,
+      "pdfMax": 9
+    }
+  },
+  "realCms": {
+    "site": "https://smp-website-free.smp-website.workers.dev",
+    "reports": 191,
+    "notices": 2,
+    "members": 628,
+    "coversReady": 191,
+    "bodiesReady": 193,
+    "initialImport": {
+      "reusedLegacyCoversAndBodies": 189,
+      "missing": 0,
+      "changed": 0
+    },
+    "realPdf": {
+      "bytes": 28934152,
+      "pages": 27,
+      "rangeStatus": 206,
+      "fullStatus": 200,
+      "nativeStreamCpuMs": 10,
+      "priorStandardStreamCpuMs": 1025
+    },
+    "publicationTest": {
+      "detailWhenHidden": 404,
+      "pdfWhenHidden": 503,
+      "pdfFailureReason": "Notion timeout; no file returned",
+      "stateRestored": true,
+      "signedHandlerAccepted": true,
+      "actualNotionWebhookDeliveryConfigured": false
+    },
+    "pending": [
+      "GitHub environment secrets and scheduled Actions (browser login required)",
+      "existing Drive cleanup relay endpoint transfer",
+      "remote CPU samples for the three smaller scheduled workers",
+      "production domain cutover"
+    ]
+  },
+  "tests": {
+    "unitPassed": 123,
+    "unitFailed": 0,
+    "typecheck": "passed",
+    "nextProductionBuild": "passed"
+  },
+  "decision": "Static serving and native PDF streaming remove the largest costs. Keep the new site under validation until automatic publishing, scheduled sync CPU and production connections are verified; successful HTTP responses alone do not prove Free CPU compliance."
+}

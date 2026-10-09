@@ -1,4 +1,5 @@
 import "server-only"
+import { upstreamFetch } from "@/lib/upstream-fetch"
 import { isAllowedPdfUrl } from "./pdf-source"
 import { parsePdfContentRange, parsePdfRange, resolvePdfRange } from "./pdf-range"
 
@@ -14,7 +15,7 @@ export async function streamPdf(url: string, name: string, download: boolean, si
   let upstream: Response | undefined
   for (let redirects = 0; redirects <= 3; redirects++) {
     if (!isAllowedPdfUrl(url)) throw new Error("Unsupported PDF source")
-    upstream = await fetch(url, { cache: "no-store", redirect: "manual", signal,
+    upstream = await upstreamFetch(url, { cache: "no-store", redirect: "manual", signal,
       headers: { "Accept-Encoding": "identity", ...(requested ? { Range: rangeHeader! } : {}) },
     })
     if (![301, 302, 303, 307, 308].includes(upstream.status)) break
@@ -75,17 +76,31 @@ export async function streamPdf(url: string, name: string, download: boolean, si
     throw new Error("Source is not a PDF")
   }
 
-  const body = new ReadableStream<Uint8Array>({
-    async pull(controller) {
-      if (prefix.length) { controller.enqueue(prefix.shift()!); return }
-      try {
-        const { done, value } = await reader.read()
-        if (done) { reader.releaseLock(); controller.close() }
-        else controller.enqueue(value)
-      } catch (error) { controller.error(error) }
-    },
-    cancel(reason) { return reader.cancel(reason) },
-  })
+  reader.releaseLock()
+  let body = upstream.body
+  if (prefix.length) {
+    // Validate only the prefix in JavaScript. Native stream piping forwards
+    // the remaining bytes without a JS callback for every PDF chunk.
+    // Workers' IdentityTransformStream keeps large passthrough responses in
+    // native code. A standards-based TransformStream can execute JS per chunk.
+    const NativeIdentity = (globalThis as unknown as {
+      IdentityTransformStream?: new () => {readable:ReadableStream<Uint8Array>;writable:WritableStream<Uint8Array>}
+    }).IdentityTransformStream
+    const stream = NativeIdentity ? new NativeIdentity() : new TransformStream<Uint8Array, Uint8Array>()
+    const writer = stream.writable.getWriter()
+    const source = upstream.body
+    const forward = async () => {
+      try { for (const chunk of prefix) await writer.write(chunk) }
+      finally { writer.releaseLock() }
+      await source.pipeTo(stream.writable)
+    }
+    void forward().catch(() => {
+      // pipeTo propagates errors/cancellation to the response stream. If the
+      // client left during the prefix, also stop the not-yet-piped source.
+      if (!source.locked) void source.cancel().catch(() => {})
+    })
+    body = stream.readable
+  }
   const filename = name.normalize("NFC").replace(/[\u0000-\u001f\u007f/\\]/g, "_").slice(0, 150)
   const encoded = encodeURIComponent(/\.pdf$/i.test(filename) ? filename : `${filename}.pdf`).replace(/['()*]/g, char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)
   // Keep the body streamed, including large downloads. Forward only the size

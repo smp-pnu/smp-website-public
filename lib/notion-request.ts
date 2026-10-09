@@ -1,4 +1,5 @@
 import "server-only"
+import { upstreamFetch } from "@/lib/upstream-fetch"
 
 type ListResponse<T> = { results: T[]; has_more: boolean; next_cursor: string | null }
 
@@ -33,7 +34,7 @@ export async function notionRequest<T>(path: string, body?: unknown, method?: "P
   if (remaining > 0) throw new NotionRequestError(429, remaining)
   backoff.delete(connection)
   for (let attempt = 0; attempt < 3; attempt++) {
-    const response = await fetch(`https://api.notion.com/v1/${path}`, {
+    const response = await upstreamFetch(`https://api.notion.com/v1/${path}`, {
       method: method ?? (body ? "POST" : "GET"),
       headers: {
         Authorization: `Bearer ${process.env.NOTION_TOKEN}`,

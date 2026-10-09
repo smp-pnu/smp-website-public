@@ -36,7 +36,7 @@
 3. `previewCleanup`을 실행하고 Drive 접근·외부 요청·예약 실행 권한을 승인합니다. 이것은 파일을 삭제하지 않는 사전 점검입니다. `pendingReferences: true`면 초기 본문 검사가 남은 상태이므로 다시 실행해 이어서 검사합니다.
 4. `enableCleanup`을 실행합니다. 같은 함수의 트리거를 중복 생성하지 않으며, **Triggers**에서 `syncDeletedReports` 시간 기반 트리거 1개를 확인합니다.
 5. 웹 앱으로 배포합니다. **Execute as: Me**, **Who has access: Anyone**로 설정합니다. 웹 앱은 인증된 삭제 힌트만 받으며 파일 읽기·다운로드·임의 삭제 API를 제공하지 않습니다.
-6. 웹 앱의 `/exec` URL을 Vercel Production 환경변수 `DRIVE_CLEANUP_WEB_APP_URL`에 넣고 배포합니다. Notion 웹훅 구독에 `page.deleted` 이벤트가 포함됐는지 확인합니다.
+6. 웹 앱의 `/exec` URL을 현재 홈페이지 호스팅의 서버 Secret (`DRIVE_CLEANUP_WEB_APP_URL`, Cloudflare 또는 이전 Vercel Production 환경변수)에 넣고 배포합니다. Notion 웹훅 구독에 `page.deleted` 이벤트가 포함됐는지 확인합니다.
 7. 임시 비공개 리포트와 임시 PDF로 공개 해제 시 보존, 항목 삭제 시 휴지통 이동을 확인합니다. 실사용 자료로 시험하지 않습니다.
 
 같은 학회 Google 계정을 넘겨주면 설치된 트리거도 그 계정으로 계속 실행됩니다. Google 계정을 바꿀 때는 새 담당 계정의 파일 소유권과 폴더 권한을 확인하고 트리거를 새로 설치해야 합니다. Notion 토큰을 교체하면 Vercel과 Script Properties 양쪽을 함께 수정합니다. 프로그램을 수정하면 GitHub 코드와 Apps Script 편집기를 맞추고 웹 앱도 새 버전으로 배포합니다.

@@ -94,7 +94,10 @@ test("large PDF responses stay streamed and cancellation reaches upstream", asyn
   const reader = result.body!.getReader()
   assert.deepEqual((await reader.read()).value, pdfBytes)
   await reader.cancel()
+  // Native pipeTo propagates cancellation on the next microtask turn.
+  await new Promise(resolve => setImmediate(resolve))
   assert.equal(cancelled, true)
+  assert.ok(produced < 5, "cancellation must not drain the entire source")
 })
 
 test("PDF signature detection handles split network chunks and rejects invalid indices", async () => {
