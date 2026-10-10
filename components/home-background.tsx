@@ -37,10 +37,11 @@ export function HomeBackground() {
     return () => { cancelAnimationFrame(frame); window.removeEventListener("scroll", update); window.removeEventListener("resize", update) }
   }, [isAlumni])
   const isHome = pathname === "/"
+  const isNotice = pathname === "/notice" || pathname.startsWith("/notice/")
   const isResearch = pathname === "/research" || pathname.startsWith("/research/")
   const photo = isResearch ? "/backgrounds/research-desk.webp" : pathname === "/achievements" ? "/backgrounds/achievements-building.webp" : pathname === "/members" ? "/backgrounds/pnu-campus-upscaled.webp" : ["/network", "/alumni"].includes(pathname) ? "/backgrounds/network-yeouido.webp" : pathname === "/recruit" ? "/backgrounds/recruit-bull.webp" : pathname === "/curriculum" ? "/backgrounds/curriculum-skyscrapers.webp" : isHome ? "/backgrounds/home-gwangan-3.webp" : (["/about", "/contact", "/notice"].includes(pathname) || pathname.startsWith("/notice/")) ? "/backgrounds/page-gwangan-3.webp" : HOME_BACKGROUND_IMAGE_SRC
   return (
-    <div ref={background} className={`site-backdrop pointer-events-none fixed inset-0 z-0 ${isHome ? "site-backdrop--hero" : ""}`} aria-hidden="true">
+    <div ref={background} className={`site-backdrop pointer-events-none fixed inset-0 z-0 ${isHome ? "site-backdrop--hero" : isNotice ? "site-backdrop--notice" : ""}`} aria-hidden="true">
       {photo ? (
         <Image
           key={photo}
