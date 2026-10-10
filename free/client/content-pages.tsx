@@ -41,7 +41,7 @@ export function DetailPage({ kind }: { kind: ContentKind }) {
   const search = useSearch()
   const { value, error } = useApi<{ item: PreparedItem; blocks: ContentBlock[]; bodyPending?: boolean }>(`/api/detail/${kind}/${id}`, 0)
   const item = value?.item
-  useEffect(()=>{if(item)document.title=`${item.title} | SMP`},[item])
+  useEffect(() => { if (item?.title) document.title = `SMP · ${item.title}` }, [item?.title])
   const back = item ? contentReturnHref(item, search) : `/${kind}`
   return <><SiteHeader /><main className="relative z-10 mx-auto min-h-[75svh] max-w-4xl px-6 py-16 sm:py-20">
     <Link href={back} className="text-sm tracking-widest text-sky-300">← {kind.toUpperCase()}</Link>
