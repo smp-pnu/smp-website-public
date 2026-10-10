@@ -8,6 +8,7 @@ export type Env = {
   NOTION_NOTICES_DATA_SOURCE_ID?: string;
   NOTION_MEMBERS_DATA_SOURCE_ID?: string;
   NOTION_WEBHOOK_VERIFICATION_TOKEN?: string;
+  NOTION_WEBHOOK_SETUP?: string;
   DRIVE_CLEANUP_WEB_APP_URL?: string;
   SMP_FIXTURE?: string;
   SMP_READ_ONLY?: string;

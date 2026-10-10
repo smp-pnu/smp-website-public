@@ -52,7 +52,7 @@ pnpm test
 pnpm typecheck
 pnpm seed:free:fixture
 pnpm build:free:fixture
-# 로컬 D1에 0002_free_runtime.sql, 0003_free_guards.sql, 0004_document_versions.sql과
+# 로컬 D1에 0002_free_runtime.sql부터 0005_webhook_setup.sql까지와
 # .smp-cache/fixture-seed.sql을 순서대로 적용한 후:
 wrangler dev --config dist/free/wrangler.json --port 3005 --persist-to .wrangler/free-state
 pnpm test:free:http
@@ -63,7 +63,7 @@ pnpm deploy:free
 
 ### 실제 전환 순서
 
-1. 시험 D1과 다른 운영 D1을 만들고 `cloudflare/migrations/0002_free_runtime.sql`, `0003_free_guards.sql`, `0004_document_versions.sql`을 적용합니다. 계정은 Workers **Free**로 유지합니다. R2·Blob·유료 플랜은 필요하지 않습니다.
+1. 시험 D1과 다른 운영 D1을 만들고 `cloudflare/migrations/0002_free_runtime.sql`부터 `0005_webhook_setup.sql`까지 적용합니다. 계정은 Workers **Free**로 유지합니다. R2·Blob·유료 플랜은 필요하지 않습니다.
 2. GitHub의 `free-production` 환경에 **학회 계정에 한정한 Workers Scripts Write + D1 Write 토큰**과 기존 Notion 토큰/데이터 소스 ID를 암호화된 Secrets로 등록합니다. 토큰 생성·새 저장 위치 연결은 계정 담당자가 승인한 후 진행합니다. PR/fork에는 운영 비밀값을 전달하지 않습니다.
 3. 환경 Variables에 `CLOUDFLARE_ACCOUNT_ID`, `SMP_FREE_DATABASE_ID`, `SMP_FREE_ORIGIN`을 설정합니다. `SMP_FREE_DEPLOY_APPROVED=1`을 사용한 최초 운영 빌드로 별도 Worker를 배포하고, 기존 Notion 4개 연결 값·삭제 relay URL·웹훅 검증 토큰을 홈페이지 Worker의 Secrets로 등록합니다. 예약 Worker 각각에는 `NOTION_TOKEN`과 담당 데이터 소스 ID만 등록합니다. 기존 `.env.local` 전체를 복사하지 않습니다.
 4. 한 번의 수동 게시 실행으로 목록·본문·표지를 준비합니다. 표지 대기 항목은 텍스트 카드/PDF로 이용 가능합니다. 실제 Notion에서 공개→수정→비공개→삭제, 공지 이미지, 실제 큰 PDF 범위 요청, Drive 삭제 연동, 크론 CPU 사용량을 확인합니다. 외부 시스템 오류나 새 CPU 병목이 남으면 전환하지 않습니다.

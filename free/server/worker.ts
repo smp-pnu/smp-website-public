@@ -8,6 +8,7 @@ import { notion, published, source } from "./notion"
 import { Busy, type Context, type Env } from "./types"
 import { memberPhoto } from "./member-photo"
 import { queueDriveCleanup } from "../../lib/drive-cleanup-relay"
+import { captureWebhookVerification } from "./webhook-setup"
 
 declare const __SMP_FIXTURE__: boolean
 const headers = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer", "Cross-Origin-Resource-Policy": "same-origin" }
@@ -32,6 +33,8 @@ async function document(request:Request,env: Env,ctx:Context,name: string) {
 async function webhook(request: Request, env: Env) {
   if (env.SMP_READ_ONLY === "1") return new Response("Not found", { status: 404 })
   const raw = await limitedBody(request)
+  const verification = await captureWebhookVerification(raw, env)
+  if (verification) return verification
   if (!validNotionSignature(raw, request.headers.get("x-notion-signature"), env.NOTION_WEBHOOK_VERIFICATION_TOKEN)) return reply({ error: "Unauthorized" }, 401)
   await spend(env.CMS_DB, "webhook-day", 500, 86_400_000)
   const event = JSON.parse(raw)
@@ -126,6 +129,7 @@ export default {
     if(await syncKind(env,kind)) await rebuildDocuments(env)
     if(kind==="research" && Math.floor((event.scheduledTime??Date.now())/60_000)%60===0) {
       await env.CMS_DB.prepare("DELETE FROM free_budget WHERE key IN (SELECT key FROM free_budget WHERE expires_at < ? LIMIT 100)").bind(Date.now() - 86_400_000).run()
+      await env.CMS_DB.prepare("DELETE FROM free_webhook_setup WHERE expires_at < ?").bind(Date.now()).run()
     }
   },
 }
