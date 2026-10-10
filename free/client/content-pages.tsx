@@ -9,7 +9,6 @@ import { ContentList } from "@/components/content-list"
 import { ResearchDetailHeader } from "@/components/research-detail-header"
 import { PdfViewer } from "@/components/pdf-viewer"
 import { NotionContent } from "@/components/notion-content"
-import { NoticeArticle } from "@/components/notice-article"
 import { SiteSearchResults } from "@/components/site-search-results"
 import { SearchField } from "@/components/search-field"
 import { AlumniOverview } from "@/components/alumni-overview"
@@ -44,14 +43,14 @@ export function DetailPage({ kind }: { kind: ContentKind }) {
   const item = value?.item
   useEffect(() => { if (item?.title) document.title = `SMP · ${item.title}` }, [item?.title])
   const back = item ? contentReturnHref(item, search) : `/${kind}`
-  const body = value && (value.bodyPending ? <p role="status" className="text-slate-400">본문을 준비하고 있습니다. 잠시 후 다시 방문해주세요.</p> : <NotionContent blocks={value.blocks} />)
-  return <><SiteHeader /><main className={`relative z-10 mx-auto min-h-[75svh] ${kind === "notice" ? "max-w-5xl px-4 py-10 sm:px-6 sm:py-16" : "max-w-4xl px-6 py-16 sm:py-20"}`}>
+  return <><SiteHeader /><main className="relative z-10 mx-auto min-h-[75svh] max-w-4xl px-6 py-16 sm:py-20">
     <Link href={back} className="text-sm tracking-widest text-sky-300">← {kind.toUpperCase()}</Link>
-    {item ? kind === "notice" ? <NoticeArticle item={item} attachments={<Attachments item={item} />}>{body}</NoticeArticle> : <article className="mt-10">
-      <ResearchDetailHeader item={item} />
-      <Attachments item={item} />
-      <div className="py-8">{body}</div>
-      <Related item={item} />
+    {item ? <article className="mt-10">
+      {kind === "research" ? <ResearchDetailHeader item={item} /> : <header className="border-b border-white/20 pb-8"><p className="text-sm text-sky-300">{item.pinned && "고정 · "}{item.category}</p><h1 className="mt-4 break-words text-3xl font-medium leading-snug text-white sm:text-4xl">{item.title}</h1><p className="mt-5 text-sm text-slate-300">{formatDate(item.date)} · {item.author}</p>{item.summary && <p className="mt-6 leading-8 text-slate-300">{item.summary}</p>}</header>}
+      {kind === "research" && <Attachments item={item} />}
+      <div className="py-8">{value.bodyPending ? <p role="status" className="text-slate-400">본문을 준비하고 있습니다. 잠시 후 다시 방문해주세요.</p> : <NotionContent blocks={value.blocks} />}</div>
+      {kind === "notice" && <Attachments item={item} />}
+      {kind === "research" && <Related item={item} />}
     </article> : <Status error={error} />}
     <div className="mt-14 border-t border-white/20 pt-7"><Link href={back} className="text-sm text-sky-300">목록으로 돌아가기</Link></div>
   </main><SiteFooter /></>
