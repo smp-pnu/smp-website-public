@@ -161,16 +161,6 @@
   }
 }
 
-.curriculum-page { --light-x: 18%; background: #000; }
-.curriculum-atmosphere { position: absolute; inset: 0; pointer-events: none; clip-path: inset(0); z-index: -1; }
-.curriculum-atmosphere::before { content: ''; position: fixed; inset: 0; background: url("/backgrounds/curriculum-skyscrapers.webp") center var(--photo-y, 0%) / cover no-repeat; opacity: var(--site-photo-opacity); }
-.curriculum-beam { position: fixed; top: -30vh; left: var(--light-x); width: min(30vw, 420px); height: 160vh; transform: translateX(-50%) rotate(-23deg); background: linear-gradient(90deg, transparent, #1685df14 25%, #5dc1ff40 48%, #bbecff24 52%, #1685df12 75%, transparent); filter: blur(18px); }
-.curriculum-horizon { position: fixed; top: 56vh; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, #8bd5ff90, transparent); box-shadow: 0 0 8px #4cb7ff70; }
-.curriculum-star { position: fixed; left: var(--light-x); top: 56vh; width: 5px; height: 5px; transform: translate(-50%, -50%) rotate(45deg); background: #b8ddedb3; box-shadow: 0 0 8px 2px #83d0ff66, 0 0 24px 6px #1685df22; }
-.curriculum-star::after { content: ''; position: absolute; inset: -20px 2px; background: linear-gradient(transparent, #b8e7ff45, transparent); transform: rotate(-45deg); }
-.curriculum-beam { opacity: .12; }
-.curriculum-horizon { opacity: .2; }
-.curriculum-star { opacity: .35; }
 .curriculum-stage { position: relative; transition: transform 500ms cubic-bezier(.22,1,.36,1); transform-origin: center; }
 .curriculum-stage:hover, .curriculum-stage:focus-visible { transform: translateY(-7px) scale(1.035); }
 .curriculum-bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #16314b; overflow: hidden; }
