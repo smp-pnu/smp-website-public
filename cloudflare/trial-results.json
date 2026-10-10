@@ -116,19 +116,31 @@
       "earlierTransientFailure": "A Notion timeout returned 503 without disclosing the PDF; retry after normal synchronization passed."
     },
     "pending": [
-      "GitHub environment secrets and scheduled Actions (browser login required)",
-      "existing Drive cleanup relay endpoint transfer",
-      "remote CPU samples for the three smaller scheduled workers",
-      "production domain cutover"
-    ]
+      "existing Notion webhook destination transfer (academic account login required)",
+      "existing Drive cleanup relay endpoint transfer (academic account login required)",
+      "production domain cutover (not changed)"
+    ],
+    "githubPublisher": {
+      "firstRun": "https://github.com/smp-pnu/smp-website-public/actions/runs/38016104454",
+      "result": "success",
+      "commit": "f9ee30bda6688ff85b963555162cbc69ff835192",
+      "mainWorkerVersion": "35500e84-e3da-4ade-b347-2336cc73cbf4",
+      "preparedJobs": 0,
+      "notionRequests": 10,
+      "existingPublicAssetsRecovered": true,
+      "assetCacheSaved": true,
+      "credentials": "Encrypted main-only free-production environment",
+      "note": "This run reconciled actual CMS data, recovered existing images from the live origin and deployed all four Workers. Initial image/body preparation had already been validated before this run."
+    }
   },
   "tests": {
-    "unitPassed": 123,
+    "unitPassed": 122,
     "unitFailed": 0,
     "typecheck": "passed",
-    "nextProductionBuild": "passed"
+    "nextProductionBuild": "passed",
+    "lastValidated": "2026-10-10"
   },
-  "decision": "Static serving and native PDF streaming remove the largest costs. Keep the new site under validation until automatic publishing, scheduled sync CPU and production connections are verified; successful HTTP responses alone do not prove Free CPU compliance.",
+  "decision": "Static serving and native PDF streaming remove the largest costs. Main-only GitHub publishing and source-specific scheduled sync have run successfully. Existing webhook/deletion relay settings and domain cutover remain separate; free limits and external provider availability still apply.",
   "splitScheduledWorkers": {
     "measuredAt": "2026-10-10",
     "workers": {
