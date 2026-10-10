@@ -29,13 +29,17 @@ const config = {
   vars: { SMP_RUNTIME: "cloudflare", SMP_FIXTURE: fixture ? "1" : "0", SMP_READ_ONLY: fixture ? "1" : "0", ...(fixture ? {
     NOTION_TOKEN: "local-cloudflare-fixture", NOTION_REPORTS_DATA_SOURCE_ID: "33333333333343338333333333333333", NOTION_NOTICES_DATA_SOURCE_ID: "22222222222242228222222222222222", NOTION_MEMBERS_DATA_SOURCE_ID: "44444444444444448444444444444444",
   } : {}) },
+  ...(fixture ? {} : { routes: [
+    { pattern: "pnusmp.com", custom_domain: true },
+    { pattern: "www.pnusmp.com", custom_domain: true },
+  ] }),
   ratelimits: [{ name: "API_RATE_LIMIT", namespace_id: "1001", simple: { limit: 1200, period: 60 } }],
   workers_dev: true, preview_urls: false,
   triggers: { crons: [] },
 }
 await writeFile("dist/free/wrangler.json", JSON.stringify(config, null, 2))
 if(!fixture) for(const kind of ["research","notice","members"]) {
-  const {assets,ratelimits,...sync}=config
+  const {assets,ratelimits,routes,...sync}=config
   await writeFile(`dist/free/sync-${kind}.json`,JSON.stringify({...sync,name:`smp-sync-${kind}`,workers_dev:false,
     vars:{...config.vars,SMP_SYNC_KIND:kind},triggers:{crons:["* * * * *"]}},null,2))
 }

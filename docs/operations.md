@@ -2,7 +2,7 @@
 
 ## 현재 운영 안내 — Cloudflare (2026-10-10)
 
-운영 사이트는 [Cloudflare 주소](https://smp-website-free.smp-website.workers.dev)입니다. Vercel 예약 실행과 Git 자동 배포는 중지했으며, 새 사이트는 기존 Vercel Blob의 정상 동작을 요구하지 않습니다. Notion·Drive의 관리 방식은 유지하고 GitHub Actions가 표지·본문을 준비합니다. 현재 한도·반영 간격·인수인계의 기준은 [README](../README.md)의 무료 운영 구조입니다.
+운영 사이트는 [pnusmp.com](https://pnusmp.com)입니다. `www.pnusmp.com`도 같은 사이트로 연결하며, `workers.dev` 주소는 자동 게시 내부 통신과 예비 접속용으로 유지합니다. Vercel 예약 실행과 Git 자동 배포는 중지했으며, 새 사이트는 기존 Vercel Blob의 정상 동작을 요구하지 않습니다. Notion·Drive의 관리 방식은 유지하고 GitHub Actions가 표지·본문을 준비합니다. 현재 한도·반영 간격·인수인계의 기준은 [README](../README.md)의 무료 운영 구조입니다.
 
 | 증상 | 확인과 대응 |
 | --- | --- |

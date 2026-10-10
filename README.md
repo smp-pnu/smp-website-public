@@ -2,7 +2,7 @@
 
 ## 무료 운영 구조 (2026-10-10)
 
-현재 `free/`는 **정적 React 화면 + Cloudflare Workers API + D1 + GitHub Actions 게시 작업**으로 운영합니다. 아래의 Vercel 설명은 이전 방식의 기록입니다. [운영 사이트](https://smp-website-free.smp-website.workers.dev)에 공개 리포트 191건의 고화질 표지·본문, 공지 2건과 회원 628건을 연결했습니다. GitHub 운영 환경은 `main` 전용으로 제한했고, [자동 게시 실행](https://github.com/smp-pnu/smp-website-public/actions/runs/38017236530)에서 실제 Cloudflare 배포를 확인했습니다. Notion 웹훅을 새 주소로 인증하여 실제 변경 알림의 정상 처리(200)를 확인했으며, 기존 Drive 삭제 relay도 연결했습니다. 이전 Vercel Cron과 Git 자동 배포는 껐습니다. 도메인/DNS는 변경하지 않았습니다. 합성 자료 시험은 운영 DB·Worker와 분리해 수행하며, 사용하지 않는 시험 주소는 검증 후 꺼 둡니다.
+현재 `free/`는 **정적 React 화면 + Cloudflare Workers API + D1 + GitHub Actions 게시 작업**으로 운영합니다. 아래의 Vercel 설명은 이전 방식의 기록입니다. [운영 사이트](https://pnusmp.com)에 공개 리포트 191건의 고화질 표지·본문, 공지 2건과 회원 628건을 연결했습니다. `www.pnusmp.com`도 같은 사이트로 연결합니다. `workers.dev` 주소도 자동 게시 내부 통신과 예비 접속용으로 유지합니다. GitHub 운영 환경은 `main` 전용으로 제한했고, [자동 게시 실행](https://github.com/smp-pnu/smp-website-public/actions/runs/38017236530)에서 실제 Cloudflare 배포를 확인했습니다. Notion 웹훅을 새 주소로 인증하여 실제 변경 알림의 정상 처리(200)를 확인했으며, 기존 Drive 삭제 relay도 연결했습니다. 이전 Vercel Cron과 Git 자동 배포는 껐습니다. 합성 자료 시험은 운영 DB·Worker와 분리해 수행하며, 사용하지 않는 시험 주소는 검증 후 꺼 둡니다.
 
 ```mermaid
 flowchart LR
