@@ -6,6 +6,7 @@ import { NetworkTransition } from "@/components/network-transition"
 import { ScrollReveal } from "@/components/scroll-reveal"
 import { ListPage, DetailPage, SearchPage, NetworkPage, Status } from "./content-pages"
 import "./style.css"
+import "@/app/fonts/body-font"
 
 const Home = lazy(() => import("@/app/page"))
 const About = lazy(() => import("@/app/about/page"))
