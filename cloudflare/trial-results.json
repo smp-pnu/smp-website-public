@@ -112,12 +112,10 @@
       "stateRestored": true,
       "detailAfterRestore": 200,
       "signedHandlerAccepted": true,
-      "actualNotionWebhookDeliveryConfigured": false,
+      "actualNotionWebhookDeliveryConfigured": true,
       "earlierTransientFailure": "A Notion timeout returned 503 without disclosing the PDF; retry after normal synchronization passed."
     },
     "pending": [
-      "existing Notion webhook destination transfer (academic account login required)",
-      "existing Drive cleanup relay endpoint transfer (academic account login required)",
       "production domain cutover (not changed)"
     ],
     "githubPublisher": {
@@ -131,16 +129,42 @@
       "assetCacheSaved": true,
       "credentials": "Encrypted main-only free-production environment",
       "note": "This run reconciled actual CMS data, recovered existing images from the live origin and deployed all four Workers. Initial image/body preparation had already been validated before this run."
-    }
+    },
+    "webhookCutover": {
+      "date": "2026-10-10",
+      "endpoint": "https://smp-website-free.smp-website.workers.dev/api/notion/webhook",
+      "subscribedPageEvents": 6,
+      "apiVersion": "2025-09-03",
+      "actualNotionWebhookDelivered": true,
+      "httpStatus": 200,
+      "cpuTimeMs": 7,
+      "elapsedMs": 61579,
+      "test": "Temporary title change on an existing unpublished empty report template; restored and still private",
+      "temporarySetupSecretRemoved": true,
+      "encryptedEnrollmentCandidateRemoved": true,
+      "restorationDelivery": {
+        "httpStatus": 200,
+        "outcome": "ok",
+        "cpuTimeMs": 12
+      },
+      "note": "Both actual deliveries succeeded. The 12 ms restoration sample exceeds the nominal Free 10 ms CPU allowance; successful burst tolerance is not a guarantee for future traffic."
+    },
+    "driveRelayCutover": {
+      "configured": true,
+      "invalidSignatureRejected": true,
+      "validSignatureAccepted": true,
+      "test": "Existing non-trashed private template without PDF; no actual Drive file deletion was repeated"
+    },
+    "vercelCronDisabled": true
   },
   "tests": {
-    "unitPassed": 122,
+    "unitPassed": 123,
     "unitFailed": 0,
     "typecheck": "passed",
     "nextProductionBuild": "passed",
     "lastValidated": "2026-10-10"
   },
-  "decision": "Static serving and native PDF streaming remove the largest costs. Main-only GitHub publishing and source-specific scheduled sync have run successfully. Existing webhook/deletion relay settings and domain cutover remain separate; free limits and external provider availability still apply.",
+  "decision": "Static Cloudflare hosting, main-only GitHub publishing, real Notion webhook delivery and existing Drive relay are connected. Old Vercel scheduled execution and Git auto-deployment are disabled. Domain/DNS remain unchanged; free limits and external provider availability still apply.",
   "splitScheduledWorkers": {
     "measuredAt": "2026-10-10",
     "workers": {
