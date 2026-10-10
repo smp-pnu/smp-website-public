@@ -22,7 +22,7 @@ function Block({ block }: { block: ContentBlock }) {
   const text = <RichTextContent value={value.rich_text} />
   const children = block.children?.length ? <NotionContent blocks={block.children} /> : null
   switch (block.type) {
-    case "paragraph": return <div><p className="min-h-6 whitespace-pre-wrap">{text}</p>{children}</div>
+    case "paragraph": return <div className={!plainText(value.rich_text).replace(/\u200b/g, "").trim() && !children ? "notion-empty-paragraph" : undefined}><p className="min-h-6 whitespace-pre-wrap">{text}</p>{children}</div>
     case "heading_1": return <><h2 className="pt-5 text-2xl font-medium text-white">{text}</h2>{children}</>
     case "heading_2": return <><h3 className="pt-3 text-xl font-medium text-white">{text}</h3>{children}</>
     case "heading_3": return <><h4 className="pt-2 text-lg font-medium text-white">{text}</h4>{children}</>
@@ -64,5 +64,5 @@ export function NotionContent({ blocks }: { blocks: ContentBlock[] }) {
       nodes.push(<Tag key={block.id} className={`${Tag === "ul" ? "list-disc" : "list-decimal"} space-y-2 pl-6`}>{group.map(item => <Block key={item.id} block={item} />)}</Tag>)
     } else nodes.push(<Block key={block.id} block={block} />)
   }
-  return <div className="space-y-5 break-words leading-8 text-slate-200">{nodes}</div>
+  return <div className="notion-content space-y-5 break-words leading-8 text-slate-200">{nodes}</div>
 }
