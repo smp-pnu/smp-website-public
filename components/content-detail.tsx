@@ -16,24 +16,24 @@ export async function ContentDetail({ kind, id, search }: { kind: ContentKind; i
   if (!item) notFound()
   const returnHref = contentReturnHref(item, search)
   return <><SiteHeader /><main className="relative z-10 mx-auto min-h-[75svh] max-w-4xl px-6 py-16 sm:py-20">
-    <Link prefetch={false} href={returnHref} className="text-sm tracking-widest text-sky-300">← {kind === "notice" ? "NOTICE" : "RESEARCH"}</Link>
+    <Link prefetch={false} href={returnHref} className="text-sm tracking-widest text-site-accent">← {kind === "notice" ? "NOTICE" : "RESEARCH"}</Link>
     <article className="mt-10">
-      {kind === "research" ? <ResearchDetailHeader item={item} /> : <header className="border-b border-white/20 pb-8">
-        <p className="text-sm text-sky-300">{item.pinned && "고정 · "}{item.category}</p>
+      {kind === "research" ? <ResearchDetailHeader item={item} /> : <header className="border-b border-site-line pb-8">
+        <p className="text-sm text-site-accent">{item.pinned && "고정 · "}{item.category}</p>
         <h1 className="mt-4 break-words text-3xl font-medium leading-snug text-white sm:text-4xl">{item.title}</h1>
-        <p className="mt-5 text-sm text-slate-300"><time dateTime={item.date}>{formatDate(item.date)}</time>{item.author && ` · ${item.author}`}</p>
-        {item.summary && <p className="mt-6 leading-8 text-slate-300">{item.summary}</p>}
+        <p className="mt-5 text-sm text-site-body"><time dateTime={item.date}>{formatDate(item.date)}</time>{item.author && ` · ${item.author}`}</p>
+        {item.summary && <p className="mt-6 leading-8 text-site-body">{item.summary}</p>}
       </header>}
       {kind === "research" && <div className="mt-8"><ContentAttachments item={item} /></div>}
       <div className="py-8">
-        <Suspense fallback={<p role="status" className="text-sm text-slate-400">본문을 불러오는 중입니다.</p>}>
+        <Suspense fallback={<p role="status" className="text-sm text-site-muted">본문을 불러오는 중입니다.</p>}>
           <ContentBody item={item} />
         </Suspense>
       </div>
       {kind === "notice" && <ContentAttachments item={item} />}
       {kind === "research" && <RelatedResearch item={item} />}
     </article>
-    <div className="mt-14 border-t border-white/20 pt-7"><Link prefetch={false} href={returnHref} className="text-sm text-sky-300">목록으로 돌아가기</Link></div>
+    <div className="mt-14 border-t border-site-line pt-7"><Link prefetch={false} href={returnHref} className="text-sm text-site-accent">목록으로 돌아가기</Link></div>
   </main><SiteFooter /></>
 }
 
@@ -42,7 +42,7 @@ async function ContentBody({ item }: { item: ContentItem }) {
   try { blocks = await getPublishedBlocks(item) }
   catch {
     console.warn(`[SMP CMS] ${item.kind} body unavailable: ${item.id}`)
-    return <p role="alert" className="text-sm leading-7 text-slate-300">본문을 불러오지 못했습니다. 잠시 후 새로고침해주세요.</p>
+    return <p role="alert" className="text-sm leading-7 text-site-body">본문을 불러오지 못했습니다. 잠시 후 새로고침해주세요.</p>
   }
   return <NotionContent blocks={blocks} />
 }

@@ -29,7 +29,7 @@ export function AchievementsSection() {
     <section className="px-6 py-16 sm:py-20">
       <div className="mx-auto max-w-6xl">
         <div className="text-center">
-          <h2 className="text-xs font-normal tracking-[0.3em] text-sky-300">ACHIEVEMENTS</h2>
+          <h2 className="text-xs font-normal tracking-[0.3em] text-site-accent">ACHIEVEMENTS</h2>
         </div>
 
         <div className="mx-auto mt-12 grid gap-4 sm:grid-cols-2">
@@ -38,13 +38,13 @@ export function AchievementsSection() {
               key={award.title}
               className="flex flex-col items-center gap-3 p-6 text-center"
             >
-              <span className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center text-sky-300">
+              <span className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center text-site-accent">
                 <Trophy className="h-4 w-4" aria-hidden="true" />
               </span>
               <div className="flex flex-col items-center gap-1.5">
-                <span className="text-xs font-normal tracking-wide text-slate-400">{award.year}</span>
+                <span className="text-xs font-normal tracking-wide text-site-muted">{award.year}</span>
                 <h3 className="text-base font-medium leading-snug text-white">{award.title}</h3>
-                <p className="text-sm leading-relaxed text-sky-300">{award.result}</p>
+                <p className="text-sm leading-relaxed text-site-accent">{award.result}</p>
               </div>
             </div>
           ))}
@@ -53,7 +53,7 @@ export function AchievementsSection() {
         <div className="mt-10 flex justify-center">
           <Link
             href="/achievements"
-            className="inline-flex items-center gap-2 text-sm font-normal text-sky-300 transition-colors hover:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            className="inline-flex items-center gap-2 text-sm font-normal text-site-accent transition-colors hover:text-site-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           >
             MORE ACHIEVEMENTS
             <ArrowRight className="h-4 w-4" aria-hidden="true" />

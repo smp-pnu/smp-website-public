@@ -13,7 +13,7 @@
   /* Keep the fully expanded panel inside a fixed hover/focus target. */
   padding-bottom: var(--cover-overlap);
 }
-.research-card:focus-visible { outline: 2px solid #bae6fd; outline-offset: 6px; }
+.research-card:focus-visible { outline: 2px solid var(--site-accent); outline-offset: 6px; }
 [data-card-grid] {
   --cover-overlap: 60px;
   row-gap: 48px;
@@ -37,8 +37,8 @@
   position: relative;
   margin-top: calc(-1 * var(--cover-overlap));
   padding: 18px 16px 16px;
-  border-bottom: 1px solid rgb(255 255 255 / .18);
-  background: #111820;
+  border-bottom: 1px solid var(--site-line);
+  background: var(--site-surface);
   contain: paint;
   transform: translate3d(0, 0, 0);
   will-change: transform;
@@ -46,7 +46,7 @@
 }
 .research-card-arrow { transition: transform 350ms ease; }
 .research-card:focus-visible .research-card-info { transform: translate3d(0, var(--cover-overlap), 0); }
-.research-card:focus-visible .research-card-action { color: #bae6fd; }
+.research-card:focus-visible .research-card-action { color: var(--site-accent); }
 @media (max-width: 639px), (hover: none) {
   [data-card-grid] { --cover-overlap: 0px; row-gap: 32px; }
   .research-card-info { will-change: auto; }
@@ -56,7 +56,7 @@
     transform: translate3d(0, var(--cover-overlap), 0);
   }
   .research-card:hover .research-card-frame { border-color: rgb(255 255 255 / .25); }
-  .research-card:hover .research-card-action { color: #bae6fd; }
+  .research-card:hover .research-card-action { color: var(--site-accent); }
   .research-card:hover .research-card-arrow { transform: translate(2px, -2px); }
 }
 @media (prefers-reduced-motion: reduce) {

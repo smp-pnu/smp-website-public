@@ -1,28 +1,11 @@
 "use client"
 
-import Image from "next/image"
 import { useEffect, useRef, useState } from "react"
 
 export function HeroSection() {
-  const [panelWidth, setPanelWidth] = useState("min(72vw, 360px)")
+  const panelWidth = "clamp(320px, 42vw, 620px)"
   const [isVisible, setIsVisible] = useState(false)
   const sectionRef = useRef<HTMLElement>(null)
-
-  useEffect(() => {
-    const menu = document.querySelector<HTMLElement>('nav[aria-label="주요 메뉴"]')
-    const updateWidth = () => {
-      const homeLink = menu?.querySelector<HTMLAnchorElement>('a[href="/"]')
-      setPanelWidth(homeLink && window.innerWidth >= 1024
-        ? `${Math.max(120, homeLink.getBoundingClientRect().left - 24)}px`
-        : "min(72vw, 360px)")
-    }
-    updateWidth()
-    const observer = new ResizeObserver(updateWidth)
-    if (menu) observer.observe(menu)
-    window.addEventListener("resize", updateWidth)
-    document.fonts.ready.then(updateWidth)
-    return () => { observer.disconnect(); window.removeEventListener("resize", updateWidth) }
-  }, [])
 
   useEffect(() => {
     const section = sectionRef.current
@@ -46,12 +29,7 @@ export function HeroSection() {
       id="site-hero"
       className="relative flex min-h-[100svh] w-full items-center overflow-hidden"
     >
-      <div className="pointer-events-none absolute inset-0 [clip-path:inset(0)]" aria-hidden="true">
-        <div className="fixed inset-0">
-          <Image src="/backgrounds/home-gwangan-3.webp" alt="" fill priority sizes="100vw" className="object-cover object-center" />
-        </div>
-      </div>
-      <div className={`hero-shadow absolute inset-y-0 left-0 bg-black/50 ${isVisible ? "is-visible" : ""}`} style={{ width: panelWidth }} aria-hidden="true" />
+      <div className={`hero-shadow absolute inset-y-0 left-0 bg-site-background/35 ${isVisible ? "is-visible" : ""}`} style={{ width: panelWidth }} aria-hidden="true" />
       <div className="relative z-10 flex min-h-[100svh] items-center px-[clamp(20px,3vw,64px)] py-28" style={{ width: panelWidth }}>
 
         <div className="w-full [container-type:inline-size]">

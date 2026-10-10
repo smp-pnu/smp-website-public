@@ -1,4 +1,4 @@
 @import '../../app/globals.css';
 @font-face { font-family: 'SMP Hero'; src: url('../../app/fonts/cormorant-garamond-latin-300.woff2') format('woff2'); font-weight: 300; font-display: swap; }
 :root { --font-body: 'Noto Sans KR'; --font-hero: 'SMP Hero'; }
-body { margin: 0; background: #050c18; font-family: var(--font-body), sans-serif; }
+body { margin: 0; background: var(--site-background); font-family: var(--font-body), sans-serif; }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
+import { PageIntro } from "@/components/page-intro"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { RecruitSteps } from "@/components/recruit-steps"
@@ -39,20 +40,19 @@ export default function RecruitPage() {
 
   return <>
     <SiteHeader />
-    <main className="relative z-10 bg-black/30">
-      <div className="mx-auto max-w-5xl px-6 py-14 sm:py-20">
-        <p className="text-xs tracking-[0.3em] text-sky-300">RECRUITMENT · 41기</p>
-        <h1 className="mt-5 text-3xl font-light tracking-tight text-white sm:text-5xl">RECRUITMENT GUIDE</h1>
+    <main className="relative z-10">
+      <div className="site-page max-w-5xl">
+        <PageIntro eyebrow="RECRUITMENT · 41기" title="RECRUITMENT GUIDE" />
         <section aria-label="모집 상태" className="mt-10 border-l-2 border-sky-300 pl-5">
-          <h2 className="text-lg font-normal text-sky-300">{statusCopy.label}</h2>
-          <p className="mt-3 max-w-2xl text-base leading-loose text-slate-300">{statusCopy.text}</p>
+          <h2 className="text-lg font-normal text-site-accent">{statusCopy.label}</h2>
+          <p className="mt-3 max-w-2xl text-base leading-loose text-site-body">{statusCopy.text}</p>
         </section>
         <section aria-labelledby="recruit-details" className="mt-14">
           <h2 id="recruit-details" className="text-2xl font-light text-white">모집 안내</h2>
-          <dl className="mt-6 divide-y divide-white/15 border-y border-white/20">
+          <dl className="mt-6 divide-y divide-site-line border-y border-site-line">
             {details.map(([label, value]) => <div key={label} className="grid gap-3 py-5 sm:grid-cols-[160px_1fr] sm:gap-8">
-              <dt className="text-sm text-sky-200">{label}</dt>
-              <dd className="whitespace-pre-line text-base leading-loose text-slate-200">{value}</dd>
+              <dt className="text-sm text-site-accent">{label}</dt>
+              <dd className="whitespace-pre-line text-base leading-loose text-site-body">{value}</dd>
             </div>)}
           </dl>
         </section>
@@ -61,11 +61,11 @@ export default function RecruitPage() {
           <RecruitSteps steps={steps} />
         </section>
         <div className="mt-14 flex flex-wrap items-center gap-x-10 gap-y-5">
-          {canApply ? <a href={recruitment.applicationUrl!} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-sky-300 hover:text-sky-200">APPLY NOW <ArrowRight className="h-4 w-4" aria-hidden="true" /></a>
-            : <button disabled aria-describedby="application-note" className="inline-flex cursor-not-allowed items-center gap-2 text-sm text-slate-500">APPLY NOW <ArrowRight className="h-4 w-4" aria-hidden="true" /></button>}
-          <Link href="/contact" className="inline-flex items-center gap-2 text-sm text-sky-300 hover:text-sky-200">CONTACT US <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
+          {canApply ? <a href={recruitment.applicationUrl!} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-site-accent hover:text-site-accent">APPLY NOW <ArrowRight className="h-4 w-4" aria-hidden="true" /></a>
+            : <button disabled aria-describedby="application-note" className="inline-flex cursor-not-allowed items-center gap-2 text-sm text-site-muted">APPLY NOW <ArrowRight className="h-4 w-4" aria-hidden="true" /></button>}
+          <Link href="/contact" className="inline-flex items-center gap-2 text-sm text-site-accent hover:text-site-accent">CONTACT US <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
         </div>
-        {!canApply && <p id="application-note" className="mt-4 text-sm text-slate-400">{recruitment.status === "closed" ? "이번 모집의 지원 접수가 종료되었습니다." : "모집 일정과 공식 지원 링크가 확정되면 지원할 수 있습니다."}</p>}
+        {!canApply && <p id="application-note" className="mt-4 text-sm text-site-muted">{recruitment.status === "closed" ? "이번 모집의 지원 접수가 종료되었습니다." : "모집 일정과 공식 지원 링크가 확정되면 지원할 수 있습니다."}</p>}
       </div>
     </main>
     <SiteFooter />

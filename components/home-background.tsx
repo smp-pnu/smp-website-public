@@ -38,10 +38,9 @@ export function HomeBackground() {
   }, [isAlumni])
   const isHome = pathname === "/"
   const isResearch = pathname === "/research" || pathname.startsWith("/research/")
-  const isNotice = pathname === "/notice" || pathname.startsWith("/notice/")
   const photo = isResearch ? "/backgrounds/research-desk.webp" : pathname === "/achievements" ? "/backgrounds/achievements-building.webp" : pathname === "/members" ? "/backgrounds/pnu-campus-upscaled.webp" : ["/network", "/alumni"].includes(pathname) ? "/backgrounds/network-yeouido.webp" : pathname === "/recruit" ? "/backgrounds/recruit-bull.webp" : pathname === "/curriculum" ? "/backgrounds/curriculum-skyscrapers.webp" : isHome ? "/backgrounds/home-gwangan-3.webp" : (["/about", "/contact", "/notice"].includes(pathname) || pathname.startsWith("/notice/")) ? "/backgrounds/page-gwangan-3.webp" : HOME_BACKGROUND_IMAGE_SRC
   return (
-    <div ref={background} className="pointer-events-none fixed inset-0 z-0 bg-[#0a1424]" aria-hidden="true">
+    <div ref={background} className={`site-backdrop pointer-events-none fixed inset-0 z-0 ${isHome ? "site-backdrop--hero" : ""}`} aria-hidden="true">
       {photo ? (
         <Image
           key={photo}
@@ -50,14 +49,13 @@ export function HomeBackground() {
           fill
           priority
           sizes="100vw"
-          className="home-background-photo object-cover"
+          className="site-photo home-background-photo object-cover"
           style={{ ...(isAlumni ? { objectPosition: "center var(--alumni-photo-y, 0%)" } : {}), "--photo-mobile": HOME_BACKGROUND_POSITION.mobile, "--photo-desktop": HOME_BACKGROUND_POSITION.desktop } as CSSProperties}
         />
       ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0a1424] via-[#0f2038] to-[#0a1424]" />
+        <div className="absolute inset-0 bg-site-background" />
       )}
-      {/* One neutral black overlay shared across the entire home page. */}
-      {!isHome && <div className={`absolute inset-0 ${pathname === "/research" ? "bg-[#080b10]/95" : isNotice ? "bg-black/90" : pathname === "/recruit" ? "bg-black/65" : "bg-black/70"}`} />}
+
     </div>
   )
 }

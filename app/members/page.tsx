@@ -1,3 +1,4 @@
+import { PageIntro } from "@/components/page-intro"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { NetworkTabs } from "@/components/network-tabs"
@@ -11,5 +12,5 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
   // Keep the two missing cohorts selectable until a roster is registered.
   // Once a cohort moves to ALUMNI, it no longer needs a MEMBERS placeholder.
   const reservedGenerations = [38, 39].filter(generation => !result.items.some(member => member.generation === generation && member.group === "alumni"))
-  return <><SiteHeader /><main className="relative z-10 mx-auto min-h-[75svh] max-w-6xl px-6 py-14"><NetworkTabs active="members" /><p className="text-xs tracking-[.3em] text-sky-300">NETWORK · OUR MEMBERS</p><h1 className="mt-5 text-4xl font-light text-white sm:text-5xl">MEMBERS</h1><MembersDirectory key={generation} result={members} initialGeneration={generation} reservedGenerations={reservedGenerations} /></main><SiteFooter /></>
+  return <><SiteHeader /><main className="site-page min-h-[75svh] max-w-6xl"><PageIntro eyebrow="NETWORK · OUR MEMBERS" title="MEMBERS" /><NetworkTabs active="members" /><MembersDirectory key={generation} result={members} initialGeneration={generation} reservedGenerations={reservedGenerations} /></main><SiteFooter /></>
 }
