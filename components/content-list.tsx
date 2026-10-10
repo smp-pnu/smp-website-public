@@ -1,10 +1,9 @@
-import Link from "next/link"
 import type { ContentKind } from "@/lib/content-model"
 import { contentDetailHref, contentListHref, type ContentSearch } from "@/lib/content-navigation"
 import type { ContentResult } from "@/lib/notion"
 import { ResearchGrid } from "@/components/research-grid"
 import { ContentRows } from "./content-rows"
-import { ResearchPagination } from "./research-pagination"
+import { ContentPagination } from "./content-pagination"
 import { selectContentPage } from "@/lib/content-query"
 import { ContentSearchForm, type ContentSuggestion } from "./content-search-form"
 import { ResearchSearchForm } from "./research-search-form"
@@ -21,8 +20,6 @@ export function ContentList({ result, kind, search }: { result: ContentResult; k
   const isResearch = kind === "research"
   const { query, category, categories, semesters, industries, total, totalPages, page, visibleItems, listSearch } = selectContentPage(result.items, kind, search)
   const listView = listSearch.view === "list"
-  const activeFilters = (["q", "category", "semester", "industry", "reportType", "activity"] as const)
-    .flatMap(key => listSearch[key] ? [{ key, value: listSearch[key] as string }] : [])
   const pageHref = (number: number) => contentListHref(kind, { ...listSearch, page: String(number) })
   const suggestions: ContentSuggestion[] = result.items.map(item => ({
     title: item.title,
@@ -39,21 +36,8 @@ export function ContentList({ result, kind, search }: { result: ContentResult; k
   return <>
     {isResearch ? <ResearchSearchForm key={JSON.stringify(listSearch)} search={listSearch} total={total} semesters={semesters} industries={industries} categories={categories}
       suggestions={result.items.map(({ id, title, summary, author, category, company, ticker, industry, semester, reportType, activity }) => ({ id, kind: "research", title, summary, author, category, company, ticker, industry, semester, reportType, activity }))} />
-      : <ContentSearchForm key={`${kind}:${query}:${category}`} kind={kind} query={query} category={category} categories={categories} suggestions={suggestions} />}
-    {!isResearch && <div className="mb-5 mt-8 flex items-center justify-between gap-3 text-sm text-slate-300">
-      <div className="flex items-center gap-4"><p aria-live="polite">총 {total}건</p>
-        {activeFilters.length > 0 && <Link prefetch={false} href={contentListHref(kind, { view: listSearch.view })} className="text-sky-300">검색 초기화</Link>}
-      </div>
-    </div>}
+      : <ContentSearchForm key={`${kind}:${query}:${category}`} kind={kind} query={query} category={category} categories={categories} suggestions={suggestions} total={total} />}
     {content}
-    {totalPages > 1 && (isResearch
-      ? <ResearchPagination page={page} totalPages={totalPages} pageHref={pageHref} />
-      : <nav aria-label="목록 페이지" className="mt-8 flex items-center justify-center gap-6 text-sm text-slate-300">
-        {page > 1 ? <Link prefetch={false} href={pageHref(page - 1)} className="text-sky-300">이전</Link>
-          : <span aria-disabled="true" className="text-slate-500">이전</span>}
-        <span aria-current="page">{page} / {totalPages}</span>
-        {page < totalPages ? <Link prefetch={false} href={pageHref(page + 1)} className="text-sky-300">다음</Link>
-          : <span aria-disabled="true" className="text-slate-500">다음</span>}
-      </nav>)}
+    {totalPages > 1 && <ContentPagination page={page} totalPages={totalPages} pageHref={pageHref} />}
   </>
 }

@@ -10,12 +10,12 @@ type Props = {
   value: string
   displayValue?: string
   options: Option[]
-  disabled: boolean
+  disabled?: boolean
   onChange: (value: string) => void
 }
 
-/** One visual and keyboard interaction pattern for every research filter. */
-export function ResearchFilterSelect({ name, label, value, displayValue, options, disabled, onChange }: Props) {
+/** Shared visual and keyboard interaction for catalog and member filters. */
+export function FilterSelect({ name, label, value, displayValue, options, disabled = false, onChange }: Props) {
   // Keep a bookmarked condition visible even if its last report was unpublished.
   const items = value && !options.some(option => option.value === value)
     ? [...options, { value, label: value }] : options
