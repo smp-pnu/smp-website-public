@@ -141,7 +141,13 @@
       "elapsedMs": 61579,
       "test": "Temporary title change on an existing unpublished empty report template; restored and still private",
       "temporarySetupSecretRemoved": true,
-      "encryptedEnrollmentCandidateRemoved": true
+      "encryptedEnrollmentCandidateRemoved": true,
+      "restorationDelivery": {
+        "httpStatus": 200,
+        "outcome": "ok",
+        "cpuTimeMs": 12
+      },
+      "note": "Both actual deliveries succeeded. The 12 ms restoration sample exceeds the nominal Free 10 ms CPU allowance; successful burst tolerance is not a guarantee for future traffic."
     },
     "driveRelayCutover": {
       "configured": true,
