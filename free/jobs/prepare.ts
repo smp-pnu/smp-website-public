@@ -2,6 +2,7 @@ import { createHash } from "node:crypto"
 import { mkdir,writeFile } from "node:fs/promises"
 import sharp from "sharp"
 import type { ContentItem } from "../../lib/content-model"
+import type { Member } from "../../lib/member-model"
 import { fileUrl } from "../../lib/content-model"
 import { blockValue,type ContentBlock } from "../../lib/notion-model"
 import { getPdfSources,isNotionFileUrl } from "../../lib/pdf-source"
@@ -26,6 +27,12 @@ async function notionImage(url:string) {
   try { while(true) { const {value,done}=await reader.read();if(done) break;size+=value.length;if(size>10*1024*1024) throw new Error("Image exceeds 10 MiB");chunks.push(value) } }
   finally { await reader.cancel() }
   return sharp(Buffer.concat(chunks),{limitInputPixels:40_000_000}).resize({width:2048,height:4096,fit:"inside",withoutEnlargement:true}).webp({quality:90}).toBuffer()
+}
+export async function prepareMemberPhoto(member:Member):Promise<Cover|null> {
+  if(!member.image || !isNotionFileUrl(member.image)) return null
+  const image=await sharp(await notionImage(member.image)).resize({width:640,height:960,fit:"inside",withoutEnlargement:true}).webp({quality:88}).toBuffer({resolveWithObject:true})
+  const url=await saveImage(member.id,image.data)
+  return {url,previewUrl:url,width:image.info.width,height:image.info.height}
 }
 export async function prepareBody(env:Env,item:ContentItem,origin:string) {
   let count=0

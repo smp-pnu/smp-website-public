@@ -11,6 +11,7 @@
 | D1 목록 구성·Notion 변경 조회 | `free/server/catalog.ts` |
 | 계정 공통 요청 예산·외부 서비스 대기 | `free/server/budget.ts`, `notion.ts` |
 | 본문·표지·사진 준비·게시 작업 | `free/jobs/` |
+| 일일 전체 대조·예약 게시·지연 복구 | `free/jobs/reconcile.ts` |
 | 정적 빌드·Worker별 배포 설정 | `scripts/build-free.mjs`, `scripts/deploy-free.mjs` |
 | 자동 게시·검증 워크플로 | `.github/workflows/free-publish.yml`, `checks.yml` |
 | Notion 알림 주소 교체 | `free/server/webhook-setup.ts`, [연결 절차](free-webhook.md) |

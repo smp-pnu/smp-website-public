@@ -13,9 +13,18 @@ export function source(env: Env, kind: ContentKind | "members") {
   return id
 }
 export async function notion<T>(env: Env, path: string, body?: unknown, method?: "PATCH") {
-  if (backoffUntil > Date.now()) throw new Busy(Math.ceil((backoffUntil - Date.now()) / 1000))
-  // Shared by every Worker isolate and the single Node publisher.
-  await notionBudget(env.CMS_DB)
+  // Only the trusted Node publisher may wait. Workers return Retry-After
+  // immediately, without spinning or extending a request's CPU lifetime.
+  while (true) {
+    try {
+      if (backoffUntil > Date.now()) throw new Busy(Math.ceil((backoffUntil - Date.now()) / 1000))
+      await notionBudget(env.CMS_DB,Date.now(),env.NOTION_WORKLOAD ?? "visitor")
+      break
+    } catch(error) {
+      if (!(error instanceof Busy) || !env.NOTION_WAIT_UNTIL || Date.now()+(error.seconds+1)*1000>=env.NOTION_WAIT_UNTIL) throw error
+      await new Promise(resolve=>setTimeout(resolve,(error.seconds+1)*1000))
+    }
+  }
   const response = await (env.NOTION_FETCH ?? upstreamFetch)(`https://api.notion.com/v1/${path}`, {
     method: method ?? (body ? "POST" : "GET"), headers: { Authorization: `Bearer ${env.NOTION_TOKEN}`, "Notion-Version": "2025-09-03", "Content-Type": "application/json" },
     body: body ? JSON.stringify(body) : undefined, redirect: "manual", signal: AbortSignal.timeout(10_000), cache: "no-store",

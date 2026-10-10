@@ -22,14 +22,17 @@ test('signed deletion catches reports trashed between polls without relaying unp
     assert.equal(message.signature,createHmac('sha256',env.NOTION_TOKEN!).update(`smp-drive-cleanup-v1\n${message.payload}`).digest('hex'))
     relayed.push(payload);return Response.json({ok:true})
   })
-  const send=(type:string,signed=true)=>{
-    const body=JSON.stringify({type,entity:{type:'page',id}})
+  const send=(type:string,signed=true,eventId?:string)=>{
+    const body=JSON.stringify({type,entity:{type:'page',id},...(eventId?{id:eventId}:{})})
     return worker.fetch(new Request('https://fixture.invalid/api/notion/webhook',{method:'POST',body,headers:signed?{'x-notion-signature':`sha256=${createHmac('sha256',token).update(body).digest('hex')}`}:{}}),env,{waitUntil(){}})
   }
   try{
     assert.equal((await send('page.deleted',false)).status,401);assert.equal(relayed.length,0)
     assert.equal((await send('page.deleted')).status,200);assert.equal(relayed.length,1)
     assert.equal((relayed[0] as any).pageId,id)
+    assert.equal((await send('page.deleted',true,'same-event')).status,200);assert.equal(relayed.length,2)
+    assert.equal((await send('page.deleted',true,'same-event')).status,200);assert.equal(relayed.length,2)
+    relayed.pop()
     page={...page,in_trash:false,properties:{공개:{type:'checkbox',checkbox:false}}}
     assert.equal((await send('page.properties_updated')).status,200);assert.equal(relayed.length,1)
     assert.equal((await send('page.deleted')).status,200);assert.equal(relayed.length,1)

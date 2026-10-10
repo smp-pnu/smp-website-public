@@ -1,7 +1,8 @@
-import { normalizeId } from "../../lib/content-model"
+import { normalizeId, type NotionPage } from "../../lib/content-model"
+import { toMember } from "../../lib/member-model"
 import { limitedBody } from "../../lib/webhook-security"
 import { spend } from "./budget"
-import { published } from "./notion"
+import { published, notion, source } from "./notion"
 import { rebuildDocuments } from "./catalog"
 import type { Env } from "./types"
 const json = (body: unknown, status = 200) => Response.json(body, { status })
@@ -26,7 +27,7 @@ export async function internal(request: Request, env: Env) {
       await env.CMS_DB.prepare("UPDATE free_jobs SET attempts=attempts-1,lease_token=NULL,lease_until=0 WHERE id=? AND lease_token=?").bind(row.id,token).run()
       throw error
     }
-    const entry = await env.CMS_DB.prepare("SELECT kind,item,cover FROM free_content WHERE id=?").bind(row.id).first<{ kind: "research" | "notice"; item: string; cover:string|null }>()
+    const entry = await env.CMS_DB.prepare("SELECT kind,item,cover FROM free_content WHERE id=?").bind(row.id).first<{ kind: "research" | "notice" | "members"; item: string; cover:string|null }>()
     if (!entry) { await env.CMS_DB.prepare("DELETE FROM free_jobs WHERE id=? AND lease_token=?").bind(row.id, token).run(); return json({ job: null }) }
     return json({ job: { ...row, token, kind: entry.kind, item: JSON.parse(entry.item),cover:entry.cover?JSON.parse(entry.cover):null } })
   }
@@ -41,9 +42,13 @@ export async function internal(request: Request, env: Env) {
       .bind(Date.now()+Math.max(900_000,Math.min(86_400_000,Number(input.retryAfterMs)||900_000)),id,input.token).run()
     return json({ ok: true })
   }
-  const entry = await env.CMS_DB.prepare("SELECT kind FROM free_content WHERE id=?").bind(id).first<{ kind: "research" | "notice" }>()
-  const item = entry && await published(env, entry.kind, id)
-  if (!item || item.editedAt !== lease.revision) return json({ error: "Publication changed" },409)
+  const entry = await env.CMS_DB.prepare("SELECT kind FROM free_content WHERE id=?").bind(id).first<{ kind: "research" | "notice" | "members" }>()
+  let revision:string|undefined
+  if(entry?.kind==="members") {
+    const page=await notion<NotionPage>(env,`pages/${id}`)
+    if(page && normalizeId(page.id)===id && toMember(page,source(env,"members"))) revision=page.last_edited_time ?? page.created_time
+  } else if(entry) revision=(await published(env,entry.kind,id))?.editedAt
+  if (revision !== lease.revision) return json({ error: "Publication changed" },409)
   if (!Array.isArray(input.blocks) || input.blocks.length > 500) return json({ error: "Invalid body" },400)
   if (input.cover && (!new RegExp(`^/report-covers/${id}/[a-f0-9]{64}\\.webp$`).test(input.cover.url)
     || !new RegExp(`^/report-covers/${id}/[a-f0-9]{64}\\.webp$`).test(input.cover.previewUrl)
@@ -64,6 +69,6 @@ export async function internal(request: Request, env: Env) {
       .bind(JSON.stringify(input.blocks),lease.revision,input.cover?JSON.stringify(input.cover):null,id,lease.revision),
     env.CMS_DB.prepare("DELETE FROM free_jobs WHERE id=? AND lease_token=? AND revision=?").bind(id,input.token,lease.revision),
   ])
-  await rebuildDocuments(env)
+  await rebuildDocuments(env,[entry!.kind])
   return json({ ok: true })
 }
