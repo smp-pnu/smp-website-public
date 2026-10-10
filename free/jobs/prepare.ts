@@ -23,7 +23,8 @@ async function notionImage(url:string) {
   // No general URL fetcher: only Notion-owned signed uploads are copied.
   if(!isNotionFileUrl(url)) throw new Error("Unsupported saved image")
   const response=await fetch(url,{redirect:"error",signal:AbortSignal.timeout(30_000)})
-  if(!response.ok || !/^image\/(png|jpeg|webp|gif)$/.test(response.headers.get("content-type")??"")) {await response.body?.cancel();throw new Error("Image unavailable")}
+  const mime=response.headers.get("content-type")?.split(";",1)[0].trim().toLowerCase()
+  if(!response.ok || !mime || !/^image\/(png|jpeg|webp|gif)$/.test(mime)) {await response.body?.cancel();throw new Error("Image unavailable")}
   const reader=response.body!.getReader(),chunks:Uint8Array[]=[];let size=0
   try { while(true) { const {value,done}=await reader.read();if(done) break;size+=value.length;if(size>10*1024*1024) throw new Error("Image exceeds 10 MiB");chunks.push(value) } }
   finally { await reader.cancel() }
@@ -35,7 +36,7 @@ export async function prepareMemberPhoto(member:Member):Promise<Cover|null> {
   const url=await saveImage(member.id,image.data)
   return {url,previewUrl:url,width:image.info.width,height:image.info.height}
 }
-export async function prepareBody(env:Env,item:ContentItem,origin:string) {
+export async function prepareBody(env:Env,item:ContentItem,origin:string,dependencies={save:saveImage}) {
   let count=0
   async function read(id:string,depth=0):Promise<ContentBlock[]> {
     if(depth>8) throw new Error("Body nesting limit exceeded")
@@ -51,8 +52,11 @@ export async function prepareBody(env:Env,item:ContentItem,origin:string) {
         if(original.has_children && children.has(original.type)) block.children=await read(original.id,depth+1)
         if(block.type==="image") {
           const value=blockValue(block),url=fileUrl(value)
+          // A newly introduced upload host must never silently publish an
+          // expiring URL. Keep the last prepared body and retry for inspection.
+          if(value.type==="file" && (!url || !isNotionFileUrl(url))) throw new Error("Unsupported Notion image host")
           if(url && isNotionFileUrl(url)) {
-            const path=await saveImage(item.id,await notionImage(url))
+            const path=await dependencies.save(item.id,await notionImage(url))
             block.image={type:"external",external:{url:new URL(path,origin).href},caption:value.caption}
           } else if (url && cmsImageUrl(url) !== url) {
             block.image={type:"external",external:{url:cmsImageUrl(url)},caption:value.caption}
