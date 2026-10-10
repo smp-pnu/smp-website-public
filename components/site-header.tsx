@@ -89,7 +89,7 @@ export function SiteHeader() {
           type="button"
           onClick={() => { setOpen((v) => !v); setSearchOpen(false) }}
           className={cn(
-            "inline-flex h-10 w-10 items-center justify-center rounded-md lg:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "inline-flex h-11 w-11 items-center justify-center rounded-[4px] transition-colors hover:bg-white/5 lg:hidden focus-visible:outline-2 focus-visible:outline-sky-200",
             "text-white",
           )}
           aria-expanded={open}
@@ -98,12 +98,12 @@ export function SiteHeader() {
         >
           {open ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
         </button>
-        <button type="button" aria-label={searchOpen ? "검색 닫기" : "검색 열기"} aria-expanded={searchOpen} aria-controls="site-search" onClick={() => { setSearchOpen(v => !v); setOpen(false) }} className="inline-flex h-10 w-10 items-center justify-center text-white focus-visible:outline-2 focus-visible:outline-sky-300">
+        <button type="button" aria-label={searchOpen ? "검색 닫기" : "검색 열기"} aria-expanded={searchOpen} aria-controls="site-search" onClick={() => { setSearchOpen(v => !v); setOpen(false) }} className="inline-flex h-11 w-11 items-center justify-center rounded-[4px] text-slate-300 transition-colors hover:bg-white/5 hover:text-white aria-expanded:bg-white/10 aria-expanded:text-white focus-visible:outline-2 focus-visible:outline-sky-200">
           {searchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
         </button>
         </div>
       </div>
-      {searchOpen && <div id="site-search" className="max-h-[calc(100svh-4.5rem)] overflow-y-auto overscroll-contain border-t border-white/10 bg-[#07111e]/98 px-6 py-6 shadow-[0_16px_32px_-20px_rgba(0,0,0,0.6)] sm:py-8" onKeyDown={event => { if (event.key === "Escape") { setSearchOpen(false); document.querySelector<HTMLButtonElement>('button[aria-controls="site-search"]')?.focus() } }}>
+      {searchOpen && <div id="site-search" className="max-h-[calc(100svh-4.5rem)] overflow-y-auto overscroll-contain border-t border-white/10 bg-[#101821] px-6 py-6 shadow-[0_16px_32px_-20px_rgba(0,0,0,0.6)] sm:py-8" onKeyDown={event => { if (event.key === "Escape") { setSearchOpen(false); document.querySelector<HTMLButtonElement>('button[aria-controls="site-search"]')?.focus() } }}>
         <SiteSearchForm onNavigate={() => setSearchOpen(false)} />
       </div>}
 

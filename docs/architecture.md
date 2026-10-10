@@ -38,7 +38,7 @@ PDF 변환·Sharp·Canvas를 Worker에 추가하지 않습니다. 무거운 준�
 | 검색어 매칭, 분류 필터, 페이지 계산 | `lib/content-query.ts` |
 | 목록/상세 주소와 목록 복귀 문맥 | `lib/content-navigation.ts` |
 | 목록 화면 조합 | `components/content-list.tsx` |
-| 공지·홈의 행 목록 / 리포트 카드 / 번호 버튼 | `components/content-rows.tsx`, `research-grid.tsx`, `research-pagination.tsx` |
+| 공지·홈의 행 목록 / 리포트 카드 / 번호 버튼 | `components/content-rows.tsx`, `research-grid.tsx`, `content-pagination.tsx` |
 | 검색 입력, 키보드 자동완성, 분류 변경 | `components/content-search-form.tsx` |
 | 상세 공개 확인·제목·본문 / 첨부파일과 뷰어 배치 | `components/content-detail.tsx`, `content-attachments.tsx` |
 | Notion 본문 서식 렌더링 | `components/notion-content.tsx` |
@@ -120,3 +120,5 @@ SMP_TEST_STATE=/tmp/smp-test-state.json node tests/streaming-http.mjs
 | 공지 300건 | 539ms | 목록 페이지 3회 |
 | 동일 리포트 상세 | 155ms | 페이지 1회 + 본문 1회 |
 | 동일 PDF | 43ms | 페이지 1회 |
+
+검색 입력은 `components/search-field.tsx`, 분류·기수 선택은 `filter-select.tsx`, 보기 방식·네트워크 탭은 `segmented-control.tsx`를 공유합니다. 공통 크기·테두리·선택 상태를 바꿀 때에는 이 컴포넌트를 먼저 수정합니다.

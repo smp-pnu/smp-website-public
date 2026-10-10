@@ -55,8 +55,8 @@ export function SiteSearchForm({ onNavigate }: { onNavigate: () => void }) {
   const resultsHref = `/search?q=${encodeURIComponent(query.trim())}`
   return <form action="/search" role="search" aria-busy={isNavigating} className="mx-auto max-w-4xl"
     onSubmit={event => { event.preventDefault(); if (query.trim()) navigate(resultsHref) }}>
-    <div className="mb-5 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-      <p className="text-[11px] tracking-[0.25em] text-sky-200/80">SEARCH SMP</p>
+    <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+      <p className="text-xs tracking-[0.18em] text-slate-300">SEARCH SMP</p>
       <p className="text-xs text-slate-400">리포트 · 공지 · 회원 · 학회 정보</p>
     </div>
       <SearchField autoFocus id={`${id}-query`} label="사이트 검색" name="q" required maxLength={100} isPending={isNavigating}
@@ -73,15 +73,15 @@ export function SiteSearchForm({ onNavigate }: { onNavigate: () => void }) {
           }
         }} />
     <div id={`${id}-results`} role="listbox" aria-label="검색결과 미리보기" hidden={!expanded}
-      className="mt-4 max-h-[42svh] overflow-y-auto overscroll-contain divide-y divide-white/10 [scrollbar-color:#475569_transparent] [scrollbar-width:thin]">
+      className="mt-2 max-h-[42svh] overflow-y-auto overscroll-contain divide-y divide-white/10 rounded-[4px] border border-white/15 bg-[#101821] [scrollbar-color:#475569_transparent] [scrollbar-width:thin]">
       {matches.map((item, i) => <Link key={`${item.href}-${i}`} href={item.href} prefetch={false}
         id={`${id}-option-${i}`} role="option" aria-selected={active === i}
         onNavigate={event => { event.preventDefault(); navigate(item.href) }}
         onMouseEnter={() => setActive(i)}
-        className={`group flex items-start gap-3 px-2 py-4 transition-colors hover:bg-white/[0.05] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-300 sm:gap-5 sm:px-4 ${active === i ? "bg-white/[0.05]" : ""}`}>
+        className={`group flex items-start gap-3 px-3 py-3 transition-colors hover:bg-white/[0.05] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-200 sm:gap-4 sm:px-4 ${active === i ? "bg-white/[0.05]" : ""}`}>
         <span className="mt-0.5 min-w-12 shrink-0 rounded-[2px] border border-sky-200/15 bg-sky-200/[0.04] px-2 py-1 text-center text-[11px] leading-4 text-sky-200/80">{item.label}</span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm leading-6 text-white sm:text-base">{item.title}</span>
+          <span className="block truncate text-sm leading-6 text-white">{item.title}</span>
           <span className="mt-1 block truncate text-xs leading-5 text-slate-400">{item.text}</span>
         </span>
         <ArrowRight aria-hidden="true" className="mt-1 hidden h-4 w-4 shrink-0 text-slate-500 transition-colors group-hover:text-sky-200 sm:block" strokeWidth={1.5} />
@@ -90,7 +90,7 @@ export function SiteSearchForm({ onNavigate }: { onNavigate: () => void }) {
     {expanded && <div className="mt-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-white/15 pt-3 text-xs text-slate-400">
       <span role="status">{isNavigating ? "검색결과를 여는 중입니다…" : failed || index?.partial ? "일부 미리보기를 불러오지 못했습니다. 전체 검색을 이용해주세요." : !index ? "검색 목록을 불러오는 중입니다…" : !matches.length ? "일치하는 결과가 없습니다." : <span className="hidden sm:inline">↑ ↓ 선택 <span className="mx-2 text-white/20">/</span> Enter 이동</span>}</span>
       <Link href={resultsHref} prefetch={false} aria-disabled={isNavigating}
-        onNavigate={event => { event.preventDefault(); navigate(resultsHref) }} className="ml-auto inline-flex min-h-11 items-center gap-4 text-sm text-sky-200 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-300">전체 검색결과 보기 <ArrowRight aria-hidden="true" className="h-4 w-4" strokeWidth={1.5} /></Link>
+        onNavigate={event => { event.preventDefault(); navigate(resultsHref) }} className="ml-auto inline-flex min-h-11 items-center gap-4 text-sm text-sky-200 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-200">전체 검색결과 보기 <ArrowRight aria-hidden="true" className="h-4 w-4" strokeWidth={1.5} /></Link>
     </div>}
   </form>
 }

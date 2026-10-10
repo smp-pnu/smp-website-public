@@ -4,11 +4,13 @@ import { useId, useMemo, useState, useTransition, type KeyboardEvent } from "rea
 import Form from "next/form"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowRight, ArrowUpRight, LayoutGrid, List, RotateCcw, Search, X } from "lucide-react"
+import { ArrowUpRight, LayoutGrid, List, RotateCcw, X } from "lucide-react"
 import { contentDetailHref, contentListHref, normalizeContentSearch, type ContentSearch } from "@/lib/content-navigation"
 import { createContentSearchIndex, findContentMatches, type SearchFields } from "@/lib/content-query"
 import { industryOptions } from "@/lib/wics"
-import { ResearchFilterSelect } from "./research-filter-select"
+import { FilterSelect } from "./filter-select"
+import { SearchField } from "./search-field"
+import { SegmentedControl, SegmentedControlLink } from "./segmented-control"
 
 export type ResearchSuggestion = SearchFields & { id: string; kind: "research" }
 type Props = {
@@ -76,16 +78,11 @@ export function ResearchSearchForm({ search, semesters, industries, categories, 
       <div className="relative col-span-2 col-start-1 row-start-2 min-w-0 lg:row-start-1 lg:w-96 lg:justify-self-end" onFocus={() => setOpen(true)} onBlur={event => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false)
       }}>
-        <div className="flex h-11 items-center rounded-[4px] border border-white/15 bg-white/[0.025] pl-3 transition-colors focus-within:border-sky-200/50 focus-within:bg-white/[0.04]">
-        <Search aria-hidden="true" size={16} strokeWidth={1.5} className="shrink-0 text-slate-400" />
-        <label htmlFor={`${id}-query`} className="sr-only">리포트 검색</label>
-        <input id={`${id}-query`} name="q" type="search" autoComplete="off" maxLength={100} value={value}
+        <SearchField id={`${id}-query`} label="리포트 검색" name="q" autoComplete="off" maxLength={100} value={value} isPending={isPending}
           role="combobox" aria-autocomplete="list" aria-expanded={showSuggestions} aria-controls={listboxId}
           aria-activedescendant={showSuggestions && activeIndex >= 0 ? `${listboxId}-${activeIndex}` : undefined}
           onChange={event => { setValue(event.target.value); setActiveIndex(-1); setOpen(true) }} onKeyDown={onKeyDown}
-          placeholder="기업명, 종목코드, 리포트 검색" className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-base text-white outline-none placeholder:text-slate-400 sm:text-sm" />
-        <button type="submit" disabled={isPending} aria-label="리포트 검색 실행" title="검색" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-r-[4px] text-slate-400 transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-200 disabled:cursor-wait"><ArrowRight size={17} strokeWidth={1.5} aria-hidden="true" /></button>
-        </div>
+          placeholder="기업명, 종목코드, 리포트 검색" />
         {showSuggestions && <div className="absolute inset-x-0 top-full z-40 mt-2 overflow-hidden rounded border border-white/15 bg-[#101821] shadow-2xl">
           <ul id={listboxId} role="listbox" aria-label="검색 추천" className="max-h-80 overflow-y-auto">
             {matches.map((item, index) => <li id={`${listboxId}-${index}`} key={item.id} role="option" aria-selected={activeIndex === index}>
@@ -101,7 +98,7 @@ export function ResearchSearchForm({ search, semesters, industries, categories, 
         </div>}
       </div>
       <div className="col-span-2 col-start-1 row-start-3 grid min-w-0 grid-cols-3 gap-2 lg:col-span-1 lg:row-start-2 lg:max-w-[510px]">
-        {filters.map(({ name, label, placeholder, options, value: selected }) => <ResearchFilterSelect key={name} name={name} label={label} value={selected}
+        {filters.map(({ name, label, placeholder, options, value: selected }) => <FilterSelect key={name} name={name} label={label} value={selected}
           displayValue={name === "semester" && selected ? selected : undefined}
           options={[{ value: "", label: placeholder }, ...options]} disabled={isPending}
           onChange={next => navigate(contentListHref("research", {
@@ -109,11 +106,11 @@ export function ResearchSearchForm({ search, semesters, industries, categories, 
             ...(name === "category" ? { reportType: undefined, activity: undefined } : {}),
           }))} />)}
       </div>
-      <nav aria-label="리포트 보기 방식" className="col-start-2 row-start-1 flex h-11 items-center gap-0.5 rounded-[4px] border border-white/10 bg-white/[0.025] p-1 lg:row-start-2 lg:justify-self-end">
+      <SegmentedControl aria-label="리포트 보기 방식" className="col-start-2 row-start-1 lg:row-start-2 lg:justify-self-end">
         {[{ view: undefined, label: "그리드 보기", Icon: LayoutGrid, active: current.view !== "list" }, { view: "list", label: "목록 보기", Icon: List, active: current.view === "list" }].map(({ view, label, Icon, active }) =>
-          <Link key={label} prefetch={false} scroll={false} href={contentListHref("research", { ...current, view })} aria-label={label} title={label} aria-current={active ? "true" : undefined}
-            className={`inline-flex h-9 w-9 items-center justify-center rounded-[2px] transition-colors focus-visible:outline-2 focus-visible:outline-sky-200 ${active ? "bg-white/10 text-white" : "text-slate-500 hover:bg-white/5 hover:text-white"}`}><Icon size={16} strokeWidth={1.5} aria-hidden="true" /></Link>)}
-      </nav>
+          <SegmentedControlLink active={active} key={label} prefetch={false} scroll={false} href={contentListHref("research", { ...current, view })} aria-label={label} title={label} aria-current={active ? "true" : undefined}
+            className="w-9"><Icon size={16} strokeWidth={1.5} aria-hidden="true" /></SegmentedControlLink>)}
+      </SegmentedControl>
     </div>
     {activeFilters.length > 0 && <div aria-label="적용한 검색 조건" className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1">
       {activeFilters.map(({ key, value }) => <Link key={key} prefetch={false} scroll={false} href={contentListHref("research", { ...current, [key]: undefined, page: undefined })} aria-label={`${value} 조건 해제`}

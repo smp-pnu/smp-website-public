@@ -5,7 +5,7 @@ import { contentDetailHref, type ContentSearch } from "@/lib/content-navigation"
 import { CategoryTag } from "./category-tag"
 
 export function ContentRows({ items, listSearch }: { items: ContentItem[]; listSearch?: ContentSearch }) {
-  return <ul className="divide-y divide-white/20 border-y border-white/20">{items.map(item => <li key={item.id} id={`content-${item.id}`} className="scroll-mt-28">
+  return <ul className="divide-y divide-white/15 border-y border-white/15">{items.map(item => <li key={item.id} id={`content-${item.id}`} className="scroll-mt-28">
     <Link prefetch={false} href={contentDetailHref(item, listSearch)} className="group flex items-center justify-between gap-5 px-2 py-7 transition-colors hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-sky-300 sm:px-4">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
