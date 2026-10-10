@@ -4,6 +4,7 @@ import Link from "next/link"
 import Form from "next/form"
 import { useApi } from "./api"
 import { PageIntro } from "@/components/page-intro"
+import { NoticeListing } from "@/components/notice-listing"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { ContentList } from "@/components/content-list"
@@ -31,10 +32,11 @@ export function ListPage({ kind }: { kind: ContentKind }) {
   const { value, error } = useApi<ContentResult>(`/api/catalog/${kind}`)
   const search = useSearch()
   const result = useMemo(() => value && ({ ...value, items: sortContent(value.items) }), [value])
-  return <><SiteHeader /><main className="site-page min-h-[75svh] max-w-6xl">
-    <PageIntro eyebrow={kind === "research" ? "SMP PUBLICATIONS" : "SMP NOTICE"} title={kind === "research" ? "RESEARCH" : "NOTICE"}>{kind === "research" ? "산업과 기업을 분석한 SMP의 투자 리포트입니다." : "SMP의 새로운 소식과 주요 일정을 안내합니다."}</PageIntro>
-    {result ? <ContentList result={result} kind={kind} search={search} /> : <Status error={error} />}
-  </main><SiteFooter /></>
+  const content = result ? <ContentList result={result} kind={kind} search={search} /> : <Status error={error} />
+  return <><SiteHeader />{kind === "notice" ? <NoticeListing>{content}</NoticeListing> : <main className="site-page min-h-[75svh] max-w-6xl">
+    <PageIntro eyebrow="SMP PUBLICATIONS" title="RESEARCH">산업과 기업을 분석한 SMP의 투자 리포트입니다.</PageIntro>
+    {content}
+  </main>}<SiteFooter /></>
 }
 
 export function DetailPage({ kind }: { kind: ContentKind }) {
@@ -44,10 +46,10 @@ export function DetailPage({ kind }: { kind: ContentKind }) {
   const item = value?.item
   useEffect(() => { if (item?.title) document.title = `SMP · ${item.title}` }, [item?.title])
   const back = item ? contentReturnHref(item, search) : `/${kind}`
-  return <><SiteHeader /><main className="relative z-10 mx-auto min-h-[75svh] max-w-4xl px-6 py-16 sm:py-20">
+  return <><SiteHeader /><main className={`relative z-10 mx-auto min-h-[75svh] max-w-4xl px-6 py-16 sm:py-20 ${kind === "notice" ? "notice-content" : ""}`}>
     <Link href={back} className="text-sm tracking-widest text-site-accent">← {kind.toUpperCase()}</Link>
     {item ? <article className="mt-10">
-      {kind === "research" ? <ResearchDetailHeader item={item} /> : <header className="border-b border-site-line pb-8"><p className="text-sm text-site-accent">{item.pinned && "고정 · "}{item.category}</p><h1 className="mt-4 break-words text-3xl font-medium leading-snug text-white sm:text-4xl">{item.title}</h1><p className="mt-5 text-sm text-site-body">{formatDate(item.date)} · {item.author}</p>{item.summary && <p className="mt-6 leading-8 text-site-body">{item.summary}</p>}</header>}
+      {kind === "research" ? <ResearchDetailHeader item={item} /> : <header className="border-b border-white/20 pb-8"><p className="text-sm text-site-accent">{item.pinned && "고정 · "}{item.category}</p><h1 className="mt-4 break-words text-3xl font-medium leading-snug text-white sm:text-4xl">{item.title}</h1><p className="mt-5 text-sm text-site-body">{formatDate(item.date)} · {item.author}</p>{item.summary && <p className="mt-6 leading-8 text-site-body">{item.summary}</p>}</header>}
       {kind === "research" && <Attachments item={item} />}
       <div className="py-8">{value.bodyPending ? <p role="status" className="text-site-muted">본문을 준비하고 있습니다. 잠시 후 다시 방문해주세요.</p> : <NotionContent blocks={value.blocks} />}</div>
       {kind === "notice" && <Attachments item={item} />}
