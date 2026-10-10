@@ -1,5 +1,24 @@
 # 코드 구조와 변경 안내
 
+## 현재 운영 경로 — Cloudflare (2026-10-10)
+
+운영 화면은 `free/client`, API·변경 동기화는 `free/server`, PDF 표지·공지 이미지 준비와 배포는 `free/jobs`입니다. 기존 `components/`와 `lib/`의 화면·업무 규칙을 재사용하지만 `app/`의 Next.js 서버 라우트와 Vercel Blob은 현재 방문자 요청을 처리하지 않습니다. 자세한 한도와 인수인계는 [README](../README.md)의 무료 운영 구조를 먼저 확인합니다.
+
+| 변경할 내용 | 현재 담당 위치 |
+| --- | --- |
+| 정적 페이지 조합·클라이언트 경로·목록 요청 캐시 | `free/client/` |
+| 경량 API·현재 공개 여부 확인·PDF 전달 | `free/server/worker.ts`, `notion.ts` |
+| D1 목록 구성·Notion 변경 조회 | `free/server/catalog.ts` |
+| 계정 공통 요청 예산·외부 서비스 대기 | `free/server/budget.ts`, `notion.ts` |
+| 본문·표지·사진 준비·게시 작업 | `free/jobs/` |
+| 정적 빌드·Worker별 배포 설정 | `scripts/build-free.mjs`, `scripts/deploy-free.mjs` |
+| 자동 게시·검증 워크플로 | `.github/workflows/free-publish.yml`, `checks.yml` |
+| Notion 알림 주소 교체 | `free/server/webhook-setup.ts`, [연결 절차](free-webhook.md) |
+
+PDF 변환·Sharp·Canvas를 Worker에 추가하지 않습니다. 무거운 준비는 GitHub 게시 작업에서 수행합니다. PDF 전달은 `lib/pdf-response.ts`의 Cloudflare 기본 스트림 경로를 보존합니다. 상세·PDF에는 목록의 공개 상태 캐시를 권한 근거로 쓰지 않으며, 서명 없는 웹훅은 거절합니다. 기존 카드/검색/PDF 컴포넌트 수정 시 정적 화면에서도 함께 검증합니다.
+
+## 이전 Next.js/Vercel 경로의 기록
+
 2026-10-07 점검. 콘텐츠 정렬·공개 검증·캐시·PDF 스트리밍은 이미 별도 모듈로 분리되어 있었습니다. 이번에는 일반 화면과 표지 생성의 의존성을 끊고, 목록 계산과 화면을 분리하며, 독립적인 화면 영역을 스트리밍하도록 개선했습니다. 프레임워크나 운영 계정을 교체하지 않았습니다.
 
 ## 어디를 수정하는가

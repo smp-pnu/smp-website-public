@@ -2,7 +2,7 @@
 
 ## 무료 운영 구조 (2026-10-10)
 
-이 작업 사본의 `free/`는 **정적 React 화면 + Cloudflare Workers API + D1 + GitHub Actions 게시 작업**입니다. 아래의 Vercel 설명은 기존 운영 방식에 관한 기록입니다. [운영 검증 사이트](https://smp-website-free.smp-website.workers.dev)에 공개 리포트 191건의 고화질 표지·본문, 공지 2건과 회원 628건을 연결했습니다. GitHub 운영 환경의 연결값 등록과 `main` 전용 접근 제한을 완료했고, [첫 자동 게시 실행](https://github.com/smp-pnu/smp-website-public/actions/runs/38016104454)에서 실제 Cloudflare 배포와 표지 캐시 복구가 성공했습니다. 기존 Notion 웹훅·Drive 삭제 relay의 연결 설정과 도메인 전환은 별도 단계입니다. 합성 자료 시험 주소와 운영 검증 주소는 DB와 Worker가 분리되어 있습니다.
+현재 `free/`는 **정적 React 화면 + Cloudflare Workers API + D1 + GitHub Actions 게시 작업**으로 운영합니다. 아래의 Vercel 설명은 이전 방식의 기록입니다. [운영 사이트](https://smp-website-free.smp-website.workers.dev)에 공개 리포트 191건의 고화질 표지·본문, 공지 2건과 회원 628건을 연결했습니다. GitHub 운영 환경은 `main` 전용으로 제한했고, [자동 게시 실행](https://github.com/smp-pnu/smp-website-public/actions/runs/38017236530)에서 실제 Cloudflare 배포를 확인했습니다. Notion 웹훅을 새 주소로 인증하여 실제 변경 알림의 정상 처리(200)를 확인했으며, 기존 Drive 삭제 relay도 연결했습니다. 이전 Vercel Cron과 Git 자동 배포는 껐습니다. 도메인/DNS는 변경하지 않았습니다. 합성 자료 시험 사이트는 운영 DB·Worker와 분리되어 있습니다.
 
 ```mermaid
 flowchart LR
@@ -43,6 +43,8 @@ flowchart LR
 5. 인수인계 때 Notion·Drive·GitHub·Cloudflare의 학회 소유권, 계정 복구 수단과 2단계 인증, 마지막 게시 성공 여부를 확인합니다. 공개 GitHub 저장소의 예약 작업이 비활동으로 중지됐으면 Actions에서 다시 활성화합니다.
 
 담당자가 Notion 연결 토큰을 교체하면 홈페이지 Worker, 예약 Worker 3개, GitHub `free-production` 환경의 Secret, 기존 Apps Script 설정을 함께 바꿔야 합니다. 비밀값을 README·코드·Issue·채팅에 붙여 넣지 않습니다.
+
+평소 글 작성에는 웹훅 설정을 만질 필요가 없습니다. 서버 주소를 다시 옮길 때만 [Notion 웹훅 교체 절차](docs/free-webhook.md)를 따릅니다. 이번 교체의 임시 인증 Secret·D1 후보는 인증 후 제거했습니다. Drive relay는 PDF가 없는 비공개 예시로 정상 서명 수신·잘못된 서명 거절을 확인했으며, 실제 파일을 휴지통으로 옮기는 시험은 이번 이전에서 반복하지 않았습니다.
 
 ### 재현 가능한 시험
 
