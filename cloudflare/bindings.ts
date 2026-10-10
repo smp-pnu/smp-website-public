@@ -1,6 +1,4 @@
-// Only the Workers build imports this module. Node tests/jobs use adapters.
-import { env } from "cloudflare:workers"
-
+// Shared D1 interfaces; Workers bindings and Node adapters implement these.
 export interface Statement {
   bind(...values: unknown[]): Statement
   first<T = Record<string, unknown>>(): Promise<T | null>
@@ -10,9 +8,4 @@ export interface Statement {
 export interface Database {
   prepare(query: string): Statement
   batch(statements: Statement[]): Promise<unknown[]>
-}
-export function database(): Database {
-  const db = (env as { CMS_DB?: Database }).CMS_DB
-  if (!db) throw new Error("CMS database is not configured")
-  return db
 }

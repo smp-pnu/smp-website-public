@@ -1,5 +1,6 @@
 import { coverStore, coverStorageEnabled } from "@/lib/cover-store"
-import { prepareContent } from "@/lib/content-tasks"
+import { syncReportMetadata } from "@/lib/report-metadata-service"
+import { syncReportCover } from "@/lib/cover-service"
 import { authorizedSync, limitedBody, openToken, sealToken, validNotionSignature } from "@/lib/webhook-security"
 import { pdfHeaders } from "@/lib/pdf-response"
 import { revalidateTag } from "next/cache"
@@ -36,11 +37,15 @@ export async function POST(request: Request) {
     // Retain deletion hints even for a page created and deleted between polls.
     // The worker checks current state; unpublishing never enqueues a deletion.
     if (event.type === "page.deleted") await queueDriveCleanup(event.entity.id)
+    if (["page.created", "page.properties_updated", "page.content_updated", "page.undeleted"].includes(event.type)) {
+      await syncReportMetadata(event.entity.id)
+      revalidateTag(contentCacheTag, { expire: 0 })
+    }
+    if (!coverStorageEnabled()) return reply({ received: true, prepared: false })
     // Fetch current source-scoped content; delayed/duplicate events cannot
     // republish an old state. Failures return 503 so Notion can retry.
-    const result = await prepareContent(event.entity.id, event.type)
-    revalidateTag(contentCacheTag, { expire: 0 })
-    return reply({ received: true, ...result })
+    const cover = await syncReportCover(event.entity.id, false)
+    return reply({ received: true, prepared: !!cover })
   } catch {
     return reply({ error: "Content update unavailable" }, 503)
   }

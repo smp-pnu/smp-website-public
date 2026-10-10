@@ -106,11 +106,14 @@
     },
     "publicationTest": {
       "detailWhenHidden": 404,
-      "pdfWhenHidden": 503,
-      "pdfFailureReason": "Notion timeout; no file returned",
+      "pdfWhenHidden": 404,
+      "catalogWhenHidden": 200,
+      "listedWhenHidden": false,
       "stateRestored": true,
+      "detailAfterRestore": 200,
       "signedHandlerAccepted": true,
-      "actualNotionWebhookDeliveryConfigured": false
+      "actualNotionWebhookDeliveryConfigured": false,
+      "earlierTransientFailure": "A Notion timeout returned 503 without disclosing the PDF; retry after normal synchronization passed."
     },
     "pending": [
       "GitHub environment secrets and scheduled Actions (browser login required)",
@@ -125,5 +128,43 @@
     "typecheck": "passed",
     "nextProductionBuild": "passed"
   },
-  "decision": "Static serving and native PDF streaming remove the largest costs. Keep the new site under validation until automatic publishing, scheduled sync CPU and production connections are verified; successful HTTP responses alone do not prove Free CPU compliance."
+  "decision": "Static serving and native PDF streaming remove the largest costs. Keep the new site under validation until automatic publishing, scheduled sync CPU and production connections are verified; successful HTTP responses alone do not prove Free CPU compliance.",
+  "splitScheduledWorkers": {
+    "measuredAt": "2026-10-10",
+    "workers": {
+      "research": {
+        "samples": 18,
+        "cpuMsMin": 2,
+        "cpuMsMax": 3,
+        "outcomes": [
+          "ok"
+        ]
+      },
+      "notice": {
+        "samples": 1,
+        "cpuMsMin": 1,
+        "cpuMsMax": 1,
+        "outcomes": [
+          "ok"
+        ]
+      },
+      "members": {
+        "samples": 1,
+        "cpuMsMin": 2,
+        "cpuMsMax": 2,
+        "outcomes": [
+          "ok"
+        ]
+      }
+    },
+    "note": "Actual unchanged-CMS scheduled executions. All three share one Free account, D1 and Notion budgets; not a guarantee for edited batches."
+  },
+  "dependencyCleanup": {
+    "date": "2026-10-10",
+    "unitTestsPassed": 121,
+    "auditVulnerabilities": 0,
+    "nextBuild": "passed",
+    "freeFixtureBuild": "passed",
+    "change": "Removed discarded vinext SSR experiment; updated Wrangler to 4.149.0."
+  }
 }

@@ -66,7 +66,7 @@ pnpm deploy:free
 
 ## 기존 SSR 시험 기록
 
-`cloudflare/`의 vinext 시험에서는 목록 요청 CPU가 109~210ms로 측정되어 무료 운영 경로로 채택하지 않았습니다. 현재 운영 후보는 위의 `free/` 정적 구조입니다. `build:vinext`, `deploy:vinext`는 비교 시험 전용이며 실제 CMS를 연결하지 않습니다.
+`cloudflare/`의 vinext 시험에서는 목록 요청 CPU가 109~210ms로 측정되어 무료 운영 경로로 채택하지 않았습니다. 현재 운영 후보는 위의 `free/` 정적 구조입니다. 채택하지 않은 SSR 시험 코드와 의존성은 제거했으며, 당시 측정값만 `cloudflare/trial-results.json`에 보존합니다.
 
 정적 구조의 합성 자료 시험에서는 100개 동시 혼합 요청이 모두 성공했고, 목록 단독 CPU는 2~3ms였습니다. 상세 요청 한 건에서 11ms가 관측됐습니다. 이 결과만으로 실제 대용량 PDF 100개 동시 다운로드를 보장하지 않습니다. 실제 CMS 시험 결과와 한계는 `cloudflare/trial-results.json`에 추가 기록합니다.
 
