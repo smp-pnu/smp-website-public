@@ -1,10 +1,10 @@
-// Export the existing SMP mark into browser and home-screen icons.
+// Export the simplified SMP tab mark into browser and home-screen icons.
 import { readFile, writeFile } from 'node:fs/promises'
 import sharp from 'sharp'
 
-const source = await readFile('public/smp-symbol-white.svg', 'utf8')
+const source = await readFile('public/smp-tab-mark.svg', 'utf8')
 const mark = source.slice(source.indexOf('<path'), source.lastIndexOf('</svg>'))
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" rx="26" fill="#071426"/><svg x="7" y="37" width="114" height="54" viewBox="355 236 490 229">${mark}</svg></svg>\n`
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" rx="26" fill="#000"/><svg fill="#fff" x="6" y="34" width="116" height="60" viewBox="0 0 240 116">${mark}</svg></svg>\n`
 for (const name of ['icon.svg', 'smp-favicon.svg']) await writeFile(`public/${name}`, svg)
 for (const [name, size] of [['smp-favicon-32.png', 32], ['apple-icon.png', 180], ['icon-light-32x32.png', 32], ['icon-dark-32x32.png', 32]]) {
   await sharp(Buffer.from(svg)).resize(size, size).png().toFile(`public/${name}`)
