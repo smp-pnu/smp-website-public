@@ -15,10 +15,10 @@ export async function ContentDetail({ kind, id, search }: { kind: ContentKind; i
   const item = await getContentItem(kind, id)
   if (!item) notFound()
   const returnHref = contentReturnHref(item, search)
-  return <><SiteHeader /><main className="relative z-10 mx-auto min-h-[75svh] max-w-4xl px-6 py-16 sm:py-20">
+  return <><SiteHeader /><main className={`relative z-10 mx-auto min-h-[75svh] max-w-4xl px-6 py-16 sm:py-20 ${kind === "notice" ? "notice-content" : ""}`}>
     <Link prefetch={false} href={returnHref} className="text-sm tracking-widest text-site-accent">← {kind === "notice" ? "NOTICE" : "RESEARCH"}</Link>
     <article className="mt-10">
-      {kind === "research" ? <ResearchDetailHeader item={item} /> : <header className="border-b border-site-line pb-8">
+      {kind === "research" ? <ResearchDetailHeader item={item} /> : <header className="border-b border-white/20 pb-8">
         <p className="text-sm text-site-accent">{item.pinned && "고정 · "}{item.category}</p>
         <h1 className="mt-4 break-words text-3xl font-medium leading-snug text-white sm:text-4xl">{item.title}</h1>
         <p className="mt-5 text-sm text-site-body"><time dateTime={item.date}>{formatDate(item.date)}</time>{item.author && ` · ${item.author}`}</p>

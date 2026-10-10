@@ -85,15 +85,15 @@
 
 :root {
   color-scheme: dark;
-  --site-background: #0a111b;
-  --site-surface: #121d2b;
-  --site-heading: #f3f6fa;
-  --site-body: #d2dbe7;
-  --site-muted: #a8b5c7;
-  --site-accent: #b9def3;
-  --site-line: rgb(211 225 243 / .18);
-  --site-line-soft: rgb(211 225 243 / .10);
-  --site-photo-opacity: .10;
+  --site-background: #080a0c;
+  --site-surface: #141517;
+  --site-heading: #ffffff;
+  --site-body: #e4e4e7;
+  --site-muted: #b8b8bf;
+  --site-accent: #7dd3fc;
+  --site-line: rgb(255 255 255 / .18);
+  --site-line-soft: rgb(255 255 255 / .10);
+  --site-photo-opacity: .28;
   --background: var(--site-background);
   --foreground: var(--site-body);
   --card: var(--site-surface);
@@ -129,13 +129,14 @@
 }
 
 /* Keep one photographic contrast budget across routes and home sections. */
-.site-backdrop { background: var(--site-background); }
-.site-backdrop--hero { --site-photo-opacity: .18; }
-/* Keep the shared navy while allowing more of the notice photograph to show through. */
-.site-backdrop--notice { --site-photo-opacity: .20; }
+.site-backdrop { background: #000; }
+.site-backdrop--hero { --site-photo-opacity: .65; }
+.site-backdrop--notice { --site-photo-opacity: .30; }
 .site-photo { opacity: var(--site-photo-opacity); }
-.site-header-surface { background: rgb(10 17 27 / .96); }
-.site-footer-surface { background: rgb(10 17 27 / .94); }
+/* Preserve the notice typography and link palette from before the sitewide redesign. */
+.notice-content { --site-body: #cbd5e1; --site-muted: #b8bec7; --site-accent: #7dd3fc; --site-surface: #101821; --site-line: rgb(255 255 255 / .15); --site-line-soft: rgb(255 255 255 / .10); }
+.site-header-surface { background: rgb(8 10 12 / .96); }
+.site-footer-surface { background: rgb(8 10 12 / .94); }
 .site-nav-link { color: var(--site-muted); transition: color 150ms; }
 .site-nav-link:hover { color: var(--site-heading); }
 .site-nav-link[aria-current="page"] { color: var(--site-accent); text-decoration: underline; text-underline-offset: .5rem; text-decoration-thickness: 1px; }
@@ -160,7 +161,7 @@
   }
 }
 
-.curriculum-page { --light-x: 18%; background: var(--site-background); }
+.curriculum-page { --light-x: 18%; background: #000; }
 .curriculum-atmosphere { position: absolute; inset: 0; pointer-events: none; clip-path: inset(0); z-index: -1; }
 .curriculum-atmosphere::before { content: ''; position: fixed; inset: 0; background: url("/backgrounds/curriculum-skyscrapers.webp") center var(--photo-y, 0%) / cover no-repeat; opacity: var(--site-photo-opacity); }
 .curriculum-beam { position: fixed; top: -30vh; left: var(--light-x); width: min(30vw, 420px); height: 160vh; transform: translateX(-50%) rotate(-23deg); background: linear-gradient(90deg, transparent, #1685df14 25%, #5dc1ff40 48%, #bbecff24 52%, #1685df12 75%, transparent); filter: blur(18px); }
