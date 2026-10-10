@@ -1,4 +1,5 @@
 import "server-only"
+import { upstreamFetch } from "@/lib/upstream-fetch"
 import { type ContentItem } from "./content-model"
 import { getPdfSources } from "./pdf-source"
 
@@ -25,7 +26,7 @@ export async function fetchReportCover(url: string, signal: AbortSignal) {
   let response: Response | undefined
   for (let redirects = 0; redirects <= 3; redirects++) {
     if (!allowedCoverUrl(url)) throw new Error("Unsupported cover URL")
-    response = await fetch(url, { cache: "no-store", redirect: "manual", signal })
+    response = await upstreamFetch(url, { cache: "no-store", redirect: "manual", signal })
     if (![301, 302, 303, 307, 308].includes(response.status)) break
     await response.body?.cancel()
     const location = response.headers.get("location")

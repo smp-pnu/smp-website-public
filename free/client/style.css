@@ -1,0 +1,8 @@
+@import '../../app/globals.css';
+@import '@fontsource/noto-sans-kr/300.css';
+@import '@fontsource/noto-sans-kr/400.css';
+@import '@fontsource/noto-sans-kr/500.css';
+@import '@fontsource/noto-sans-kr/700.css';
+@font-face { font-family: 'SMP Hero'; src: url('../../app/fonts/cormorant-garamond-latin-300.woff2') format('woff2'); font-weight: 300; font-display: swap; }
+:root { --font-body: 'Noto Sans KR'; --font-hero: 'SMP Hero'; }
+body { margin: 0; background: #050c18; font-family: var(--font-body), sans-serif; }

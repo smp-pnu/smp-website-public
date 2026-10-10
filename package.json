@@ -11,10 +11,17 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --conditions=react-server --test tests/*.test.ts",
-    "test:bundles": "node scripts/check-read-bundles.mjs"
+    "test:bundles": "node scripts/check-read-bundles.mjs",
+    "build:free:fixture": "node scripts/build-free.mjs --fixture",
+    "build:free": "node scripts/build-free.mjs",
+    "deploy:free": "node scripts/deploy-free.mjs",
+    "publish:free": "node --import tsx --conditions=react-server free/jobs/publish.ts",
+    "seed:free:fixture": "node --import tsx --conditions=react-server free/jobs/seed-fixture.ts",
+    "test:free:http": "node tests/free-http.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
+    "@fontsource/noto-sans-kr": "5.3.0",
     "@napi-rs/canvas": "1.0.10",
     "@vercel/analytics": "1.6.1",
     "@vercel/blob": "^2.8.0",
@@ -26,6 +33,7 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-pdf": "11.0.0",
+    "react-router": "7.18.4",
     "server-only": "^0.0.1",
     "sharp": "^0.35.5",
     "tailwind-merge": "^3.7.0",
@@ -36,12 +44,17 @@
     "@types/node": "^24.19.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "esbuild": "0.28.2",
     "postcss": "^8.5.28",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
-    "typescript": "5.7.3"
+    "typescript": "5.7.3",
+    "vite": "8.3.3",
+    "wrangler": "4.149.0"
   },
   "engines": {
     "node": ">=22"
-  }
+  },
+  "type": "module"
 }

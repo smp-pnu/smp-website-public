@@ -1,4 +1,14 @@
 {
-  "regions": ["icn1"],
-  "crons": [{ "path": "/api/cron/report-covers", "schedule": "17 19 * * *" }]
+  "regions": [
+    "icn1"
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/report-covers",
+      "schedule": "17 19 * * *"
+    }
+  ],
+  "git": {
+    "deploymentEnabled": false
+  }
 }

@@ -50,12 +50,12 @@ export async function syncReportMetadata(rawId: string) {
   // Avoid parallel PDF downloads exhausting a function instance's memory.
   if (active >= 2) throw new Error("Metadata preparation busy")
   active++
-  const work = sync(id)
+  const work = syncReportMetadataUsing(id, notionRequest)
   pending.set(id, work)
   try { return await work } finally { active--; pending.delete(id) }
 }
-async function sync(id: string) {
-  const page = await notionRequest<NotionPage>(`pages/${id}`)
+export async function syncReportMetadataUsing(id: string, request: typeof notionRequest) {
+  const page = await request<NotionPage>(`pages/${id}`)
   if (!scopedReport(page, id)) return "ignored"
   const input = metadataInput(page)
   if (!input.title || (!input.pdf && !input.company && !input.ticker)) return "waiting"
@@ -80,7 +80,7 @@ async function sync(id: string) {
   }
   // Recheck scope/source/fields after extraction, and merge notes from the latest
   // page. Never overwrite a manager's input or resurrect an archived page.
-  const latest = await notionRequest<NotionPage>(`pages/${id}`)
+  const latest = await request<NotionPage>(`pages/${id}`)
   if (!scopedReport(latest, id)) return "ignored"
   if (metadataKey(metadataInput(latest)) !== key) throw new Error("Report changed during metadata preparation")
   const properties: Record<string, unknown> = {
@@ -91,6 +91,6 @@ async function sync(id: string) {
     ...(values.ticker ? { 종목코드: textProperty(values.ticker) } : {}),
     ...(values.industry ? { 업종: { select: { name: values.industry } } } : {}),
   }
-  await notionRequest(`pages/${id}`, { properties }, "PATCH")
+  await request(`pages/${id}`, { properties }, "PATCH")
   return status
 }

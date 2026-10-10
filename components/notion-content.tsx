@@ -1,7 +1,7 @@
 import Image from "next/image"
 import type { ReactNode } from "react"
 import { fileUrl, plainText, safeUrl, type RichText } from "@/lib/content-model"
-import { blockValue, type ContentBlock } from "@/lib/notion"
+import { blockValue, type ContentBlock } from "@/lib/notion-model"
 
 function RichTextContent({ value = [] }: { value?: RichText[] }) {
   return value.map((part, index) => {

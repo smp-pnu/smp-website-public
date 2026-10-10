@@ -24,3 +24,9 @@ node_modules
 
 # Rebuilt from the original backgrounds during predev/prebuild.
 /public/backgrounds/
+/dist/
+.vinext/
+.wrangler/
+.dev.vars*
+/test-results/
+/.smp-cache/

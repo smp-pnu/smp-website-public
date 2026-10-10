@@ -65,7 +65,7 @@ export default function RootLayout({
         <ScrollReveal />
         {children}
         </NetworkTransition>
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        {process.env.VERCEL === '1' && <Analytics />}
       </body>
     </html>
   )
