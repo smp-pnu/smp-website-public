@@ -124,3 +124,5 @@ SMP_TEST_STATE=/tmp/smp-test-state.json node tests/streaming-http.mjs
 검색 입력은 `components/search-field.tsx`, 분류·기수 선택은 `filter-select.tsx`, 보기 방식·네트워크 탭은 `segmented-control.tsx`를 공유합니다. 공통 크기·테두리·선택 상태를 바꿀 때에는 이 컴포넌트를 먼저 수정합니다.
 
 사이트의 기본 색상은 `app/globals.css`의 `--site-*` 변수에서 관리합니다. 바탕은 중립적인 `#080a0c`, 표면은 `#141517`, 본문은 `#e4e4e7`입니다. 사진은 검정 바탕 위에서 원래 색을 유지하며, 일반 페이지·홈 하단은 불투명도 28%, 공지는 30%, 홈 첫 화면은 65%를 사용합니다. 홈 제목 뒤에는 별도 검정 패널로 대비를 확보합니다. 남색 바탕 위에 사진을 낮은 불투명도로 겹쳐 색이 탁해지지 않도록 합니다. 일반 페이지의 제목·설명은 `PageIntro`, 공지 목록은 이전 구성을 보존하는 `NoticeListing`을 사용합니다. 공지 본문은 박스 없이 유지하고, 검색·필터는 가벼운 반투명 바탕을 공유합니다.
+
+커리큘럼도 `HomeBackground`의 고정 사진을 사용합니다. 본문에 별도 검정 바탕이나 스크롤 배경을 겹치지 않으며, `CurriculumMotion`은 단계 표시와 앵커 이동만 담당합니다.
