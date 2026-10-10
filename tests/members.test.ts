@@ -5,6 +5,11 @@ import { loadMembers } from "../lib/member-catalog"
 import type { NotionPage } from "../lib/content-model"
 
 const source = "44444444444444448444444444444444"
+test("member photo links survive the Vercel migration", () => {
+  const member = page()
+  member.properties["사진 링크"].url = "https://smp-pnu.vercel.app/kim-siyoung.png"
+  assert.equal(toMember(member, source)?.image, "https://pnusmp.com/kim-siyoung.png")
+})
 const rich = (value: string) => [{ plain_text: value }]
 function page(index = 1): NotionPage {
   return { id: `a${index.toString(16).padStart(31, "0")}`, object: "page", created_time: "2026-01-01",

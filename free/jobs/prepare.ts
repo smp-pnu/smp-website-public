@@ -8,6 +8,7 @@ import { blockValue,type ContentBlock } from "../../lib/notion-model"
 import { getPdfSources,isNotionFileUrl } from "../../lib/pdf-source"
 import { downloadPdfForPreview,renderFirstPage } from "../../lib/pdf-preview-render"
 import { sourceKey } from "../../lib/cover-metadata"
+import { cmsImageUrl } from "../../lib/cms-image-url"
 import { notion } from "../server/notion"
 import type { Env } from "../server/types"
 const children=new Set(["paragraph","heading_1","heading_2","heading_3","bulleted_list_item","numbered_list_item","quote","callout","toggle","to_do","column_list","column","table"])
@@ -53,6 +54,8 @@ export async function prepareBody(env:Env,item:ContentItem,origin:string) {
           if(url && isNotionFileUrl(url)) {
             const path=await saveImage(item.id,await notionImage(url))
             block.image={type:"external",external:{url:new URL(path,origin).href},caption:value.caption}
+          } else if (url && cmsImageUrl(url) !== url) {
+            block.image={type:"external",external:{url:cmsImageUrl(url)},caption:value.caption}
           }
         }
         if(["file","pdf","video","audio"].includes(block.type)) {

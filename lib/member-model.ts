@@ -1,4 +1,5 @@
 import { fileUrl, normalizeId, plainText, safeUrl, type NotionPage } from "./content-model"
+import { cmsImageUrl } from "./cms-image-url"
 
 export type MemberGroup = "alumni" | "members"
 const memberRoles = ["회장", "부회장", "기장"] as const
@@ -38,7 +39,7 @@ export function toMember(page: NotionPage, source: string): Member | null {
   return {
     id, name, generation: generation!, group: sections[0] === "ALUMNI" ? "alumni" : "members",
     department: plainText(props["학과"]?.rich_text).trim(), year: plainText(props["학번"]?.rich_text).trim(),
-    ...(image ? { image } : {}),
+    ...(image ? { image: cmsImageUrl(image) } : {}),
     ...(typeof order === "number" && Number.isFinite(order) && order > 0 ? { order } : {}),
     ...(roles.length ? { roles } : {}),
   }
