@@ -131,8 +131,8 @@
 /* Keep one photographic contrast budget across routes and home sections. */
 .site-backdrop { background: var(--site-background); }
 .site-backdrop--hero { --site-photo-opacity: .18; }
-/* A lighter reading backdrop keeps long notices comfortable without a boxed article. */
-.site-backdrop--notice { background: #1b2b3c; --site-photo-opacity: .12; }
+/* Keep the shared navy while allowing more of the notice photograph to show through. */
+.site-backdrop--notice { --site-photo-opacity: .20; }
 .site-photo { opacity: var(--site-photo-opacity); }
 .site-header-surface { background: rgb(10 17 27 / .96); }
 .site-footer-surface { background: rgb(10 17 27 / .94); }
