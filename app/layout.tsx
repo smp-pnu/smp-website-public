@@ -18,21 +18,10 @@ export const metadata: Metadata = {
   title: 'SMP | 부산대학교 금융투자학회',
   description:
     '부산대학교 금융투자학회 SMP(Stock Masters of PNU)는 기업과 산업을 분석해 투자 아이디어를 구축하고, 실제 포트폴리오 운용을 통해 그 논리를 검증합니다.',
-  generator: 'v0.app',
   icons: {
     icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
+      { url: '/smp-favicon-32.png', type: 'image/png', sizes: '32x32' },
+      { url: '/smp-favicon.svg', type: 'image/svg+xml' },
     ],
     apple: '/apple-icon.png',
   },
