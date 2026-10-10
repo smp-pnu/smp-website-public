@@ -70,18 +70,18 @@ async function handle(request: Request, env: Env, ctx: Context): Promise<Respons
   if (path === "/api/notion/webhook" && request.method === "POST") return webhook(request, env)
   if (!path.startsWith("/api/")) return new Response("Not found", { status: 404 })
   if(!/^\/api\/(search$|catalog\/(research|notice|members)$|member-photo\/[a-f0-9]{32}$|(detail|content)\/(research|notice)\/[a-f\d-]{32,36}(\/(pdf|file|block-file))?$)/.test(path)) return new Response("Not found",{status:404})
-  const denied = await publicBudget(request, env)
+  const match = /^\/api\/(detail|content)\/(research|notice)\/([a-f\d-]{32,36})(?:\/(pdf|file|block-file))?$/.exec(path)
+  const reference=match && normalizeId(match[3])
+  const denied = await publicBudget(request, env,reference?{id:reference,kind:match![2]}:undefined)
   if (denied) return denied
   const photo=/^\/api\/member-photo\/([a-f0-9]{32})$/.exec(path)
   if(photo)return memberPhoto(env,photo[1])
   if (path === "/api/search") return document(request,env,ctx,"search")
   const catalog = /^\/api\/catalog\/(research|notice|members)$/.exec(path)
   if (catalog) return document(request,env,ctx,catalog[1])
-  const match = /^\/api\/(detail|content)\/(research|notice)\/([a-f\d-]{32,36})(?:\/(pdf|file|block-file))?$/.exec(path)
   if (!match) return new Response("Not found", { status: 404 })
   const id = normalizeId(match[3]), kind = match[2] as ContentKind
   if (!id) return new Response("Not found", { status: 404 })
-  if(!await env.CMS_DB.prepare("SELECT id FROM free_content WHERE id=? AND kind=?").bind(id,kind).first()) return new Response("Not found",{status:404})
   const item = await published(env, kind, id)
   if (!item) return new Response("Not found", { status: 404 })
   if (match[1] === "detail" && !match[4]) {

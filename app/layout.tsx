@@ -1,17 +1,11 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Noto_Sans_KR } from 'next/font/google'
 import localFont from 'next/font/local'
 import { ScrollReveal } from '@/components/scroll-reveal'
 import { HomeBackground } from '@/components/home-background'
 import { NetworkTransition } from '@/components/network-transition'
 import './globals.css'
-
-const notoSansKr = Noto_Sans_KR({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '700'],
-  variable: '--font-body',
-})
+import './fonts/body-font'
 
 const heroFont = localFont({ src: './fonts/cormorant-garamond-latin-300.woff2', weight: '300', style: 'normal', variable: '--font-hero', display: 'swap' })
 
@@ -59,7 +53,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className={`${notoSansKr.variable} ${heroFont.variable} antialiased`} style={{ fontFamily: 'var(--font-body), sans-serif' }}>
+      <body className={`${heroFont.variable} antialiased`} style={{ fontFamily: 'var(--font-body), sans-serif' }}>
         <NetworkTransition>
         <HomeBackground />
         <ScrollReveal />

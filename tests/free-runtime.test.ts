@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import { DatabaseSync } from "node:sqlite"
 import { readFileSync } from "node:fs"
 import type { Database,Statement } from "../cloudflare/bindings"
-import { spend,notionBudget } from "../free/server/budget"
+import { spend,notionBudget,publicBudget } from "../free/server/budget"
 import { storePage,storePages,rebuildDocuments,removePage } from "../free/server/catalog"
 import { reconcileIfDue } from "../free/jobs/reconcile"
 import { memberPhoto } from "../free/server/member-photo"
@@ -121,6 +121,19 @@ test("visitor exhaustion reserves both synchronization and publisher capacity",a
     await notionBudget(db,60_100,"sync")
     assert.equal(sqlite.prepare("SELECT count FROM free_budget WHERE key='notion-minute:1'").get()!.count,1)
   } finally {sqlite.close()}
+})
+test("public article admission uses one D1 round trip and rejects unknown or wrong-kind IDs",async()=>{
+  const {sqlite,env}=setup();let calls=0
+  try {
+    await storePage(env,page(),"research")
+    const prepare=env.CMS_DB.prepare;env.CMS_DB.prepare=sql=>{calls++;return prepare(sql)}
+    const request=new Request(`https://test.invalid/api/detail/research/${id}`)
+    assert.equal(await publicBudget(request,env,{id,kind:"research"}),null)
+    assert.equal(calls,1)
+    assert.equal((await publicBudget(request,env,{id,kind:"notice"}))?.status,404)
+    assert.equal((await publicBudget(request,env,{id:"f".repeat(32),kind:"research"}))?.status,404)
+    assert.equal(sqlite.prepare("SELECT count FROM free_budget WHERE key LIKE 'public-api-day:%'").get()!.count,3)
+  }finally{sqlite.close()}
 })
 test("withdrawal selects primary keys rather than scanning the whole catalogue",async()=>{
   const {sqlite,env}=setup();const queries:string[]=[]
