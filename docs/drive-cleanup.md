@@ -39,7 +39,7 @@
 6. 웹 앱의 `/exec` URL을 현재 홈페이지 호스팅의 서버 Secret (`DRIVE_CLEANUP_WEB_APP_URL`, Cloudflare 또는 이전 Vercel Production 환경변수)에 넣고 배포합니다. Notion 웹훅 구독에 `page.deleted` 이벤트가 포함됐는지 확인합니다.
 7. 임시 비공개 리포트와 임시 PDF로 공개 해제 시 보존, 항목 삭제 시 휴지통 이동을 확인합니다. 실사용 자료로 시험하지 않습니다.
 
-같은 학회 Google 계정을 넘겨주면 설치된 트리거도 그 계정으로 계속 실행됩니다. Google 계정을 바꿀 때는 새 담당 계정의 파일 소유권과 폴더 권한을 확인하고 트리거를 새로 설치해야 합니다. Notion 토큰을 교체하면 Vercel과 Script Properties 양쪽을 함께 수정합니다. 프로그램을 수정하면 GitHub 코드와 Apps Script 편집기를 맞추고 웹 앱도 새 버전으로 배포합니다.
+같은 학회 Google 계정을 넘겨주면 설치된 트리거도 그 계정으로 계속 실행됩니다. Google 계정을 바꿀 때는 새 담당 계정의 파일 소유권과 폴더 권한을 확인하고 트리거를 새로 설치해야 합니다. Notion 토큰을 교체하면 현재 호스팅의 Worker Secrets, GitHub 게시 환경 Secrets와 Script Properties를 함께 수정합니다. 이전 Vercel 경로를 유지하는 동안에는 그 환경변수도 갱신합니다. 프로그램을 수정하면 GitHub 코드와 Apps Script 편집기를 맞추고 웹 앱도 새 버전으로 배포합니다.
 
 ## 상태 확인과 중단
 

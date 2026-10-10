@@ -37,12 +37,15 @@ async function webhook(request: Request, env: Env) {
   const event = JSON.parse(raw)
   const id = event.entity?.type === "page" && typeof event.entity.id === "string" && normalizeId(event.entity.id)
   if (!id || typeof event.type !== "string" || !/^page\.[a-z_]+$/.test(event.type)) return reply({ ignored: true })
-  const known=await env.CMS_DB.prepare("SELECT id FROM free_content WHERE id=?").bind(id).first()
+  const known=await env.CMS_DB.prepare("SELECT kind FROM free_content WHERE id=?").bind(id).first<{kind:string}>()
   // Never replay an event's old data; always read current Notion state.
   const page = await notion<NotionPage>(env, `pages/${id}`)
-  if (event.type === "page.deleted" && known && (!page || page.archived || page.in_trash)) await queueDriveCleanup(id, env)
   const parent = page?.parent?.type === "data_source_id" && normalizeId(page.parent.data_source_id ?? "")
   const kind = parent && (["research", "notice", "members"] as const).find(kind => source(env, kind) === parent)
+  // A report may be created and trashed before the first catalogue poll.
+  // Its fresh parent still scopes the hint; Apps Script independently checks
+  // trash state, shared references, ownership and the configured Drive folder.
+  if (event.type === "page.deleted" && (kind === "research" || known?.kind === "research") && (!page || page.archived || page.in_trash)) await queueDriveCleanup(id, env)
   if (page && kind) await storePage(env, page, kind)
   else if (!page || page.archived || page.in_trash) {
     await removePage(env,id)
