@@ -1,10 +1,11 @@
-// Export the square SMP eagle mark at browser icon sizes.
-import { writeFile } from 'node:fs/promises'
+// Export the original white S mark on a transparent square canvas.
+import { readFile, writeFile } from 'node:fs/promises'
 import sharp from 'sharp'
 
-const source = await sharp('public/smp-eagle-mark.png')
-  .resize(256, 256).png({ palette: true }).toBuffer()
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><image width="128" height="128" href="data:image/png;base64,${source.toString('base64')}"/></svg>\n`
+const source = await readFile('public/smp-s-white.svg', 'utf8')
+const mark = source.slice(source.indexOf('<path'), source.lastIndexOf('</svg>'))
+const width = 124 * 124 / 147
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><svg x="${(128 - width) / 2}" y="2" width="${width}" height="124" viewBox="376 297 124 147">${mark}</svg></svg>\n`
 for (const name of ['icon.svg', 'smp-favicon.svg']) await writeFile(`public/${name}`, svg)
 for (const [name, size] of [['smp-favicon-32.png', 32], ['apple-icon.png', 180], ['icon-light-32x32.png', 32], ['icon-dark-32x32.png', 32]]) {
   await sharp(Buffer.from(svg)).resize(size, size).png().toFile(`public/${name}`)
