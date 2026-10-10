@@ -12,6 +12,7 @@ import { toMember,type Member } from "../../lib/member-model"
 import { reconcileIfDue } from "./reconcile"
 import { syncReportMetadataUsing } from "../../lib/report-metadata-service"
 import { ensureReportCoverCache } from "./report-cover-cache"
+import { repairRegionalImages } from "./regional-image-repair"
 
 type Job={id:string;kind:"research"|"notice"|"members";revision:string;token:string;item:ContentItem|Member;cover:Cover|null}
 type Completed={job:Job;blocks:Awaited<ReturnType<typeof prepareBody>>;cover:Cover|null}
@@ -43,6 +44,7 @@ async function main() {
   env.NOTION_WAIT_UNTIL=deadline
   try {
     await reconcileIfDue(env)
+    await repairRegionalImages(env.CMS_DB)
     const complete:Completed[]=[]
     for(let count=0;count<4 && Date.now()<deadline;count++) {
       const claim=await internal(new Request(`${origin}api/internal/jobs/claim`,{method:"POST"}),env)

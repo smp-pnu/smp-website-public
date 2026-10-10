@@ -25,6 +25,8 @@ export function driveDownloadUrl(value: string) {
 export function isNotionFileUrl(value: string) {
   const url = secureUrl(value)
   return !!url && (url.hostname === "prod-files-secure.s3.us-west-2.amazonaws.com"
+    // Notion uploads in the Korea data region use a separate, exact bucket.
+    || url.hostname === "prod-files-secure-apne2.s3.ap-northeast-2.amazonaws.com"
     || url.hostname === "secure.notion-static.com"
     || (url.hostname === "s3.us-west-2.amazonaws.com" && url.pathname.startsWith("/secure.notion-static.com/")))
 }

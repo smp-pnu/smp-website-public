@@ -10,6 +10,10 @@ import { memberPhoto } from "../free/server/member-photo"
 import { internal } from "../free/server/jobs"
 import { ensureReportCoverCache } from "../free/jobs/report-cover-cache"
 import { notion } from "../free/server/notion"
+import { prepareBody } from "../free/jobs/prepare"
+import { repairRegionalImages } from "../free/jobs/regional-image-repair"
+import { toContentItem } from "../lib/content-model"
+import sharp from "sharp"
 import type { Env } from "../free/server/types"
 import type { NotionPage } from "../lib/content-model"
 const source="33333333333343338333333333333333",id="a0000000000000000000000000000001"
@@ -25,6 +29,48 @@ function page(revision="2026-01-01T00:00:00.000Z",visible=true):NotionPage {
   return {id,object:"page",created_time:revision,last_edited_time:revision,parent:{type:"data_source_id",data_source_id:source},properties:{제목:{type:"title",title:[{plain_text:"검증 리포트"}]},공개:{type:"checkbox",checkbox:visible},게시일:{type:"date",date:{start:"2020-01-01"}}}}
 }
 const req=(suffix:string,input?:unknown)=>new Request(`https://test.invalid/api/internal/${suffix}`,{method:"POST",...(input?{body:JSON.stringify(input)}:{})})
+test("Korea upload in a nested notice becomes a permanent WebP, never a cached signed URL",async()=>{
+  const {sqlite,env}=setup(),originalFetch=global.fetch
+  const upload="https://prod-files-secure-apne2.s3.ap-northeast-2.amazonaws.com/workspace/photo.png?X-Amz-Signature=temporary"
+  const image={id:"image-block",type:"image",image:{type:"file",file:{url:upload},caption:[{plain_text:"행사 안내"}]}}
+  env.NOTION_FETCH=async url=>Response.json({results:String(url).includes("column-block")?[image]:[{id:"column-block",type:"column",column:{},has_children:true}],has_more:false,next_cursor:null})
+  const png=await sharp({create:{width:16,height:24,channels:3,background:"white"}}).png().toBuffer()
+  let downloads=0,saves=0
+  global.fetch=async(url,init)=>{downloads++;assert.equal(url,upload);assert.equal(init?.redirect,"error");return new Response(new Uint8Array(png),{headers:{"content-type":"image/png; charset=binary"}})}
+  try {
+    const blocks=await prepareBody(env,toContentItem(page(),"notice")!,"https://smp.test",{save:async(owner,bytes)=>{
+      saves++;assert.equal(owner,id);assert.equal((await sharp(bytes).metadata()).format,"webp")
+      return `/report-covers/${id}/${"a".repeat(64)}.webp`
+    }})
+    assert.equal(downloads,1);assert.equal(saves,1)
+    assert.deepEqual((blocks[0].children![0].image as any).caption,image.image.caption)
+    assert.match((blocks[0].children![0].image as any).external.url,/^https:\/\/smp.test\/report-covers\//)
+    assert.doesNotMatch(JSON.stringify(blocks),/X-Amz|amazonaws/)
+    image.image.file.url="https://unknown-bucket.s3.ap-northeast-2.amazonaws.com/image.png"
+    await assert.rejects(prepareBody(env,toContentItem(page(),"notice")!,"https://smp.test"),/Unsupported Notion image host/)
+    assert.equal(downloads,1,"unknown uploaded files must not be fetched or silently published")
+  } finally {global.fetch=originalFetch;sqlite.close()}
+})
+test("regional image repair requeues only affected bodies once and preserves existing jobs and text",async()=>{
+  const {sqlite,env,db}=setup()
+  try {
+    const affected=JSON.stringify([{type:"image",image:{type:"file",file:{url:"https://prod-files-secure-apne2.s3.ap-northeast-2.amazonaws.com/photo.png"}}}])
+    const second="b0000000000000000000000000000002",unaffected="c0000000000000000000000000000003"
+    await storePages(env,[page(),{...page(),id:second},{...page(),id:unaffected}],"research")
+    sqlite.prepare("DELETE FROM free_jobs").run()
+    sqlite.prepare("UPDATE free_content SET blocks=?,body_revision=revision WHERE id IN (?,?)").run(affected,id,second)
+    sqlite.prepare("UPDATE free_content SET blocks='[]',body_revision=revision WHERE id=?").run(unaffected)
+    sqlite.prepare("INSERT INTO free_jobs(id,revision,next_at,attempts,lease_token,lease_until) VALUES (?,?,9,2,'existing',123)").run(second,page().last_edited_time!)
+    await repairRegionalImages(db)
+    assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM free_jobs").get()!.n,2)
+    assert.equal(sqlite.prepare("SELECT blocks FROM free_content WHERE id=?").get(id)!.blocks,affected)
+    const existing=sqlite.prepare("SELECT attempts,lease_token,lease_until FROM free_jobs WHERE id=?").get(second)!
+    assert.deepEqual({...existing},{attempts:2,lease_token:"existing",lease_until:123})
+    sqlite.prepare("DELETE FROM free_jobs WHERE id=?").run(id)
+    await repairRegionalImages(db)
+    assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM free_jobs").get()!.n,1,"repair must not requeue completed work on later runs")
+  } finally {sqlite.close()}
+})
 test("global budget permits exactly the limit under concurrent use and rolls over",async()=>{
   const {sqlite,db}=setup()
   try {

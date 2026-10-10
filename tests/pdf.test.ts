@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, test } from "node:test"
 import assert from "node:assert/strict"
-import { driveDownloadUrl, getPdfSources, isAllowedPdfUrl } from "../lib/pdf-source"
+import { driveDownloadUrl, getPdfSources, isAllowedPdfUrl, isNotionFileUrl } from "../lib/pdf-source"
 import { streamPdf } from "../lib/pdf-response"
 import { GET } from "../app/api/content/[kind]/[id]/pdf/route"
 
@@ -32,6 +32,19 @@ test("Drive URLs accept individual files and reject folders, lookalikes and cred
 
 test("ordinary external links are not turned into proxy requests", () => {
   assert.deepEqual(getPdfSources({ attachments: [{ name: "report.pdf", url: "http://localhost/report.pdf" }], externalUrl: "https://example.org/report.pdf" } as Parameters<typeof getPdfSources>[0]), [])
+})
+
+test("Notion Korea uploads are trusted without allowing arbitrary regional S3 buckets", () => {
+  const host="prod-files-secure-apne2.s3.ap-northeast-2.amazonaws.com"
+  const url=`https://${host}/workspace/image.png?X-Amz-Signature=temporary`
+  assert.equal(isNotionFileUrl(url),true)
+  assert.equal(isAllowedPdfUrl(url),true)
+  for(const bad of [
+    `http://${host}/image.png`, `https://user:password@${host}/image.png`,
+    `https://${host}:444/image.png`, `https://${host}.evil.test/image.png`,
+    "https://another-bucket.s3.ap-northeast-2.amazonaws.com/image.png",
+    "https://s3.ap-northeast-2.amazonaws.com/another-bucket/image.png",
+  ]) assert.equal(isNotionFileUrl(bad),false,bad)
 })
 
 test("PDF endpoint requires a published page in its configured database", async () => {
