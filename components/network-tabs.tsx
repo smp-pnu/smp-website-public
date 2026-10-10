@@ -3,7 +3,7 @@ import { SegmentedControl, SegmentedControlLink } from "./segmented-control"
 import { useNetworkTransition } from "./network-transition"
 export function NetworkTabs({ active }: { active: "alumni" | "members" }) {
   const navigate = useNetworkTransition()
-  return <SegmentedControl aria-label="네트워크 분류" className="mx-auto mb-16 max-w-xs">
+  return <SegmentedControl aria-label="네트워크 분류" className="mx-auto mt-8 max-w-xs sm:mt-10">
     {(["alumni", "members"] as const).map(group => <SegmentedControlLink active={active === group} key={group} href={`/${group}`} onClick={event => {
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
       event.preventDefault()

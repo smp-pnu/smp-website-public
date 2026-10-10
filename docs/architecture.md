@@ -122,3 +122,5 @@ SMP_TEST_STATE=/tmp/smp-test-state.json node tests/streaming-http.mjs
 | 동일 PDF | 43ms | 페이지 1회 |
 
 검색 입력은 `components/search-field.tsx`, 분류·기수 선택은 `filter-select.tsx`, 보기 방식·네트워크 탭은 `segmented-control.tsx`를 공유합니다. 공통 크기·테두리·선택 상태를 바꿀 때에는 이 컴포넌트를 먼저 수정합니다.
+
+사이트의 어두운 색상 체계는 `app/globals.css`의 `--site-*` 변수에서 관리합니다. 배경은 `#0a111b`, 표면은 `#121d2b`, 본문은 `#d2dbe7`, 보조 글자는 `#a8b5c7`, 강조색은 `#b9def3`입니다. 일반 페이지와 홈 하단 사진의 불투명도는 10%, 홈 첫 화면은 18%로 제한합니다. 페이지별 검은 오버레이나 별도 어두운 바탕을 중복하지 않습니다. 제목·설명은 `PageIntro`, 페이지 여백은 `site-page`를 재사용하고, 공지 본문은 박스 없이 유지합니다. OS 테마와 무관하게 같은 다크 테마를 사용합니다.

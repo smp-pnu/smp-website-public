@@ -68,12 +68,12 @@ export function ResearchSearchForm({ search, semesters, industries, categories, 
   ] as const
   return <Form action="/research" prefetch={false} role="search" aria-label="리포트 검색" aria-busy={isPending}
     onSubmit={event => { event.preventDefault(); navigate(contentListHref("research", { ...current, q: value, page: undefined })) }}
-    className="mb-7 mt-10 border-b border-white/15 pb-5 sm:mt-12">
+    className="mb-7 mt-10 border-b border-site-line pb-5 sm:mt-12">
     {current.view && <input type="hidden" name="view" value={current.view} />}
     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-4 lg:gap-y-5">
       <div className="col-start-1 row-start-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h2 className="text-base font-normal tracking-tight text-white sm:text-lg">{activeFilters.length ? "검색 결과" : "전체 리포트"}</h2>
-        <p role="status" className="text-xs tabular-nums text-slate-400">{isPending ? "검색 중…" : <>총 {total}건</>}</p>
+        <p role="status" className="text-xs tabular-nums text-site-muted">{isPending ? "검색 중…" : <>총 {total}건</>}</p>
       </div>
       <div className="relative col-span-2 col-start-1 row-start-2 min-w-0 lg:row-start-1 lg:w-96 lg:justify-self-end" onFocus={() => setOpen(true)} onBlur={event => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false)
@@ -83,18 +83,18 @@ export function ResearchSearchForm({ search, semesters, industries, categories, 
           aria-activedescendant={showSuggestions && activeIndex >= 0 ? `${listboxId}-${activeIndex}` : undefined}
           onChange={event => { setValue(event.target.value); setActiveIndex(-1); setOpen(true) }} onKeyDown={onKeyDown}
           placeholder="기업명, 종목코드, 리포트 검색" />
-        {showSuggestions && <div className="absolute inset-x-0 top-full z-40 mt-2 overflow-hidden rounded border border-white/15 bg-[#101821] shadow-2xl">
+        {showSuggestions && <div className="absolute inset-x-0 top-full z-40 mt-2 overflow-hidden rounded border border-site-line bg-site-surface shadow-2xl">
           <ul id={listboxId} role="listbox" aria-label="검색 추천" className="max-h-80 overflow-y-auto">
             {matches.map((item, index) => <li id={`${listboxId}-${index}`} key={item.id} role="option" aria-selected={activeIndex === index}>
               <button type="button" tabIndex={-1} onMouseDown={event => event.preventDefault()} onMouseEnter={() => setActiveIndex(index)} onClick={() => choose(item)}
                 className={`flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-white/5 ${activeIndex === index ? "bg-white/5" : ""}`}>
-                <span className="min-w-0 flex-1"><span className="block truncate text-sm text-white">{item.title}</span><span className="mt-1 block truncate text-xs text-slate-400">{[item.category, item.industry, item.semester].filter(Boolean).join(" · ")}</span></span>
-                <ArrowUpRight aria-hidden="true" size={15} className="shrink-0 text-slate-500" />
+                <span className="min-w-0 flex-1"><span className="block truncate text-sm text-white">{item.title}</span><span className="mt-1 block truncate text-xs text-site-muted">{[item.category, item.industry, item.semester].filter(Boolean).join(" · ")}</span></span>
+                <ArrowUpRight aria-hidden="true" size={15} className="shrink-0 text-site-muted" />
               </button>
             </li>)}
           </ul>
-          {!matches.length && <p role="status" className="px-4 py-5 text-sm text-slate-400">현재 조건에 맞는 리포트가 없습니다.</p>}
-          <button type="submit" onMouseDown={event => event.preventDefault()} className="flex min-h-11 w-full items-center justify-between border-t border-white/10 px-4 py-3 text-sm text-sky-200 hover:bg-white/5">전체 검색결과 보기<span aria-hidden="true">→</span></button>
+          {!matches.length && <p role="status" className="px-4 py-5 text-sm text-site-muted">현재 조건에 맞는 리포트가 없습니다.</p>}
+          <button type="submit" onMouseDown={event => event.preventDefault()} className="flex min-h-11 w-full items-center justify-between border-t border-site-line-soft px-4 py-3 text-sm text-site-accent hover:bg-white/5">전체 검색결과 보기<span aria-hidden="true">→</span></button>
         </div>}
       </div>
       <div className="col-span-2 col-start-1 row-start-3 grid min-w-0 grid-cols-3 gap-2 lg:col-span-1 lg:row-start-2 lg:max-w-[510px]">
@@ -114,8 +114,8 @@ export function ResearchSearchForm({ search, semesters, industries, categories, 
     </div>
     {activeFilters.length > 0 && <div aria-label="적용한 검색 조건" className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1">
       {activeFilters.map(({ key, value }) => <Link key={key} prefetch={false} scroll={false} href={contentListHref("research", { ...current, [key]: undefined, page: undefined })} aria-label={`${value} 조건 해제`}
-        className="inline-flex min-h-9 max-w-full items-center gap-2 text-xs text-slate-300 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-sky-200"><span className="truncate">{key === "q" ? `검색: ${value}` : key === "semester" ? semesterLabel(value) : value}</span><X size={12} aria-hidden="true" className="shrink-0 text-slate-500" /></Link>)}
-      <Link prefetch={false} scroll={false} href={contentListHref("research", { view: current.view })} className="ml-auto inline-flex min-h-9 shrink-0 items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-sky-200"><RotateCcw size={12} aria-hidden="true" />초기화</Link>
+        className="inline-flex min-h-9 max-w-full items-center gap-2 text-xs text-site-body transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-site-accent"><span className="truncate">{key === "q" ? `검색: ${value}` : key === "semester" ? semesterLabel(value) : value}</span><X size={12} aria-hidden="true" className="shrink-0 text-site-muted" /></Link>)}
+      <Link prefetch={false} scroll={false} href={contentListHref("research", { view: current.view })} className="ml-auto inline-flex min-h-9 shrink-0 items-center gap-1.5 text-xs text-site-muted transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-site-accent"><RotateCcw size={12} aria-hidden="true" />초기화</Link>
       </div>
     }
   </Form>

@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { usePathname } from "next/navigation"
 import { Menu, X, Search } from "lucide-react"
 import { SiteSearchForm } from "@/components/site-search-form"
@@ -13,27 +13,8 @@ export function SiteHeader() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
-  const [pastHero, setPastHero] = useState(false)
 
   const isHome = pathname === "/"
-  // HOME shares one fixed background photo across every section, so the
-  // header stays on the light-on-dark treatment the whole time it's on that
-  // page — only the background solidity behind it changes on scroll.
-  const transparent = isHome && !pastHero
-
-  useEffect(() => {
-    if (!isHome) return
-
-    const hero = document.getElementById("site-hero")
-    if (!hero) return
-
-    setPastHero(false)
-    const observer = new IntersectionObserver(([entry]) => setPastHero(!entry.isIntersecting), {
-      rootMargin: "-64px 0px 0px 0px",
-    })
-    observer.observe(hero)
-    return () => observer.disconnect()
-  }, [isHome])
 
   return (
     <>
@@ -43,14 +24,7 @@ export function SiteHeader() {
       {!isHome && <div className="h-18" aria-hidden="true" />}
       <header
       style={{ viewTransitionName: "site-header" }}
-      className={cn(
-        "fixed inset-x-0 top-0 z-50 transition-colors duration-300",
-        isHome
-          ? transparent
-            ? "border-b border-white/10 bg-transparent"
-            : "border-b border-white/10 bg-[#050c18]/75 backdrop-blur-sm"
-          : "border-b border-white/10 bg-black/40 backdrop-blur-sm",
-      )}
+      className="site-header-surface fixed inset-x-0 top-0 z-50 border-b border-site-line-soft"
     >
       <div className="mx-auto flex h-18 max-w-6xl items-center justify-between px-6">
         <Link href="/" className="flex items-center gap-2" aria-label="SMP 홈으로 이동">
@@ -66,15 +40,7 @@ export function SiteHeader() {
                   <Link
                     href={item.href}
                     aria-current={active ? "page" : undefined}
-                    className={cn(
-                      "text-xs font-normal tracking-[0.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                      isHome
-                        ? cn("text-white/80 hover:text-white focus-visible:ring-offset-transparent", active && "text-white")
-                        : cn(
-                            "text-white/80 hover:text-white focus-visible:ring-offset-transparent",
-                            active && "text-white",
-                          ),
-                    )}
+                    className="site-nav-link inline-flex min-h-11 items-center text-xs tracking-[0.14em]"
                   >
                     {item.label}
                   </Link>
@@ -89,7 +55,7 @@ export function SiteHeader() {
           type="button"
           onClick={() => { setOpen((v) => !v); setSearchOpen(false) }}
           className={cn(
-            "inline-flex h-11 w-11 items-center justify-center rounded-[4px] transition-colors hover:bg-white/5 lg:hidden focus-visible:outline-2 focus-visible:outline-sky-200",
+            "inline-flex h-11 w-11 items-center justify-center rounded-[4px] transition-colors hover:bg-white/5 lg:hidden focus-visible:outline-2 focus-visible:outline-site-accent",
             "text-white",
           )}
           aria-expanded={open}
@@ -98,12 +64,12 @@ export function SiteHeader() {
         >
           {open ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
         </button>
-        <button type="button" aria-label={searchOpen ? "검색 닫기" : "검색 열기"} aria-expanded={searchOpen} aria-controls="site-search" onClick={() => { setSearchOpen(v => !v); setOpen(false) }} className="inline-flex h-11 w-11 items-center justify-center rounded-[4px] text-slate-300 transition-colors hover:bg-white/5 hover:text-white aria-expanded:bg-white/10 aria-expanded:text-white focus-visible:outline-2 focus-visible:outline-sky-200">
+        <button type="button" aria-label={searchOpen ? "검색 닫기" : "검색 열기"} aria-expanded={searchOpen} aria-controls="site-search" onClick={() => { setSearchOpen(v => !v); setOpen(false) }} className="inline-flex h-11 w-11 items-center justify-center rounded-[4px] text-site-body transition-colors hover:bg-white/5 hover:text-white aria-expanded:bg-white/10 aria-expanded:text-white focus-visible:outline-2 focus-visible:outline-site-accent">
           {searchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
         </button>
         </div>
       </div>
-      {searchOpen && <div id="site-search" className="max-h-[calc(100svh-4.5rem)] overflow-y-auto overscroll-contain border-t border-white/10 bg-[#101821] px-6 py-6 shadow-[0_16px_32px_-20px_rgba(0,0,0,0.6)] sm:py-8" onKeyDown={event => { if (event.key === "Escape") { setSearchOpen(false); document.querySelector<HTMLButtonElement>('button[aria-controls="site-search"]')?.focus() } }}>
+      {searchOpen && <div id="site-search" className="max-h-[calc(100svh-4.5rem)] overflow-y-auto overscroll-contain border-t border-site-line-soft bg-site-surface px-6 py-6 shadow-[0_16px_32px_-20px_rgba(0,0,0,0.6)] sm:py-8" onKeyDown={event => { if (event.key === "Escape") { setSearchOpen(false); document.querySelector<HTMLButtonElement>('button[aria-controls="site-search"]')?.focus() } }}>
         <SiteSearchForm onNavigate={() => setSearchOpen(false)} />
       </div>}
 
@@ -113,7 +79,7 @@ export function SiteHeader() {
           aria-label="모바일 메뉴"
           className={cn(
             "border-t lg:hidden",
-            "border-white/10 bg-[#050c18]/95 backdrop-blur-sm",
+            "border-site-line-soft bg-site-surface",
           )}
         >
           <ul className="mx-auto flex max-w-6xl flex-col px-6 py-2">
@@ -125,12 +91,7 @@ export function SiteHeader() {
                     href={item.href}
                     onClick={() => setOpen(false)}
                     aria-current={active ? "page" : undefined}
-                    className={cn(
-                      "block py-3 text-sm font-normal tracking-[0.1em] transition-colors",
-                      isHome
-                        ? cn("text-white/80 hover:text-white", active && "text-white")
-                        : cn("text-white/80 hover:text-white", active && "text-white"),
-                    )}
+                    className="site-nav-link block py-3 text-sm tracking-[0.1em]"
                   >
                     {item.label}
                   </Link>

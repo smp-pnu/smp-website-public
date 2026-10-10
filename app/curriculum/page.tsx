@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { PageIntro } from "@/components/page-intro"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { CurriculumMotion } from "@/components/curriculum-motion"
@@ -17,29 +18,27 @@ export default function CurriculumPage() {
     <SiteHeader />
     <CurriculumMotion>
       <div className="mx-auto max-w-6xl px-6">
-        <section className="py-14 sm:py-20">
-          <p className="text-xs tracking-[0.3em] text-sky-300">CURRICULUM</p>
-          <h1 className="mt-5 text-3xl font-medium leading-snug text-white sm:text-5xl">금융리더를 향한 네 번의 도약</h1>
-          <p className="mt-6 max-w-2xl text-base leading-loose text-slate-300">리서치의 기초를 배우고, 기업을 분석하고, 팀과 함께 투자합니다.<br />SMP의 정규 커리큘럼은 신입교육부터 Senior 정규세션까지 이어집니다.</p>
-          <nav aria-label="커리큘럼 4단계" className="mt-5 sm:mt-7">
+        <section className="pt-14 pb-16 sm:pt-18 sm:pb-20">
+          <PageIntro eyebrow="CURRICULUM" title="금융리더를 향한 네 번의 도약">리서치의 기초를 배우고, 기업을 분석하고, 팀과 함께 투자합니다.<br />SMP의 정규 커리큘럼은 신입교육부터 Senior 정규세션까지 이어집니다.</PageIntro>
+          <nav aria-label="커리큘럼 4단계" className="mt-12 sm:mt-14">
             <ol className="grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-4">
               {stages.map((stage, index) => <li key={stage.id} className="curriculum-step-item" style={{ animationDelay: `${index * 180}ms` }}>
-                <a data-stage-link href={`#${stage.id}`} className="curriculum-stage block pt-5 focus-visible:outline-2 focus-visible:outline-sky-300">
+                <a data-stage-link href={`#${stage.id}`} className="curriculum-stage block pt-5 focus-visible:outline-2 focus-visible:outline-site-accent">
                   <span aria-hidden="true" className="curriculum-bar"><span style={{ animationDelay: `${300 + index * 450}ms`, background: ["#ffffff", "#b9ddff", "#6cb5ff", "#2585ed"][index] }} /></span>
-                  <span className="text-xs tracking-[0.16em] text-sky-300">STEP 0{index + 1}</span>
+                  <span className="text-xs tracking-[0.16em] text-site-accent">STEP 0{index + 1}</span>
                   <span className="mt-3 block text-lg font-medium text-white sm:text-xl">{stage.name}</span>
-                  <span className="mt-2 block text-sm leading-relaxed text-slate-300">{stage.summary}</span>
+                  <span className="mt-2 block text-sm leading-relaxed text-site-body">{stage.summary}</span>
                 </a>
               </li>)}
             </ol>
           </nav>
         </section>
-        {stages.map((stage, index) => <section key={stage.id} id={stage.id} tabIndex={-1} className="grid scroll-mt-24 gap-8 border-t border-white/20 py-14 sm:py-20 md:grid-cols-[1fr_1.5fr] md:gap-16">
-          <div><p className="text-xs tracking-[0.2em] text-sky-300">STEP 0{index + 1} · {stage.label}</p><h2 className="mt-4 text-3xl font-light text-white">{stage.name}</h2></div>
+        {stages.map((stage, index) => <section key={stage.id} id={stage.id} tabIndex={-1} className="grid scroll-mt-24 gap-8 border-t border-site-line py-14 sm:py-20 md:grid-cols-[1fr_1.5fr] md:gap-16">
+          <div><p className="text-xs tracking-[0.2em] text-site-accent">STEP 0{index + 1} · {stage.label}</p><h2 className="mt-4 text-3xl font-light text-white">{stage.name}</h2></div>
           <div>
             <h3 className="text-xl font-normal text-white">{stage.summary}</h3>
-            <p className="mt-5 text-base leading-loose text-slate-300">{stage.description}</p>
-            <ul className="mt-7 space-y-3 border-l border-sky-300/50 pl-5 text-sm leading-relaxed text-slate-300">{stage.topics.map((topic) => <li key={topic}>{topic}</li>)}</ul>
+            <p className="mt-5 text-base leading-loose text-site-body">{stage.description}</p>
+            <ul className="mt-7 space-y-3 border-l border-sky-300/50 pl-5 text-sm leading-relaxed text-site-body">{stage.topics.map((topic) => <li key={topic}>{topic}</li>)}</ul>
           </div>
         </section>)}
       </div>

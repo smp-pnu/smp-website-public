@@ -25,7 +25,7 @@ export function WhatWeDoSection() {
     <section className="px-6 py-16 sm:py-20">
       <div className="mx-auto max-w-[1600px]">
         <div className="text-center">
-          <span className="text-xs font-normal tracking-[0.3em] text-sky-300">WHAT WE DO</span>
+          <span className="text-xs font-normal tracking-[0.3em] text-site-accent">WHAT WE DO</span>
           <h2 className="mt-4 text-2xl font-medium leading-snug text-white sm:text-3xl">
             분석하고, 투자하고, 토론하며 시장을 보는 힘을 기릅니다.
           </h2>
@@ -37,13 +37,13 @@ export function WhatWeDoSection() {
               key={title}
               className="flex flex-col items-start gap-4 px-2 py-8"
             >
-              <span className="inline-flex h-11 w-11 items-center justify-center text-sky-300">
+              <span className="inline-flex h-11 w-11 items-center justify-center text-site-accent">
                 <Icon className="h-5 w-5" aria-hidden="true" />
               </span>
               <h3 className="font-[family-name:var(--font-display)] text-lg font-normal tracking-tight text-white">
                 {title}
               </h3>
-              <p className="text-sm leading-relaxed text-slate-300">{description.map(line => <span key={line} className="block">{line}</span>)}</p>
+              <p className="text-sm leading-relaxed text-site-body">{description.map(line => <span key={line} className="block">{line}</span>)}</p>
             </li>
           ))}
         </ul>

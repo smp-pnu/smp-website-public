@@ -12,7 +12,7 @@ export function SiteFooter() {
     <footer
       className={cn(
         "relative z-10 border-t",
-        "border-white/10 bg-[#050c18]/80 backdrop-blur-sm",
+        "site-footer-surface border-site-line-soft",
       )}
     >
       <div className="mx-auto max-w-6xl px-6 py-14">
@@ -23,10 +23,10 @@ export function SiteFooter() {
               alt="부산대학교"
               width={2172}
               height={724}
-              className="h-12 w-auto max-w-[260px] object-contain object-left sm:h-14"
+              className="h-12 w-auto max-w-[260px] object-contain object-left brightness-0 invert opacity-85 sm:h-14"
             />
             <LogoFull variant="white" className="h-12 w-auto" />
-            <p className="text-sm leading-relaxed text-slate-300">
+            <p className="text-sm leading-relaxed text-site-body">
               {SITE_NAME_KO}
             </p>
           </div>
@@ -50,11 +50,11 @@ export function SiteFooter() {
           </nav>
         </div>
 
-        <div className="mt-12 border-t border-white/10 pt-6">
-          <p className="text-xs leading-relaxed text-slate-400">
+        <div className="mt-12 border-t border-site-line-soft pt-6">
+          <p className="text-xs leading-relaxed text-site-muted">
             © {new Date().getFullYear()} {SITE_NAME_KO}. All rights reserved.
           </p>
-          <p className="mt-2 text-xs leading-relaxed text-slate-400">Created by SI YEONG KIM</p>
+          <p className="mt-2 text-xs leading-relaxed text-site-muted">Created by SI YEONG KIM</p>
         </div>
       </div>
     </footer>

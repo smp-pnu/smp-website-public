@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { ArrowUpRight, Mail, Camera, MessagesSquare } from "lucide-react"
+import { PageIntro } from "@/components/page-intro"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 
@@ -13,18 +14,17 @@ export default function ContactPage() {
   ]
   return <>
     <SiteHeader />
-    <main className="relative z-10 min-h-[75svh] bg-black/30">
-      <div className="mx-auto max-w-6xl px-6 py-14 sm:py-20">
-        <h1 className="text-xs font-normal tracking-[0.3em] text-sky-300">CONTACT</h1>
-        <p className="mt-5 text-base leading-loose text-slate-300 sm:text-lg">학회 활동과 모집에 관한 문의는 아래 공식 채널로 보내주세요.</p>
+    <main className="relative z-10 min-h-[75svh]">
+      <div className="site-page max-w-6xl">
+        <PageIntro eyebrow="CONNECT WITH SMP" title="CONTACT">학회 활동과 모집에 관한 문의는 아래 공식 채널로 보내주세요.</PageIntro>
         <div className="mt-14 grid gap-10 md:grid-cols-3">
           {channels.map(({ label, name, detail, href, action, icon: Icon, external }) => <section key={label} className="flex flex-col border-t border-white/25 pt-7">
-            <Icon className="h-6 w-6 text-sky-300" strokeWidth={1.25} aria-hidden="true" />
-            <h3 className="mt-5 text-xs font-normal tracking-[0.2em] text-sky-300">{label}</h3>
+            <Icon className="h-6 w-6 text-site-accent" strokeWidth={1.25} aria-hidden="true" />
+            <h2 className="mt-5 text-xs font-normal tracking-[0.2em] text-site-accent">{label}</h2>
             <p className="mt-4 break-words text-lg leading-relaxed text-white">{name}</p>
-            {detail && <p className="mt-2 text-sm text-slate-400">{detail}</p>}
+            {detail && <p className="mt-2 text-sm text-site-muted">{detail}</p>}
             <div className="mt-auto pt-8">
-              <a href={href} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined} className="inline-flex items-center gap-2 text-sm text-sky-300 transition-colors hover:text-sky-200 focus-visible:outline-2 focus-visible:outline-sky-300">
+              <a href={href} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined} className="inline-flex items-center gap-2 text-sm text-site-accent transition-colors hover:text-site-accent focus-visible:outline-2 focus-visible:outline-site-accent">
                 {action}<ArrowUpRight className="h-4 w-4" aria-hidden="true" />
                 {external && <span className="sr-only"> (새 창)</span>}
               </a>

@@ -11,7 +11,7 @@ import { ResearchSearchForm } from "./research-search-form"
 export type { ContentSearch } from "@/lib/content-navigation"
 
 function ContentState({ state, kind }: { state: ContentResult["state"]; kind: ContentKind }) {
-  return <p role={state === "error" ? "alert" : "status"} className="border-y border-white/20 px-4 py-20 text-center leading-relaxed text-slate-300">
+  return <p role={state === "error" ? "alert" : "status"} className="border-y border-site-line px-4 py-20 text-center leading-relaxed text-site-body">
     {state === "error" ? "목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요." : kind === "notice" ? "등록된 공지가 없습니다." : "공개 리포트를 준비하고 있습니다."}
   </p>
 }
@@ -30,7 +30,7 @@ export function ContentList({ result, kind, search }: { result: ContentResult; k
   }))
   let content
   if (result.state !== "ready" || !result.items.length) content = <ContentState state={result.state} kind={kind} />
-  else if (!total) content = <p className="border-y border-white/20 py-20 text-center text-slate-300">검색 결과가 없습니다. 다른 검색어로 검색해보세요.</p>
+  else if (!total) content = <p className="border-y border-site-line py-20 text-center text-site-body">검색 결과가 없습니다. 다른 검색어로 검색해보세요.</p>
   else content = isResearch && !listView ? <ResearchGrid items={visibleItems} listSearch={listSearch} /> : <ContentRows items={visibleItems} listSearch={listSearch} />
 
   return <>
