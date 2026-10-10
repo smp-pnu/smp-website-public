@@ -10,7 +10,7 @@ import worker from '../free/server/worker'
 test('signed deletion catches reports trashed between polls without relaying unpublishing or foreign pages',async t=>{
   Object.assign(globalThis,{__SMP_FIXTURE__:false})
   const sqlite=new DatabaseSync(':memory:')
-  for(const name of ['0002_free_runtime','0003_free_guards','0004_document_versions'])sqlite.exec(readFileSync(new URL(`../cloudflare/migrations/${name}.sql`,import.meta.url),'utf8'))
+  for(const name of ['0002_free_runtime','0003_free_guards','0004_document_versions','0006_report_cover_cache'])sqlite.exec(readFileSync(new URL(`../cloudflare/migrations/${name}.sql`,import.meta.url),'utf8'))
   const prepare=(sql:string,params:unknown[]=[]):Statement=>({bind:(...args)=>prepare(sql,args),async first<T>(){return(sqlite.prepare(sql).get(...params as any[])??null) as T|null},async all<T>(){return{results:sqlite.prepare(sql).all(...params as any[]) as T[]}},async run(){return sqlite.prepare(sql).run(...params as any[])}})
   const source='33333333333343338333333333333333',id='a0000000000000000000000000000001'
   const token='test-webhook-verification-token',relayed:unknown[]=[]

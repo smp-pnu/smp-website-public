@@ -27,7 +27,9 @@ export async function internal(request: Request, env: Env) {
       await env.CMS_DB.prepare("UPDATE free_jobs SET attempts=attempts-1,lease_token=NULL,lease_until=0 WHERE id=? AND lease_token=?").bind(row.id,token).run()
       throw error
     }
-    const entry = await env.CMS_DB.prepare("SELECT kind,item,cover FROM free_content WHERE id=?").bind(row.id).first<{ kind: "research" | "notice" | "members"; item: string; cover:string|null }>()
+    const entry = await env.CMS_DB.prepare(`SELECT kind,item,CASE WHEN kind='research' THEN
+      COALESCE((SELECT cover FROM free_report_covers WHERE id=free_content.id),cover) ELSE cover END AS cover
+      FROM free_content WHERE id=?`).bind(row.id).first<{ kind: "research" | "notice" | "members"; item: string; cover:string|null }>()
     if (!entry) { await env.CMS_DB.prepare("DELETE FROM free_jobs WHERE id=? AND lease_token=?").bind(row.id, token).run(); return json({ job: null }) }
     return json({ job: { ...row, token, kind: entry.kind, item: JSON.parse(entry.item),cover:entry.cover?JSON.parse(entry.cover):null } })
   }
@@ -52,7 +54,8 @@ export async function internal(request: Request, env: Env) {
   if (!Array.isArray(input.blocks) || input.blocks.length > 500) return json({ error: "Invalid body" },400)
   if (input.cover && (!new RegExp(`^/report-covers/${id}/[a-f0-9]{64}\\.webp$`).test(input.cover.url)
     || !new RegExp(`^/report-covers/${id}/[a-f0-9]{64}\\.webp$`).test(input.cover.previewUrl)
-    || ![input.cover.width,input.cover.height].every(n=>Number.isSafeInteger(n)&&n>0&&n<=4096))) return json({error:"Invalid cover"},400)
+    || ![input.cover.width,input.cover.height].every(n=>Number.isSafeInteger(n)&&n>0&&n<=4096)
+    || (entry?.kind==='research' && (!/^[a-f0-9]{64}$/.test(input.cover.sourceKey??'') || !/^[a-f0-9]{64}$/.test(input.cover.pdfHash??''))))) return json({error:"Invalid cover"},400)
   const media:string[]=[]
   function collect(blocks: {id:string;type:string;children?:unknown[]}[]) {
     for(const block of blocks) {
@@ -67,6 +70,12 @@ export async function internal(request: Request, env: Env) {
     env.CMS_DB.prepare("INSERT INTO free_media(page_id,block_id) SELECT ?,value FROM json_each(?)").bind(id,JSON.stringify(media)),
     env.CMS_DB.prepare("UPDATE free_content SET blocks=?,body_revision=?,cover=? WHERE id=? AND revision=?")
       .bind(JSON.stringify(input.blocks),lease.revision,input.cover?JSON.stringify(input.cover):null,id,lease.revision),
+    env.CMS_DB.prepare(`INSERT INTO free_report_covers(id,revision,cover)
+      SELECT id,revision,cover FROM free_content WHERE id=? AND revision=? AND kind='research' AND cover IS NOT NULL
+      ON CONFLICT(id) DO UPDATE SET revision=excluded.revision,cover=excluded.cover
+      WHERE free_report_covers.revision<excluded.revision`).bind(id,lease.revision),
+    env.CMS_DB.prepare(`DELETE FROM free_report_covers WHERE id=? AND EXISTS(
+      SELECT 1 FROM free_content WHERE id=? AND revision=? AND kind='research' AND cover IS NULL)`).bind(id,id,lease.revision),
     env.CMS_DB.prepare("DELETE FROM free_jobs WHERE id=? AND lease_token=? AND revision=?").bind(id,input.token,lease.revision),
   ])
   await rebuildDocuments(env,[entry!.kind])

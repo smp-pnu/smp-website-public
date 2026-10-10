@@ -13,7 +13,7 @@ test('cached catalog is rejected after withdrawal or stale publication verificat
   const cache=new Map<string,Response>(),pending:Promise<unknown>[]=[]
   Object.assign(globalThis,{caches:{default:{async match(key:Request){return cache.get(key.url)?.clone()},async put(key:Request,value:Response){cache.set(key.url,value.clone())}}}})
   const sqlite=new DatabaseSync(':memory:')
-  for(const name of ['0002_free_runtime','0003_free_guards','0004_document_versions'])sqlite.exec(readFileSync(new URL(`../cloudflare/migrations/${name}.sql`,import.meta.url),'utf8'))
+  for(const name of ['0002_free_runtime','0003_free_guards','0004_document_versions','0006_report_cover_cache'])sqlite.exec(readFileSync(new URL(`../cloudflare/migrations/${name}.sql`,import.meta.url),'utf8'))
   const prepare=(sql:string,params:unknown[]=[]):Statement=>({bind:(...args)=>prepare(sql,args),async first<T>(){return(sqlite.prepare(sql).get(...params as any[])??null) as T|null},async all<T>(){return{results:sqlite.prepare(sql).all(...params as any[]) as T[]}},async run(){return sqlite.prepare(sql).run(...params as any[])}})
   const db:Database={prepare,batch:async statements=>Promise.all(statements.map(s=>s.run()))}
   const source='33333333333343338333333333333333'

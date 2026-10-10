@@ -11,6 +11,7 @@ import { normalizeId,toContentItem,type ContentItem,type NotionPage } from "../.
 import { toMember,type Member } from "../../lib/member-model"
 import { reconcileIfDue } from "./reconcile"
 import { syncReportMetadataUsing } from "../../lib/report-metadata-service"
+import { ensureReportCoverCache } from "./report-cover-cache"
 
 type Job={id:string;kind:"research"|"notice"|"members";revision:string;token:string;item:ContentItem|Member;cover:Cover|null}
 type Completed={job:Job;blocks:Awaited<ReturnType<typeof prepareBody>>;cover:Cover|null}
@@ -32,6 +33,7 @@ async function main() {
     nextRequest=Date.now()+1100
     return fetch(input,init)
   }}
+  await ensureReportCoverCache(env.CMS_DB)
   // No overlapping publishing runs, even if a second runner/manual job starts.
   const now=Date.now()
   const lock=await env.CMS_DB.prepare(`INSERT INTO free_controls(name,until_at) VALUES ('publisher',?) ON CONFLICT(name) DO UPDATE SET until_at=excluded.until_at WHERE until_at<? RETURNING until_at`).bind(now+14*60_000,now).first()
@@ -74,7 +76,7 @@ async function main() {
     // Recover every currently referenced asset from this site's last deployment;
     // if even one recovery fails, leave that deployment in place.
     await mkdir(".smp-cache/covers",{recursive:true})
-    const records=await env.CMS_DB.prepare("SELECT cover,blocks FROM free_content").all<{cover:string|null;blocks:string|null}>()
+    const records=await env.CMS_DB.prepare("SELECT cover,blocks FROM free_content UNION ALL SELECT cover,NULL AS blocks FROM free_report_covers").all<{cover:string|null;blocks:string|null}>()
     const assets=new Set<string>()
     for(const row of records.results) {
       const text=[row.cover,row.blocks].filter(Boolean).join(" ")

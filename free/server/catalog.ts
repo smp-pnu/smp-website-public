@@ -49,11 +49,12 @@ export async function storePages(env:Env,pages:NotionPage[],kind:ContentKind|"me
     const due=timestamp>Date.now()?timestamp:null
     // Signed upload URLs never belong in a public catalogue. The publisher
     // reads the fresh page when preparing this photo as a static asset.
-    return [{id,kind,revision,item:photo?{...item,image:`/api/member-photo/${id}`}:item,entry,photo,due}]
+    return [{id,kind,revision,item:photo?{...item,image:`/api/member-photo/${id}`}:item,entry,photo,due,deleted:!!(page.archived||page.in_trash)}]
   })
   if(!rows.length) return false
   const data=JSON.stringify(rows)
   const withdrawn=JSON.stringify(rows.filter(row=>!row.item).map(({id,revision})=>({id,revision})))
+  const deleted=JSON.stringify(rows.filter(row=>row.deleted).map(({id,revision})=>({id,revision})))
   // One transaction prevents old overlapping events from resurrecting a page.
   // A fixed number of statements per batch, independent of the row count.
   const results=await env.CMS_DB.batch([
@@ -74,6 +75,11 @@ export async function storePages(env:Env,pages:NotionPage[],kind:ContentKind|"me
       WHERE (kind!='members' OR id IN(SELECT value->>'$.id' FROM json_each(?) WHERE value->>'$.photo'=1)) AND (body_revision IS NULL OR body_revision!=revision) AND id IN(SELECT value->>'$.id' FROM json_each(?))
       ON CONFLICT(id) DO UPDATE SET revision=excluded.revision,attempts=0,next_at=excluded.next_at WHERE free_jobs.revision<excluded.revision`).bind(Date.now(),data,data),
     env.CMS_DB.prepare(`DELETE FROM free_jobs WHERE id IN(SELECT value->>'$.id' FROM json_each(?)) AND NOT EXISTS(SELECT 1 FROM free_content WHERE free_content.id=free_jobs.id)`).bind(data),
+    // Unpublishing keeps the verified cover cache; actual deletion clears it.
+    env.CMS_DB.prepare(`DELETE FROM free_report_covers WHERE id IN(SELECT value->>'$.id' FROM json_each(?))
+      AND revision<=COALESCE((SELECT value->>'$.revision' FROM json_each(?) WHERE value->>'$.id'=free_report_covers.id),'')
+      AND COALESCE((SELECT value->>'$.revision' FROM json_each(?) WHERE value->>'$.id'=free_report_covers.id),'')>=COALESCE((SELECT revision FROM free_tombstones WHERE id=free_report_covers.id),'')
+      AND NOT EXISTS(SELECT 1 FROM free_content WHERE id=free_report_covers.id)`).bind(deleted,deleted,deleted),
     env.CMS_DB.prepare(`INSERT INTO free_tombstones(id,revision) SELECT value->>'$.id',value->>'$.revision' FROM json_each(?) WHERE true
       ON CONFLICT(id) DO UPDATE SET revision=excluded.revision WHERE revision<excluded.revision`).bind(data),
     env.CMS_DB.prepare(`INSERT INTO free_controls(name,until_at) SELECT 'publish-at:'||(value->>'$.id'),value->>'$.due' FROM json_each(?)
@@ -90,6 +96,7 @@ export async function removePage(env:Env,id:string,revision=new Date().toISOStri
     env.CMS_DB.prepare("DELETE FROM free_content WHERE id=? AND revision<=?").bind(id,revision),
     env.CMS_DB.prepare("DELETE FROM free_jobs WHERE id=? AND NOT EXISTS(SELECT 1 FROM free_content WHERE id=?)").bind(id,id),
     env.CMS_DB.prepare("DELETE FROM free_media WHERE page_id=? AND NOT EXISTS(SELECT 1 FROM free_content WHERE id=?)").bind(id,id),
+    env.CMS_DB.prepare("DELETE FROM free_report_covers WHERE id=? AND revision<=? AND NOT EXISTS(SELECT 1 FROM free_content WHERE id=?)").bind(id,revision,id),
     env.CMS_DB.prepare("INSERT INTO free_tombstones(id,revision) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET revision=MAX(revision,excluded.revision)").bind(id,revision),
   ])
   return changes(results[0])>0
