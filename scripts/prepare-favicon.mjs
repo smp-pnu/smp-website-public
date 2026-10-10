@@ -1,9 +1,9 @@
-// Export the approved white S mark on a transparent square canvas.
+// Export the approved white S with three swept wing cuts on a transparent canvas.
 import { readFile, writeFile } from 'node:fs/promises'
 import sharp from 'sharp'
 
 const source = await readFile('public/smp-s-white.svg', 'utf8')
-// Keep definitions and masks: the original beak contour is part of the mark.
+// Preserve the approved artwork, including its beak contour and feather positions.
 const mark = source.slice(source.indexOf('>') + 1, source.lastIndexOf('</svg>'))
 const viewBox = source.match(/viewBox="([^"]+)"/)[1]
 const [, , sourceWidth, sourceHeight] = viewBox.split(' ').map(Number)
