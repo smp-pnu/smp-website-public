@@ -28,7 +28,9 @@ test('cached catalog is rejected after withdrawal or stale publication verificat
     page.properties.공개.checkbox=false;page.last_edited_time='2020-01-02T00:00:00Z'
     await storePage(env,page,'research');await rebuildDocuments(env)
     response=await request();assert.equal((await response.json() as any).items.length,0)
-    sqlite.prepare('UPDATE free_sync SET checked_at=?').run(Date.now()-91_000)
+    sqlite.prepare('UPDATE free_sync SET checked_at=?').run(Date.now()-180_000)
+    assert.equal((await request()).status,200)
+    sqlite.prepare('UPDATE free_sync SET checked_at=?').run(Date.now()-301_000)
     assert.equal((await request()).status,503)
     assert.equal((await worker.fetch(new Request('https://fixture.invalid/api/internal/status'),env,{waitUntil(){}})).status,404)
   }finally{await Promise.all(pending);sqlite.close();delete (globalThis as any).caches}

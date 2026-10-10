@@ -4,7 +4,9 @@ import { DatabaseSync } from "node:sqlite"
 import { readFileSync } from "node:fs"
 import type { Database,Statement } from "../cloudflare/bindings"
 import { spend,notionBudget } from "../free/server/budget"
-import { storePage,rebuildDocuments,removePage } from "../free/server/catalog"
+import { storePage,storePages,rebuildDocuments,removePage } from "../free/server/catalog"
+import { reconcileIfDue } from "../free/jobs/reconcile"
+import { memberPhoto } from "../free/server/member-photo"
 import { internal } from "../free/server/jobs"
 import { notion } from "../free/server/notion"
 import type { Env } from "../free/server/types"
@@ -37,8 +39,8 @@ test("CMS budget reserves both windows atomically and honors shared backoff",asy
   const {sqlite,db}=setup()
   try {
     const results=await Promise.allSettled(Array.from({length:150},()=>notionBudget(db,100)))
-    assert.equal(results.filter(r=>r.status==="fulfilled").length,120)
-    assert.deepEqual(sqlite.prepare("SELECT count FROM free_budget ORDER BY key").all().map(r=>r.count),[120,120])
+    assert.equal(results.filter(r=>r.status==="fulfilled").length,100)
+    assert.deepEqual(sqlite.prepare("SELECT count FROM free_budget ORDER BY key").all().map(r=>r.count),[100,100,100,100])
     sqlite.prepare("UPDATE free_budget SET count=8000 WHERE key='notion-day:0'").run()
     await assert.rejects(notionBudget(db,60_100))
     assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM free_budget WHERE key='notion-minute:1'").get()!.n,0)
@@ -107,6 +109,90 @@ test("Workers-compatible CMS transport refuses redirects without forwarding its 
     await assert.rejects(notion(env,"pages/test"),/CMS unavailable \(302\)/)
     assert.equal(calls,1)
   } finally {sqlite.close()}
+})
+test("visitor exhaustion reserves both synchronization and publisher capacity",async()=>{
+  const {sqlite,db}=setup()
+  try {
+    for(let i=0;i<100;i++) await notionBudget(db,100,"visitor")
+    await assert.rejects(notionBudget(db,100,"visitor"))
+    await notionBudget(db,100,"sync");await notionBudget(db,100,"publisher");await notionBudget(db,100,"webhook")
+    sqlite.prepare("UPDATE free_budget SET count=1800 WHERE key='notion-visitor-day:0'").run()
+    await assert.rejects(notionBudget(db,60_100,"visitor"))
+    await notionBudget(db,60_100,"sync")
+    assert.equal(sqlite.prepare("SELECT count FROM free_budget WHERE key='notion-minute:1'").get()!.count,1)
+  } finally {sqlite.close()}
+})
+test("withdrawal selects primary keys rather than scanning the whole catalogue",async()=>{
+  const {sqlite,env}=setup();const queries:string[]=[]
+  const prepare=env.CMS_DB.prepare
+  env.CMS_DB.prepare=sql=>{queries.push(sql);return prepare(sql)}
+  try {
+    const pages=Array.from({length:821},(_,i)=>({...page(),id:i.toString(16).padStart(32,"0")}))
+    assert.equal(await storePages(env,pages,"research"),true)
+    assert.equal(await storePages(env,pages.slice(0,100),"research"),false)
+    const deletion=queries.find(sql=>sql.startsWith("DELETE FROM free_content"))!
+    const plan=sqlite.prepare(`EXPLAIN QUERY PLAN ${deletion}`).all("[]","[]").map(row=>row.detail).join(" ")
+    assert.match(plan,/SEARCH free_content USING INDEX/)
+    assert.doesNotMatch(plan,/SCAN free_content/)
+    await storePages(env,[{...pages[300],last_edited_time:"2026-01-02T00:00:00.000Z",properties:page(undefined,false).properties}],"research")
+    assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM free_content").get()!.n,820)
+    await storePages(env,[pages[300]],"research")
+    assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM free_content").get()!.n,820)
+  }finally{sqlite.close()}
+})
+test("daily reconciliation skips healthy quarter-hour runs and never checkpoints a failed pass",async()=>{
+  const {sqlite,env}=setup();let calls=0
+  Object.assign(env,{NOTION_WORKLOAD:"publisher",NOTION_NOTICES_DATA_SOURCE_ID:"22222222222242228222222222222222",NOTION_MEMBERS_DATA_SOURCE_ID:"44444444444444448444444444444444",NOTION_FETCH:async()=>{calls++;return Response.json({results:[],has_more:false,next_cursor:null})}})
+  try {
+    const now=Date.now()
+    assert.equal(await reconcileIfDue(env,now),true);assert.equal(calls,3)
+    assert.equal(await reconcileIfDue(env,now+60_000),false);assert.equal(calls,3)
+    sqlite.prepare("UPDATE free_sync SET checked_at=?").run(now-301_000)
+    assert.equal(await reconcileIfDue(env,now),true);assert.equal(calls,6)
+    sqlite.prepare("UPDATE free_controls SET until_at=? WHERE name='reconcile-next'").run(now-1)
+    env.NOTION_FETCH=async()=>new Response(null,{status:404})
+    await assert.rejects(reconcileIfDue(env,now))
+    assert.equal(sqlite.prepare("SELECT until_at FROM free_controls WHERE name='reconcile-next'").get()!.until_at,now-1)
+  }finally{sqlite.close()}
+})
+test("future publication wakes reconciliation without an intervening page edit",async()=>{
+  const {sqlite,env}=setup()
+  try {
+    const future=page(),due=Date.now()+3600_000
+    future.properties.게시일.date={start:new Date(due).toISOString()}
+    await storePage(env,future,"research")
+    assert.equal(sqlite.prepare("SELECT until_at FROM free_controls WHERE name=?").get(`publish-at:${id}`)!.until_at,due)
+    assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM free_content").get()!.n,0)
+    await storePage(env,page("2025-01-01T00:00:00.000Z"),"research")
+    assert.equal(sqlite.prepare("SELECT until_at FROM free_controls WHERE name=?").get(`publish-at:${id}`)!.until_at,due)
+    await storePage(env,page("2026-01-02T00:00:00.000Z"),"research")
+    assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM free_controls WHERE name LIKE 'publish-at:%'").get()!.n,0)
+  }finally{sqlite.close()}
+})
+test("member uploads are prepared once, hidden while pending and served without a live CMS read",async()=>{
+  const {sqlite,env}=setup();env.NOTION_MEMBERS_DATA_SOURCE_ID=source
+  const member:NotionPage={...page(),properties:{이름:{type:"title",title:[{plain_text:"테스트 회원"}]},기수:{type:"number",number:40},구분:{type:"multi_select",multi_select:[{name:"MEMBERS"}]},공개:{type:"checkbox",checkbox:true},사진:{type:"files",files:[{name:"portrait.jpg",type:"file",file:{url:"https://prod-files-secure.s3.us-west-2.amazonaws.com/test/portrait.jpg"}}]}}}
+  try {
+    await storePage(env,member,"members");await rebuildDocuments(env,["members"])
+    let items=JSON.parse(String(sqlite.prepare("SELECT body FROM free_documents WHERE name='members'").get()!.body)).items
+    assert.equal(items[0].image,undefined)
+    assert.equal((await memberPhoto(env,id)).status,404)
+    const {job}=await (await internal(req("jobs/claim"),env)).json() as any
+    assert.equal(job.kind,"members")
+    const url=`/report-covers/${id}/${"a".repeat(64)}.webp`
+    env.NOTION_FETCH=async()=>Response.json(member)
+    assert.equal((await internal(req(`jobs/${id}/complete`,{...job,blocks:[],cover:{url,previewUrl:url,width:640,height:900}}),env)).status,200)
+    items=JSON.parse(String(sqlite.prepare("SELECT body FROM free_documents WHERE name='members'").get()!.body)).items
+    assert.equal(items[0].image,url)
+    env.NOTION_FETCH=async()=>{throw new Error("Must not fetch CMS")}
+    sqlite.prepare("UPDATE free_sync SET checked_at=? WHERE kind='members'").run(Date.now())
+    assert.equal((await memberPhoto(env,id)).headers.get("Location"),url)
+    assert.equal(await storePage(env,member,"members"),false)
+    assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM free_jobs").get()!.n,0)
+    member.last_edited_time="2026-01-02T00:00:00.000Z";member.properties.공개.checkbox=false
+    await storePage(env,member,"members")
+    assert.equal((await memberPhoto(env,id)).status,404)
+  }finally{sqlite.close()}
 })
 test("Notion throttling does not retry before the shared Retry-After expires",async()=>{
   const {sqlite,env}=setup();let calls=0

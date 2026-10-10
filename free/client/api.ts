@@ -7,7 +7,7 @@ const pending = new Map<string, Promise<unknown>>()
 export class ApiError extends Error {
   constructor(public status: number, public retryAfter: number) { super(status === 404 ? "게시글이 없거나 비공개 상태입니다." : status === 429 ? "접속이 많아 잠시 대기 중입니다. 잠시 후 다시 시도해주세요." : "자료를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.") }
 }
-export async function readApi<T>(path: string, ttl = 30_000): Promise<T> {
+export async function readApi<T>(path: string, ttl = 300_000): Promise<T> {
   const pause=paused.get(path)
   if(pause && pause.until>Date.now()) throw pause.error
   paused.delete(path)
@@ -33,15 +33,15 @@ export async function readApi<T>(path: string, ttl = 30_000): Promise<T> {
   try { return await work } finally { pending.delete(path) }
 }
 
-export function useApi<T>(path: string, ttl = 30_000) {
+export function useApi<T>(path: string, ttl = 300_000) {
   const [state, setState] = useState<{ path: string; value?: T; error?: Error }>({ path })
   useEffect(() => {
     let active = true
     const load = () => { void readApi<T>(path, ttl).then(value => { if (active) setState({ path, value }) }, error => { if (active) setState({ path, error }) }) }
     load()
-    // No automatic retry loops. Refresh visible catalogues at most once/minute.
+    // Lists are already filtered in memory. An idle tab needs no minute poll.
     const tick = () => { if (document.visibilityState === "visible") load() }
-    const interval = ttl ? setInterval(tick, 60_000) : undefined
+    const interval = ttl ? setInterval(tick, 600_000) : undefined
     if (ttl) window.addEventListener("focus", tick)
     return () => { active = false; clearInterval(interval); window.removeEventListener("focus", tick) }
   }, [path, ttl])

@@ -1,15 +1,11 @@
-import { toMember } from "../../lib/member-model"
-import { normalizeId, type NotionPage } from "../../lib/content-model"
-import { isNotionFileUrl } from "../../lib/pdf-source"
-import { notion, source } from "./notion"
 import type { Env } from "./types"
+// Compatibility for an older open tab. New catalogues link to prepared static
+// images directly, so browsing member photos spends no Worker/Notion quota.
 export async function memberPhoto(env:Env,id:string) {
-  const page=await notion<NotionPage>(env,`pages/${id}`)
-  const member=page && normalizeId(page.id)===id && toMember(page,source(env,"members"))
-  if(!member || !member.image || !isNotionFileUrl(member.image)) return new Response("Not found",{status:404})
-  const response=await fetch(member.image,{redirect:"manual",signal:AbortSignal.timeout(20_000)})
-  if(!response.ok || !/^image\/(png|jpeg|webp|gif)$/.test(response.headers.get("content-type")??"")) {await response.body?.cancel();return new Response("Not found",{status:404})}
-  let size=0
-  const body=response.body?.pipeThrough(new TransformStream({transform(chunk,controller){size+=chunk.byteLength;if(size>10*1024*1024) throw new Error("Image too large");controller.enqueue(chunk)}}))
-  return new Response(body,{headers:{"Content-Type":response.headers.get("content-type")!,"Cache-Control":"private, no-store"}})
+  const row=await env.CMS_DB.prepare(`SELECT json_extract(cover,'$.url') AS url FROM free_content
+    WHERE id=? AND kind='members' AND body_revision=revision
+    AND json_extract(item,'$.image')='/api/member-photo/'||id
+    AND (SELECT checked_at FROM free_sync WHERE kind='members')>?`).bind(id,Date.now()-300_000).first<{url:string|null}>()
+  if(!row?.url || !new RegExp(`^/report-covers/${id}/[a-f0-9]{64}\\.webp$`).test(row.url)) return new Response("Not found",{status:404})
+  return new Response(null,{status:307,headers:{Location:row.url,"Cache-Control":"private, no-store"}})
 }

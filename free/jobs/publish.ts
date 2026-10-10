@@ -2,15 +2,17 @@ import { mkdir,writeFile,access,readdir,rm } from "node:fs/promises"
 import { spawnSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import { remoteDatabase } from "./database"
-import { prepareBody,prepareCover,type Cover } from "./prepare"
+import { prepareBody,prepareCover,prepareMemberPhoto,type Cover } from "./prepare"
 import { internal } from "../server/jobs"
-import { notion,published,source } from "../server/notion"
-import { rebuildDocuments,removePage,storePages,storePage } from "../server/catalog"
+import { notion,source } from "../server/notion"
+import { rebuildDocuments,removePage,storePage } from "../server/catalog"
 import { Busy,type Env } from "../server/types"
-import { normalizeId,type ContentItem,type NotionPage } from "../../lib/content-model"
+import { normalizeId,toContentItem,type ContentItem,type NotionPage } from "../../lib/content-model"
+import { toMember,type Member } from "../../lib/member-model"
+import { reconcileIfDue } from "./reconcile"
 import { syncReportMetadataUsing } from "../../lib/report-metadata-service"
 
-type Job={id:string;kind:"research"|"notice";revision:string;token:string;item:ContentItem;cover:Cover|null}
+type Job={id:string;kind:"research"|"notice"|"members";revision:string;token:string;item:ContentItem|Member;cover:Cover|null}
 type Completed={job:Job;blocks:Awaited<ReturnType<typeof prepareBody>>;cover:Cover|null}
 const required=(name:string)=>{const value=process.env[name];if(!value) throw new Error(`Missing ${name}`);return value}
 function command(file:string,args:string[]=[]) {
@@ -24,7 +26,7 @@ async function main() {
   const account=required("CLOUDFLARE_ACCOUNT_ID"),database=required("SMP_FREE_DATABASE_ID")
   if(database==="16cf8db5-1f95-48f3-af68-b32cfa7f7908") throw new Error("Production publisher cannot write to the synthetic trial database")
   let nextRequest=0,requestCount=0
-  const env:Env={...process.env,CMS_DB:remoteDatabase(account,database,required("CLOUDFLARE_API_TOKEN")),ASSETS:{fetch},NOTION_FETCH:async(input,init)=>{
+  const env:Env={...process.env,NOTION_WORKLOAD:"publisher",CMS_DB:remoteDatabase(account,database,required("CLOUDFLARE_API_TOKEN")),ASSETS:{fetch},NOTION_FETCH:async(input,init)=>{
     if(++requestCount>300) throw new Error("Publisher request limit reached")
     await new Promise(resolve=>setTimeout(resolve,Math.max(0,nextRequest-Date.now())))
     nextRequest=Date.now()+1100
@@ -36,8 +38,9 @@ async function main() {
   if(!lock) { console.log("Publisher already active");return }
   const acquiredUntil=now+14*60_000
   const deadline=Date.now()+11*60_000
+  env.NOTION_WAIT_UNTIL=deadline
   try {
-    await reconcile(env)
+    await reconcileIfDue(env)
     const complete:Completed[]=[]
     for(let count=0;count<4 && Date.now()<deadline;count++) {
       const claim=await internal(new Request(`${origin}api/internal/jobs/claim`,{method:"POST"}),env)
@@ -50,13 +53,15 @@ async function main() {
           })
         }
         const page=await notion<NotionPage>(env,`pages/${job.id}`)
-        if(!page) {await removePage(env,job.id);continue}
-        await storePage(env,page,job.kind)
-        const item=await published(env,job.kind,job.id)
-        if(!item) {await removePage(env,job.id);continue}
-        job.revision=item.editedAt!
-        const blocks=await prepareBody(env,item,origin.href)
-        const cover=await prepareCover(item,job.cover)
+        if(!page || page.parent?.type!=="data_source_id" || normalizeId(page.parent.data_source_id??"")!==source(env,job.kind)) {
+          if(await removePage(env,job.id)) await rebuildDocuments(env,[job.kind]);continue
+        }
+        if(await storePage(env,page,job.kind)) await rebuildDocuments(env,[job.kind])
+        const item=job.kind==="members"?toMember(page,source(env,"members")):toContentItem(page,job.kind)
+        if(!item) continue
+        job.revision=page.last_edited_time??page.created_time
+        const blocks=job.kind==="members"?[]:await prepareBody(env,item as ContentItem,origin.href)
+        const cover=job.kind==="members"?await prepareMemberPhoto(item as Member):await prepareCover(item as ContentItem,job.cover)
         complete.push({job,blocks,cover})
       } catch(error) {
         await fail(env,origin,job,error instanceof Busy?error.seconds*1000:900_000)
@@ -107,27 +112,5 @@ async function main() {
 }
 async function fail(env:Env,origin:URL,job:Job,retryAfterMs=900_000) {
   await internal(new Request(`${origin}api/internal/jobs/${job.id}/fail`,{method:"POST",body:JSON.stringify({token:job.token,revision:job.revision,retryAfterMs})}),env)
-}
-async function reconcile(env:Env) {
-  // A completed full pass recovers missed webhooks, deleted pages, future-dated
-  // publications and expired member photo links. Never prune a partial pass.
-  const started=new Date().toISOString()
-  for(const kind of ["research","notice","members"] as const) {
-    const ids:string[]=[],cursors=new Set<string>();let cursor:string|null=null
-    do {
-      const batch:{results:NotionPage[];has_more:boolean;next_cursor:string|null}|null=await notion(env,`data_sources/${source(env,kind)}/query`,{page_size:100,...(cursor?{start_cursor:cursor}:{})})
-      if(!batch) throw new Error("CMS source unavailable")
-      ids.push(...batch.results.flatMap(page=>{const id=normalizeId(page.id);return id?[id]:[]}))
-      if(ids.length>2000) throw new Error("CMS source exceeds the reviewed 2000-page limit")
-      await storePages(env,batch.results,kind)
-      cursor=batch.has_more?batch.next_cursor:null
-      if(batch.has_more && (!cursor || cursors.has(cursor))) throw new Error("Repeated CMS cursor")
-      if(cursor)cursors.add(cursor)
-    } while(cursor)
-    const missing=await env.CMS_DB.prepare("SELECT id FROM free_content WHERE kind=? AND revision<=? AND id NOT IN(SELECT value FROM json_each(?))").bind(kind,started,JSON.stringify(ids)).all<{id:string}>()
-    for(const {id} of missing.results) await removePage(env,id,started)
-    await env.CMS_DB.prepare("UPDATE free_sync SET checked_at=?,watermark=?,cursor=NULL,started_at=NULL WHERE kind=?").bind(Date.now(),started,kind).run()
-  }
-  await rebuildDocuments(env)
 }
 void main().catch(error=>{console.error(error instanceof Busy?`Publisher paused for at least ${error.seconds}s`:error instanceof Error?error.message:"Publisher failed");process.exitCode=1})

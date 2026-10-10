@@ -19,7 +19,7 @@ async function document(request:Request,env: Env,ctx:Context,name: string) {
   // version changes, or when publication freshness cannot be confirmed.
   const state=await env.CMS_DB.prepare(`SELECT version,(SELECT MIN(checked_at) FROM free_sync WHERE kind=? OR ?='search') AS checked_at FROM free_documents WHERE name=?`)
     .bind(name,name,name).first<{version:number;checked_at:number}>()
-  if(!state || (!__SMP_FIXTURE__ && Date.now()-state.checked_at>90_000)) return reply({error:"게시 상태를 확인하고 있습니다. 잠시 후 다시 시도해주세요."},503)
+  if(!state || (!__SMP_FIXTURE__ && Date.now()-state.checked_at>300_000)) return reply({error:"게시 상태를 확인하고 있습니다. 잠시 후 다시 시도해주세요."},503)
   const cache=(globalThis as unknown as {caches?:{default:Cache}}).caches?.default
   const key=new Request(new URL(`/api/cache/${name}?version=${state.version}`,request.url))
   const hit=cache && await cache.match(key)
@@ -38,22 +38,27 @@ async function webhook(request: Request, env: Env) {
   if (!validNotionSignature(raw, request.headers.get("x-notion-signature"), env.NOTION_WEBHOOK_VERIFICATION_TOKEN)) return reply({ error: "Unauthorized" }, 401)
   await spend(env.CMS_DB, "webhook-day", 500, 86_400_000)
   const event = JSON.parse(raw)
+  const eventId=typeof event.id==="string" && /^[a-zA-Z0-9_-]{1,128}$/.test(event.id)?event.id:null
+  if(eventId && await env.CMS_DB.prepare("SELECT id FROM free_events WHERE id=? AND expires_at>?").bind(eventId,Date.now()).first()) return reply({received:true})
   const id = event.entity?.type === "page" && typeof event.entity.id === "string" && normalizeId(event.entity.id)
   if (!id || typeof event.type !== "string" || !/^page\.[a-z_]+$/.test(event.type)) return reply({ ignored: true })
   const known=await env.CMS_DB.prepare("SELECT kind FROM free_content WHERE id=?").bind(id).first<{kind:string}>()
   // Never replay an event's old data; always read current Notion state.
-  const page = await notion<NotionPage>(env, `pages/${id}`)
+  const page = await notion<NotionPage>({...env,NOTION_WORKLOAD:"webhook"}, `pages/${id}`)
   const parent = page?.parent?.type === "data_source_id" && normalizeId(page.parent.data_source_id ?? "")
   const kind = parent && (["research", "notice", "members"] as const).find(kind => source(env, kind) === parent)
   // A report may be created and trashed before the first catalogue poll.
   // Its fresh parent still scopes the hint; Apps Script independently checks
   // trash state, shared references, ownership and the configured Drive folder.
   if (event.type === "page.deleted" && (kind === "research" || known?.kind === "research") && (!page || page.archived || page.in_trash)) await queueDriveCleanup(id, env)
-  if (page && kind) await storePage(env, page, kind)
+  let changed=false
+  if (page && kind) changed=await storePage(env, page, kind)
   else if (!page || page.archived || page.in_trash) {
-    await removePage(env,id)
+    changed=await removePage(env,id)
   }
-  await rebuildDocuments(env)
+  if(changed) await rebuildDocuments(env,kind?[kind]:known?[known.kind as ContentKind | "members"]:[])
+  // Record only completed events: an upstream failure must remain retryable.
+  if(eventId) await env.CMS_DB.prepare("INSERT INTO free_events(id,expires_at) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET expires_at=excluded.expires_at").bind(eventId,Date.now()+86_400_000).run()
   return reply({ received: true })
 }
 
@@ -64,6 +69,7 @@ async function handle(request: Request, env: Env, ctx: Context): Promise<Respons
 
   if (path === "/api/notion/webhook" && request.method === "POST") return webhook(request, env)
   if (!path.startsWith("/api/")) return new Response("Not found", { status: 404 })
+  if(!/^\/api\/(search$|catalog\/(research|notice|members)$|member-photo\/[a-f0-9]{32}$|(detail|content)\/(research|notice)\/[a-f\d-]{32,36}(\/(pdf|file|block-file))?$)/.test(path)) return new Response("Not found",{status:404})
   const denied = await publicBudget(request, env)
   if (denied) return denied
   const photo=/^\/api\/member-photo\/([a-f0-9]{32})$/.exec(path)
@@ -75,6 +81,7 @@ async function handle(request: Request, env: Env, ctx: Context): Promise<Respons
   if (!match) return new Response("Not found", { status: 404 })
   const id = normalizeId(match[3]), kind = match[2] as ContentKind
   if (!id) return new Response("Not found", { status: 404 })
+  if(!await env.CMS_DB.prepare("SELECT id FROM free_content WHERE id=? AND kind=?").bind(id,kind).first()) return new Response("Not found",{status:404})
   const item = await published(env, kind, id)
   if (!item) return new Response("Not found", { status: 404 })
   if (match[1] === "detail" && !match[4]) {
@@ -126,9 +133,10 @@ export default {
     // Three independent CMS sources use three scheduled Workers in the SAME
     // account. Request/API quotas remain shared. Each invocation handles only
     // one small source batch, rather than exceeding Free CPU with three.
-    if(await syncKind(env,kind)) await rebuildDocuments(env)
+    if(await syncKind({...env,NOTION_WORKLOAD:"sync"},kind)) await rebuildDocuments(env,[kind])
     if(kind==="research" && Math.floor((event.scheduledTime??Date.now())/60_000)%60===0) {
-      await env.CMS_DB.prepare("DELETE FROM free_budget WHERE key IN (SELECT key FROM free_budget WHERE expires_at < ? LIMIT 100)").bind(Date.now() - 86_400_000).run()
+      await env.CMS_DB.prepare("DELETE FROM free_budget WHERE key IN (SELECT key FROM free_budget WHERE expires_at < ? LIMIT 512)").bind(Date.now() - 86_400_000).run()
+      await env.CMS_DB.prepare("DELETE FROM free_events WHERE id IN (SELECT id FROM free_events WHERE expires_at < ? LIMIT 1000)").bind(Date.now()).run()
       await env.CMS_DB.prepare("DELETE FROM free_webhook_setup WHERE expires_at < ?").bind(Date.now()).run()
     }
   },
