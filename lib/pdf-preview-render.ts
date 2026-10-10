@@ -14,10 +14,10 @@ export async function renderPdfPreview(url: string) {
   // Bound memory during a burst of requests for different unprepared reports.
   if (activePreviews >= 2) throw new Error("Preview generation busy")
   activePreviews++
-  try { return await downloadPreview(url) } finally { activePreviews-- }
+  try { return await renderFirstPage(await downloadPdfForPreview(url)) } finally { activePreviews-- }
 }
 
-async function downloadPreview(url: string) {
+export async function downloadPdfForPreview(url: string) {
   const signal = AbortSignal.timeout(80_000)
   const response = await streamPdf(url, "preview.pdf", false, signal)
   if (Number(response.headers.get("content-length")) > maxPdfBytes) {
@@ -40,7 +40,8 @@ async function downloadPreview(url: string) {
   let offset = 0
   for (const chunk of chunks) { data.set(chunk, offset); offset += chunk.length }
   chunks.length = 0
-  return renderFirstPage(data, signal)
+  signal.throwIfAborted()
+  return data
 }
 
 export async function renderFirstPage(data: Uint8Array, signal = AbortSignal.timeout(30_000)) {

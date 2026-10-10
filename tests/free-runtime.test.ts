@@ -8,13 +8,14 @@ import { storePage,storePages,rebuildDocuments,removePage } from "../free/server
 import { reconcileIfDue } from "../free/jobs/reconcile"
 import { memberPhoto } from "../free/server/member-photo"
 import { internal } from "../free/server/jobs"
+import { ensureReportCoverCache } from "../free/jobs/report-cover-cache"
 import { notion } from "../free/server/notion"
 import type { Env } from "../free/server/types"
 import type { NotionPage } from "../lib/content-model"
 const source="33333333333343338333333333333333",id="a0000000000000000000000000000001"
 function setup() {
   const sqlite=new DatabaseSync(":memory:")
-  for(const name of ["0002_free_runtime","0003_free_guards","0004_document_versions"]) sqlite.exec(readFileSync(new URL(`../cloudflare/migrations/${name}.sql`,import.meta.url),"utf8"))
+  for(const name of ["0002_free_runtime","0003_free_guards","0004_document_versions","0006_report_cover_cache"]) sqlite.exec(readFileSync(new URL(`../cloudflare/migrations/${name}.sql`,import.meta.url),"utf8"))
   const prepare=(sql:string,values:unknown[]=[]):Statement=>({bind:(...args)=>prepare(sql,args),async first<T>(){return(sqlite.prepare(sql).get(...values as any[])??null) as T|null},async all<T>(){return {results:sqlite.prepare(sql).all(...values as any[]) as T[]}},async run(){return sqlite.prepare(sql).run(...values as any[])}})
   const db:Database={prepare,async batch(statements){sqlite.exec("BEGIN");try{const results=[];for(const statement of statements)results.push(await statement.run());sqlite.exec("COMMIT");return results}catch(e){sqlite.exec("ROLLBACK");throw e}}}
   const env:Env={CMS_DB:db,ASSETS:{fetch},NOTION_TOKEN:"test-token",NOTION_REPORTS_DATA_SOURCE_ID:source}
@@ -96,6 +97,64 @@ test("publication is rechecked before completing a prepared body",async()=>{
     assert.equal((await internal(req(`jobs/${id}/complete`,{...job,blocks:[]}),env)).status,409)
     assert.equal(sqlite.prepare("SELECT blocks FROM free_content").get()!.blocks,null)
   } finally {sqlite.close()}
+})
+test("verified report covers survive withdrawal, stay private until rechecked, and disappear on actual deletion",async()=>{
+  const {sqlite,env}=setup()
+  const url=`/report-covers/${id}/${'a'.repeat(64)}.webp`
+  const cover={url,previewUrl:url,width:2048,height:2899,sourceKey:'b'.repeat(64),pdfHash:'c'.repeat(64)}
+  const original=page()
+  try {
+    await storePage(env,original,'research')
+    env.NOTION_FETCH=async()=>Response.json(original)
+    const {job}=await (await internal(req('jobs/claim'),env)).json() as any
+    assert.equal((await internal(req(`jobs/${id}/complete`,{...job,blocks:[],cover}),env)).status,200)
+    await storePage(env,page('2026-01-02T00:00:00.000Z',false),'research')
+    await rebuildDocuments(env,['research'])
+    assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM free_content').get()!.n,0)
+    assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM free_report_covers').get()!.n,1)
+    assert.equal(JSON.parse(String(sqlite.prepare("SELECT body FROM free_documents WHERE name='research'").get()!.body)).items.length,0)
+    await storePage(env,{...page('2026-01-01T12:00:00.000Z',false),in_trash:true},'research')
+    assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM free_report_covers').get()!.n,1,'stale deletion cannot discard the cache')
+    const republished=page('2026-01-03T00:00:00.000Z')
+    await storePage(env,republished,'research')
+    assert.equal(sqlite.prepare('SELECT cover FROM free_content').get()!.cover,null,'no unverified stale cover is publicly attached')
+    const {job:again}=await (await internal(req('jobs/claim'),env)).json() as any
+    assert.deepEqual(again.cover,cover)
+    env.NOTION_FETCH=async()=>Response.json(republished)
+    assert.equal((await internal(req(`jobs/${id}/complete`,{...again,blocks:[],cover}),env)).status,200)
+    assert.deepEqual(JSON.parse(String(sqlite.prepare('SELECT cover FROM free_content').get()!.cover)),cover)
+    await storePage(env,{...page('2026-01-04T00:00:00.000Z'),in_trash:true},'research')
+    assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM free_report_covers').get()!.n,0)
+  }finally{sqlite.close()}
+})
+test("a withdrawn or changed publication cannot replace the retained report cover",async()=>{
+  const {sqlite,env}=setup()
+  try {
+    await storePage(env,page(),'research')
+    sqlite.prepare('INSERT INTO free_report_covers VALUES (?,?,?)').run(id,'2025-01-01','{"url":"retained"}')
+    const {job}=await (await internal(req('jobs/claim'),env)).json() as any
+    await storePage(env,page('2026-01-02T00:00:00.000Z',false),'research')
+    assert.equal((await internal(req(`jobs/${id}/complete`,{...job,blocks:[],cover:null}),env)).status,409)
+    assert.equal(sqlite.prepare('SELECT cover FROM free_report_covers').get()!.cover,'{"url":"retained"}')
+    await removePage(env,id,'2026-01-03T00:00:00.000Z')
+    assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM free_report_covers').get()!.n,0)
+  }finally{sqlite.close()}
+})
+test("cover cache migration preserves existing published images and does not rescan on later runs",async()=>{
+  const {sqlite,env}=setup()
+  try {
+    await storePage(env,page(),'research')
+    const cover=JSON.stringify({url:`/report-covers/${id}/${'a'.repeat(64)}.webp`,sourceKey:'b'.repeat(64)})
+    sqlite.prepare('UPDATE free_content SET cover=?').run(cover)
+    sqlite.exec('DROP TABLE free_report_covers')
+    await ensureReportCoverCache(env.CMS_DB)
+    assert.equal(sqlite.prepare('SELECT cover FROM free_report_covers').get()!.cover,cover)
+    let calls=0
+    const prepare=env.CMS_DB.prepare
+    env.CMS_DB.prepare=sql=>{calls++;return prepare(sql)}
+    await ensureReportCoverCache(env.CMS_DB)
+    assert.equal(calls,1)
+  }finally{sqlite.close()}
 })
 test("Workers-compatible CMS transport refuses redirects without forwarding its token",async()=>{
   const {sqlite,env}=setup();let calls=0

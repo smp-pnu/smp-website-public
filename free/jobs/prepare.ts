@@ -6,12 +6,12 @@ import type { Member } from "../../lib/member-model"
 import { fileUrl } from "../../lib/content-model"
 import { blockValue,type ContentBlock } from "../../lib/notion-model"
 import { getPdfSources,isNotionFileUrl } from "../../lib/pdf-source"
-import { renderPdfPreview } from "../../lib/pdf-preview-render"
+import { downloadPdfForPreview,renderFirstPage } from "../../lib/pdf-preview-render"
 import { sourceKey } from "../../lib/cover-metadata"
 import { notion } from "../server/notion"
 import type { Env } from "../server/types"
 const children=new Set(["paragraph","heading_1","heading_2","heading_3","bulleted_list_item","numbered_list_item","quote","callout","toggle","to_do","column_list","column","table"])
-export type Cover={url:string;previewUrl:string;width:number;height:number;sourceKey?:string}
+export type Cover={url:string;previewUrl:string;width:number;height:number;sourceKey?:string;pdfHash?:string}
 export async function saveImage(id:string,bytes:Uint8Array) {
   const hash=createHash("sha256").update(bytes).digest("hex")
   const dir=`.smp-cache/covers/${id}`
@@ -71,14 +71,18 @@ export async function prepareBody(env:Env,item:ContentItem,origin:string) {
   if(Buffer.byteLength(JSON.stringify(blocks))>55_000) throw new Error("Prepared body exceeds 55 KiB; split this notice into shorter posts")
   return blocks
 }
-export async function prepareCover(item:ContentItem,previous?:Cover|null):Promise<Cover|null> {
+export async function prepareCover(item:ContentItem,previous?:Cover|null,dependencies={download:downloadPdfForPreview,render:renderFirstPage,save:saveImage}):Promise<Cover|null> {
   const pdf=getPdfSources(item)[0]
   if(!pdf || item.kind!=="research") return null
   const key=sourceKey(item)!
   const path=new RegExp(`^/report-covers/${item.id}/[a-f0-9]{64}\\.webp$`)
-  if(previous?.sourceKey===key && path.test(previous.url) && path.test(previous.previewUrl)) return previous
-  const png=await renderPdfPreview(pdf.url)
+  // A Drive file may be replaced without changing its URL. Compare the actual
+  // PDF bytes on the publishing runner, never during a visitor request.
+  const data=await dependencies.download(pdf.url)
+  const pdfHash=createHash("sha256").update(data).digest("hex")
+  if(previous?.pdfHash===pdfHash && path.test(previous.url) && path.test(previous.previewUrl)) return {...previous,sourceKey:key}
+  const png=await dependencies.render(data)
   const large=await sharp(png).webp({quality:94}).toBuffer({resolveWithObject:true})
   const small=await sharp(png).resize({width:720,withoutEnlargement:true}).webp({quality:82}).toBuffer()
-  return {url:await saveImage(item.id,small),previewUrl:await saveImage(item.id,large.data),width:large.info.width,height:large.info.height,sourceKey:key}
+  return {url:await dependencies.save(item.id,small),previewUrl:await dependencies.save(item.id,large.data),width:large.info.width,height:large.info.height,sourceKey:key,pdfHash}
 }
