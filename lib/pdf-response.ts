@@ -59,7 +59,7 @@ export async function streamPdf(url: string, name: string, download: boolean, si
   // Drive may return an HTML login, quota or virus-scan page with HTTP 200.
   // Validate the signature before serving anything from our own origin.
   const reader = upstream.body.getReader()
-  const prefix: Uint8Array[] = []
+  const prefix: Uint8Array<ArrayBuffer>[] = []
   let length = 0
   // A range in the middle of a PDF cannot contain its header. Such responses
   // require a validated 206 range and binary MIME type from the allowlisted host.
@@ -84,9 +84,9 @@ export async function streamPdf(url: string, name: string, download: boolean, si
     // Workers' IdentityTransformStream keeps large passthrough responses in
     // native code. A standards-based TransformStream can execute JS per chunk.
     const NativeIdentity = (globalThis as unknown as {
-      IdentityTransformStream?: new () => {readable:ReadableStream<Uint8Array>;writable:WritableStream<Uint8Array>}
+      IdentityTransformStream?: new () => {readable:ReadableStream<Uint8Array<ArrayBuffer>>;writable:WritableStream<Uint8Array<ArrayBuffer>>}
     }).IdentityTransformStream
-    const stream = NativeIdentity ? new NativeIdentity() : new TransformStream<Uint8Array, Uint8Array>()
+    const stream = NativeIdentity ? new NativeIdentity() : new TransformStream<Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>>()
     const writer = stream.writable.getWriter()
     const source = upstream.body
     const forward = async () => {
