@@ -4,7 +4,10 @@ import { PageIntro } from "@/components/page-intro"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 
-export const metadata: Metadata = { title: "ABOUT | SMP" }
+export const metadata: Metadata = {
+  title: "부산대학교 금융투자학회 SMP 소개",
+  description: "부산대학교 금융투자학회 SMP 공식 홈페이지에서 학회의 기업분석, 가치투자, 리서치와 포트폴리오 운용 활동을 소개합니다.",
+}
 
 export default function AboutPage() {
   return (

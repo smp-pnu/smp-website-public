@@ -15,9 +15,9 @@ const heroFont = localFont({ src: './fonts/cormorant-garamond-latin-300.woff2', 
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'SMP | 부산대학교 금융투자학회',
+  title: '부산대 SMP 공식 홈페이지 | 부산대학교 금융투자학회',
   description:
-    '부산대학교 금융투자학회 SMP(Stock Masters of PNU)는 기업과 산업을 분석해 투자 아이디어를 구축하고, 실제 포트폴리오 운용을 통해 그 논리를 검증합니다.',
+    '부산대학교 금융투자학회 SMP(Stock Masters of PNU)의 공식 홈페이지입니다. 학회 소개, 기업분석 리포트, 커리큘럼, 모집 및 공지사항을 확인할 수 있습니다.',
   icons: {
     icon: [
       { url: '/smp-search-icon.png', type: 'image/png', sizes: '192x192' },

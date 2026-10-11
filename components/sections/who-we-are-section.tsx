@@ -14,7 +14,7 @@ export function WhoWeAreSection() {
           </div>
           <div className="flex max-w-4xl flex-col items-center">
             <p className="text-base leading-relaxed text-site-body sm:text-lg">
-              2006년 시작된 SMP는 부산대에서 기업분석과 주식투자를 함께 공부하는 투자 동아리입니다.
+              이곳은 부산대학교 금융투자학회 SMP의 공식 홈페이지입니다. 2006년 시작된 SMP는 부산대에서 기업분석과 주식투자를 함께 공부하는 투자 동아리입니다.
               증권·산업 리서치를 바탕으로 기업의 내재가치와 성장 가능성을 분석하고, 발표와 토론을 통해 투자 아이디어를 발전시킵니다.
             </p>
             <Link
