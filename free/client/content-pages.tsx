@@ -15,8 +15,8 @@ import { NotionContent } from "@/components/notion-content"
 import { SiteSearchResults } from "@/components/site-search-results"
 import { SearchField } from "@/components/search-field"
 import { AlumniOverview } from "@/components/alumni-overview"
-import { MembersDirectory } from "@/components/members-directory"
-import { NetworkTabs } from "@/components/network-tabs"
+import { MembersOverview } from "@/components/members-overview"
+import { NetworkLayout } from "@/components/network-layout"
 import type { RelatedReports } from "@/lib/related-reports"
 import { isNotionFileUrl } from "@/lib/pdf-source"
 import { contentReturnHref } from "@/lib/content-navigation"
@@ -76,12 +76,13 @@ export function SearchPage() {
   const { value, error } = useApi<{ entries: SiteSearchEntry[]; partial: boolean }>("/api/search")
   return <><SiteHeader /><main className="site-page min-h-[75svh] max-w-5xl"><PageIntro eyebrow="EXPLORE SMP" title="SEARCH">SMP의 리포트와 소식, 사람들을 한곳에서 찾아보세요.</PageIntro><Form action="/search" className="mt-10" role="search"><SearchField key={query} id="search-query" label="검색어" name="q" maxLength={100} defaultValue={query} placeholder="검색어를 입력하세요" /></Form>{!query ? <p className="py-20 text-center text-site-body">기업명, 리포트 제목, 이름 또는 학과를 입력해보세요.</p> : value ? <SiteSearchResults query={query} index={value} /> : <Status error={error} />}</main><SiteFooter /></>
 }
-export function NetworkPage({ members = false }: { members?: boolean }) {
+export function NetworkPage() {
+  const members = useLocation().pathname === "/members"
   const { value, error } = useApi<MemberResult>("/api/catalog/members")
   const params=useSearch()
   const generation = Number(params.generation)
   const result = useMemo(() => value && ({ ...value, items: sortMembers(value.items.filter(member => member.group === (members ? "members" : "alumni")).map(member=>({...member,image:member.image && isNotionFileUrl(member.image)?`/api/member-photo/${member.id}`:member.image}))) }), [value, members])
   const reserved = [38, 39].filter(g => !value?.items.some(member => member.generation === g && member.group === "alumni"))
   if(!members && params.group==="members") return <Navigate to={`/members?${new URLSearchParams({...(params.generation?{generation:params.generation}:{})})}`} replace />
-  return <><SiteHeader />{!result ? <main className="min-h-[75svh]"><Status error={error} /></main> : members ? <main className="site-page min-h-[75svh] max-w-6xl"><PageIntro eyebrow="NETWORK · OUR MEMBERS" title="MEMBERS" /><NetworkTabs active="members" /><MembersDirectory key={generation} result={result} initialGeneration={generation} reservedGenerations={reserved} /></main> : <AlumniOverview generation={generation} members={result} />}<SiteFooter /></>
+  return <><SiteHeader />{!result ? <NetworkLayout active={members ? "members" : "alumni"}><Status error={error} /></NetworkLayout> : members ? <MembersOverview generation={generation} members={result} reservedGenerations={reserved} /> : <AlumniOverview generation={generation} members={result} />}<SiteFooter /></>
 }

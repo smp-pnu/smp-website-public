@@ -183,26 +183,46 @@
 
 @media (prefers-reduced-motion: reduce) { .distribution-fill { transition: none !important; transform: none !important; } }
 
-html[data-network-direction]::view-transition-old(root),
-html[data-network-direction]::view-transition-new(root) {
-  animation-duration: 650ms;
-  animation-timing-function: cubic-bezier(.22,1,.36,1);
-  animation-fill-mode: both;
-  mix-blend-mode: normal;
-}
-html[data-network-direction] { background: var(--site-background); }
-html[data-network-direction]::view-transition-group(site-header) { animation: none; z-index: 100; }
-html[data-network-direction]::view-transition-old(site-header) { animation: none; opacity: 0; }
-html[data-network-direction]::view-transition-new(site-header) { animation: none; mix-blend-mode: normal; }
-html[data-network-direction="forward"]::view-transition-old(root) { animation-name: network-out-left; }
-html[data-network-direction="forward"]::view-transition-new(root) { animation-name: network-in-right; }
-html[data-network-direction="back"]::view-transition-old(root) { animation-name: network-out-right; }
-html[data-network-direction="back"]::view-transition-new(root) { animation-name: network-in-left; }
-@keyframes network-out-left { to { transform: translateX(-100%); } }
-@keyframes network-in-right { from { transform: translateX(100%); } }
-@keyframes network-out-right { to { transform: translateX(100%); } }
-@keyframes network-in-left { from { transform: translateX(-100%); } }
+/* Network switches in place: fixed chrome, a sliding selection, and a slow photo dissolve. */
+.network-page { overflow-anchor: none; }
+.network-intro { view-transition-name: network-intro; }
+.network-tabs { position: relative; isolation: isolate; view-transition-name: network-tabs; }
+.network-tabs__selection { position: absolute; inset-block: 4px; left: 4px; width: calc(50% - 5px); border-radius: 2px; background: rgb(255 255 255 / .10); view-transition-name: network-selection; }
+.network-tabs[data-active="members"] .network-tabs__selection { left: calc(50% + 1px); }
+.network-tabs__link { color: var(--site-muted); }
+.network-tabs__link:hover, .network-tabs__link[aria-current="page"] { color: var(--site-heading); }
+.network-content { view-transition-name: network-content; }
+html[data-network-transition]::view-transition { pointer-events: none; }
+html[data-network-transition]::view-transition-group(*) { animation-duration: 360ms; animation-timing-function: cubic-bezier(.22,1,.36,1); }
+html[data-network-transition]::view-transition-group(root),
+html[data-network-transition]::view-transition-group(site-background),
+html[data-network-transition]::view-transition-group(network-content),
+html[data-network-transition]::view-transition-group(network-intro),
+html[data-network-transition]::view-transition-group(network-tabs),
+html[data-network-transition]::view-transition-group(site-header) { animation: none; }
+html[data-network-transition]::view-transition-group(site-background) { z-index: 1; }
+html[data-network-transition]::view-transition-group(network-content) { z-index: 2; }
+html[data-network-transition]::view-transition-group(network-intro),
+html[data-network-transition]::view-transition-group(network-tabs) { z-index: 3; }
+html[data-network-transition]::view-transition-group(network-selection) { z-index: 4; }
+html[data-network-transition]::view-transition-group(site-header) { z-index: 100; }
+html[data-network-transition]::view-transition-old(*),
+html[data-network-transition]::view-transition-new(*) { animation: none; mix-blend-mode: normal; }
+html[data-network-transition]::view-transition-old(root),
+html[data-network-transition]::view-transition-old(site-header),
+html[data-network-transition]::view-transition-old(network-intro),
+html[data-network-transition]::view-transition-old(network-tabs),
+html[data-network-transition]::view-transition-old(network-selection) { opacity: 0; }
+/* Keep the outgoing photograph opaque underneath, avoiding a dark flash mid-dissolve. */
+html[data-network-transition]::view-transition-new(site-background) { animation: network-fade-in 600ms ease-in-out both; }
+html[data-network-transition]::view-transition-old(network-content) { animation: network-fade-out 140ms ease-out both; }
+html[data-network-transition]::view-transition-new(network-content) { animation: network-fade-in 260ms 80ms ease-out both; }
+html[data-network-transition]::view-transition-old(network-content),
+html[data-network-transition]::view-transition-new(network-content) { height: auto; }
+@keyframes network-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes network-fade-out { from { opacity: 1; } to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
-  html[data-network-direction]::view-transition-old(root),
-  html[data-network-direction]::view-transition-new(root) { animation: none; }
+  html[data-network-transition]::view-transition-group(*),
+  html[data-network-transition]::view-transition-old(*),
+  html[data-network-transition]::view-transition-new(*) { animation: none; }
 }
