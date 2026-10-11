@@ -29,10 +29,10 @@ export default function ContactPage() {
                 <h2 id={`channel-${id}-title`} className="paper-section-title mt-1">{title}</h2>
               </div>
             </div>
-            <p className="mt-6 text-[15px] leading-7 text-slate-600">{description}</p>
-            <p id={`channel-${id}-address`} className="mt-3 break-words text-sm font-medium leading-6 text-slate-800">{detail}</p>
+            <p className="mt-6 text-[15px] leading-7 paper-copy">{description}</p>
+            <p id={`channel-${id}-address`} className="mt-3 break-words text-sm font-medium leading-6 paper-copy">{detail}</p>
           </div>
-          <span className="paper-panel-footer mt-auto flex min-h-[68px] items-center justify-between gap-3 px-6 py-4 text-sm font-medium text-slate-700 sm:px-8">
+          <span className="paper-panel-footer mt-auto flex min-h-[68px] items-center justify-between gap-3 px-6 py-4 text-sm font-medium paper-copy sm:px-8">
             {action}<ArrowUpRight className="paper-action-arrow h-4 w-4" aria-hidden="true" />
             {external && <span id={`channel-${id}-new-window`} className="sr-only">새 창에서 열립니다.</span>}
           </span>
