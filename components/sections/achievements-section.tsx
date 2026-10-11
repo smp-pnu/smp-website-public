@@ -29,7 +29,7 @@ export function AchievementsSection() {
     <section className="px-6 py-16 sm:py-20">
       <div className="mx-auto max-w-6xl">
         <div className="text-center">
-          <h2 className="text-xs font-normal tracking-[0.3em] text-site-accent">ACHIEVEMENTS</h2>
+          <h2 className="text-xs font-normal tracking-[0.3em] text-site-accent">ACCOLADES</h2>
         </div>
 
         <div className="mx-auto mt-12 grid gap-4 sm:grid-cols-2">
@@ -55,7 +55,7 @@ export function AchievementsSection() {
             href="/achievements"
             className="inline-flex items-center gap-2 text-sm font-normal text-site-accent transition-colors hover:text-site-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           >
-            MORE ACHIEVEMENTS
+            MORE ACCOLADES
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
