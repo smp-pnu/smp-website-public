@@ -35,7 +35,7 @@ export function ListPage({ kind }: { kind: ContentKind }) {
   const result = useMemo(() => value && ({ ...value, items: sortContent(value.items) }), [value])
   const content = result ? <ContentList result={result} kind={kind} search={search} /> : <Status error={error} />
   return <><SiteHeader />{kind === "notice" ? <NoticeListing>{content}</NoticeListing> : <main className="site-page min-h-[75svh] max-w-6xl">
-    <PageIntro eyebrow="SMP PUBLICATIONS" title="RESEARCH">산업과 기업을 분석한 SMP의 투자 리포트입니다.</PageIntro>
+    <PageIntro eyebrow="SMP PUBLICATIONS" title="RESEARCH">부산대학교 금융투자학회 SMP의 기업·산업 분석 리포트입니다. 기업명·종목코드·산업·발표 학기로 찾고, PDF 원문을 읽어보세요.</PageIntro>
     {content}
   </main>}<SiteFooter /></>
 }

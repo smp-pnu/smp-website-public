@@ -3,14 +3,15 @@ import { ArrowUpRight, Mail, Camera, MessagesSquare } from "lucide-react"
 import { PageIntro } from "@/components/page-intro"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
+import { SITE_CHANNELS } from "@/lib/site-config"
 
 export const metadata: Metadata = { title: "CONTACT | SMP" }
 
 export default function ContactPage() {
   const channels = [
-    { label: "EMAIL", name: "smppnu@gmail.com", href: "mailto:smppnu@gmail.com", action: "SEND EMAIL", icon: Mail, external: false },
-    { label: "INSTAGRAM", name: "부산대학교 금융투자학회 SMP", detail: "@smp_pnu", href: "https://www.instagram.com/smp_pnu/", action: "INSTAGRAM", icon: Camera, external: true },
-    { label: "NAVER CAFE", name: "SMP 네이버 카페", detail: "cafe.naver.com/smppnu", href: "https://cafe.naver.com/smppnu", action: "NAVER CAFE", icon: MessagesSquare, external: true },
+    { label: "EMAIL", name: SITE_CHANNELS.email, href: `mailto:${SITE_CHANNELS.email}`, action: "SEND EMAIL", icon: Mail, external: false },
+    { label: "INSTAGRAM", name: "부산대학교 금융투자학회 SMP", detail: "@smp_pnu", href: SITE_CHANNELS.instagram, action: "INSTAGRAM", icon: Camera, external: true },
+    { label: "NAVER CAFE", name: "SMP 네이버 카페", detail: "cafe.naver.com/smppnu", href: SITE_CHANNELS.cafe, action: "NAVER CAFE", icon: MessagesSquare, external: true },
   ]
   return <>
     <SiteHeader />

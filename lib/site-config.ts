@@ -17,6 +17,13 @@ export const NAV_ITEMS: NavItem[] = [
 
 export const SITE_NAME_KO = "부산대학교 금융투자학회 SMP"
 export const SITE_NAME_EN = "STOCK MASTERS OF PNU"
+export const SITE_SHORT_NAME_KO = "부산대 SMP"
+export const SITE_ORIGIN = "https://pnusmp.com"
+export const SITE_CHANNELS = {
+  email: "smppnu@gmail.com",
+  instagram: "https://www.instagram.com/smp_pnu/",
+  cafe: "https://cafe.naver.com/smppnu",
+} as const
 
 /**
  * Path to the HOME page background photo (e.g. "/home-gwangan.jpg"), once a

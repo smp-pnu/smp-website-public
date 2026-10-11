@@ -8,6 +8,6 @@ export function LatestResearchSection() {
   return <section className="px-6 py-16 sm:py-20"><div className="mx-auto max-w-6xl">
     <div className="text-center"><span className="text-xs font-normal tracking-[0.3em] text-sky-300">RESEARCH REPORT</span><h2 className="mt-4 text-2xl font-medium leading-snug tracking-tight text-white sm:text-3xl">우리가 발견한 기업의 가치를 확인해보세요.</h2><p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-300 sm:text-lg">산업과 기업에 대한 분석을 하나의 투자 아이디어로 완성한 SMP의 리포트를 소개합니다.</p></div>
     <div className="mt-12">{value ? <ContentRows items={sortContent(value.items).slice(0, 3)} /> : <p role={error ? "alert" : "status"} className="py-12 text-center text-slate-400">{error?.message ?? "최신 리포트를 불러오는 중입니다."}</p>}</div>
-    <div className="mt-10 flex justify-center"><Link href="/research" className="text-sm tracking-wide text-sky-300">VIEW ALL RESEARCH →</Link></div>
+    <div className="mt-10 flex justify-center"><Link href="/research" className="text-sm tracking-wide text-sky-300">기업·산업 분석 리포트 전체 보기 →</Link></div>
   </div></section>
 }
