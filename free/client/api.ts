@@ -4,10 +4,21 @@ type Cached = { value: unknown; until: number }
 const cache = new Map<string, Cached>()
 const paused=new Map<string,{until:number;error:ApiError}>()
 const pending = new Map<string, Promise<unknown>>()
+// The initial HTML already passed the same live publication check as the API.
+// Consume it once and briefly; later visits still recheck current visibility.
+let initial:{path:string;value:unknown;until:number}|undefined
+if(typeof document!=="undefined") {
+  const element=document.getElementById("smp-initial-data")
+  if(element) {try {const value=JSON.parse(element.textContent??"");if(typeof value.path==="string"&&value.path.startsWith("/api/")) initial={...value,until:Date.now()+10_000}} catch {} element.remove()}
+}
 export class ApiError extends Error {
   constructor(public status: number, public retryAfter: number) { super(status === 404 ? "게시글이 없거나 비공개 상태입니다." : status === 429 ? "접속이 많아 잠시 대기 중입니다. 잠시 후 다시 시도해주세요." : "자료를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.") }
 }
 export async function readApi<T>(path: string, ttl = 300_000): Promise<T> {
+  if(initial?.path===path) {
+    const value=initial;initial=undefined
+    if(value.until>Date.now()) {if(ttl) cache.set(path,{value:value.value,until:Date.now()+ttl});return value.value as T}
+  }
   const pause=paused.get(path)
   if(pause && pause.until>Date.now()) throw pause.error
   paused.delete(path)
@@ -34,7 +45,7 @@ export async function readApi<T>(path: string, ttl = 300_000): Promise<T> {
 }
 
 export function useApi<T>(path: string, ttl = 300_000) {
-  const [state, setState] = useState<{ path: string; value?: T; error?: Error }>({ path })
+  const [state, setState] = useState<{ path: string; value?: T; error?: Error }>(()=>({ path,...(initial?.path===path&&initial.until>Date.now()?{value:initial.value as T}:{}) }))
   useEffect(() => {
     let active = true
     const load = () => { void readApi<T>(path, ttl).then(value => { if (active) setState({ path, value }) }, error => { if (active) setState({ path, error }) }) }
