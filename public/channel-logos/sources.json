@@ -1,5 +1,6 @@
 {
   "gmail.svg": { "source": "https://www.gstatic.com/images/branding/productlogos/gmail_2026/v2/web/192px.svg", "reference": "https://workspace.google.com/intl/en_gb_all/products/gmail/" },
   "naver-cafe.png": { "source": "https://ca-fe.pstatic.net/web-section/favicon.ico", "reference": "https://section.cafe.naver.com/ca-fe/home", "note": "Original PNG bytes; extension matches the actual file format." },
-  "instagram.svg": { "source": "https://github.com/simple-icons/simple-icons/blob/14.15.0/icons/instagram.svg", "reference": "https://www.meta.com/brand/resources/instagram/instagram-brand/" }
+  "instagram.svg": { "source": "https://github.com/simple-icons/simple-icons/blob/14.15.0/icons/instagram.svg", "reference": "https://www.meta.com/brand/resources/instagram/instagram-brand/" },
+  "instagram-color.svg": { "reference": "https://www.meta.com/brand/resources/instagram/instagram-brand/", "note": "Local vector rendition of the multicolor Instagram app icon; no external asset request." }
 }
