@@ -25,11 +25,35 @@
 
 등록은 수집과 상태 확인을 돕는 절차이며 색인·순위·AI 답변 인용을 보장하지 않는다. AI 노출만을 위한 별도 유료 서비스나 특수 스키마는 필요하지 않다.
 
+## 검색 의도별 페이지 운영
+
+관련 검색어는 아래 대표 페이지의 실제 내용으로 다룬다. 모든 조합을 제목에 나열하거나, 같은 내용의 검색어별 페이지를 복제하지 않는다. 맞춤법·띄어쓰기 변형과 동의어마다 별도 페이지를 만들 필요도 없다.
+
+| 검색 의도 | 검색어 예시 | 대표 페이지 |
+| --- | --- | --- |
+| 학회 찾기 | 부산대 SMP, 부산대학교 SMP, SMP 학회, PNU SMP, Stock Masters of PNU | `/` |
+| 투자·증권 활동 알아보기 | 부산대 투자 동아리, 부산대 투자 학회, 부산대 증권 동아리, 부산대 증권 학회, 부산 금융투자 동아리, 부산 대학생 투자 동아리 | `/about` |
+| 지원하기 | 부산대 투자 동아리 모집, SMP 모집, SMP 지원, 부산대 금융 동아리 지원 자격 | `/recruit` |
+| 공부할 내용 확인 | 부산대 주식 동아리, 대학생 가치투자, 기업분석 스터디, 재무 모델링, 주식투자 공부, 기업가치 평가 | `/curriculum` |
+| 분석 자료 읽기 | SMP 리포트, 대학생 기업분석 리포트, 산업분석 보고서, 회사명 + 종목코드 + 기업분석 | `/research`와 해당 리포트 |
+| 공식 소식·연락처 찾기 | SMP 공지, SMP 행사, 부산대 SMP 인스타, SMP 카페 | `/notice`, `/contact` |
+
+`부산대`, `부산 투자`, `부산 증권`, `SMP`, `투자 동아리`처럼 뜻이 넓은 검색어는 학회와 무관한 검색 의도도 섞인다. 순위를 약속하거나 매일 문구를 바꾸지 말고, 학회명과 지역·활동이 함께 들어가는 검색어부터 확인한다.
+
+배포되는 제목·설명·구조화 데이터는 `free/seo/metadata.ts`, 공식 이름과 채널은 `lib/site-config.ts`에서 관리한다. 리포트 검색 제목에는 실제 CMS 기업명이 제목에 없는 경우에만 기업명·종목코드를 보충하며, 작성자가 입력한 화면 제목은 유지한다. 소개의 질문·답변과 내부 링크는 일반 방문자와 검색 로봇에게 같은 내용으로 제공한다. 이 개선에는 추가 API·유료 서비스·예약 작업이 없다.
+
+운영자는 공식 카페·인스타그램 프로필과 향후 모집 공지에 대표 주소 `https://pnusmp.com`을 일관되게 안내한다. 학교의 학회 소개에 기존 사이트 주소가 있으면 담당자에게 최신화를 요청할 수 있다. 무관한 사이트에 링크를 뿌리거나 링크·클릭을 구매하지 않는다. 해당 외부 계정의 프로필 편집이나 메시지 발송은 이 코드 변경에 포함하지 않는다.
+
+Google Search Console의 실적 → 검색결과에서 검색어와 랜딩 페이지를 함께 확인하고, 네이버 검색 리포트도 확인한다. 최초 수집·색인 후 충분한 데이터가 쌓인 기간끼리 비교한다. 노출은 있으나 클릭이 적으면 제목·설명의 정확성을, 노출 자체가 없으면 먼저 색인 상태와 콘텐츠의 유용성을 점검한다. 순위·수집 결과는 코드 배포 성공과 구분한다.
+
 ## 공식 근거 (2026-10-11 확인)
 
 - [Google AI 검색 기능과 웹사이트](https://developers.google.com/search/docs/appearance/ai-features): 기존 SEO, 텍스트 본문, 내부 링크와 접근 가능성이 기본이며 별도 AI 파일이나 특수 스키마는 요구하지 않는다.
 - [네이버 JavaScript 검색 최적화](https://searchadvisor.naver.com/guide/seo-advanced-javascript): 검색 로봇이 주요 콘텐츠를 확인할 수 있도록 구성한다.
 - [OpenAI 크롤러](https://developers.openai.com/api/docs/bots): 검색용 OAI-SearchBot과 학습용 GPTBot은 별도 용도다.
 - [Perplexity 크롤러](https://docs.perplexity.ai/docs/resources/perplexity-crawlers): 검색용 봇 접근을 허용할 때 공식 IP와 봇 식별 정보를 함께 검증한다.
+- [Google 검색 제목](https://developers.google.com/search/docs/appearance/title-link): 페이지별로 구체적이고 간결한 제목을 사용하며 검색어를 반복 나열하지 않는다.
+- [Google 검색 스팸 정책](https://developers.google.com/search/docs/essentials/spam-policies): 키워드 채우기, 유사한 진입 페이지의 대량 생성, 링크 조작을 피한다.
+- [Google Organization 데이터](https://developers.google.com/search/docs/appearance/structured-data/organization): 실제 학회 이름·로고·공식 채널로 동일한 단체임을 설명한다.
 
 검증: 단위 테스트의 HTML/JSON 이스케이프, 현재 공개 여부·본문 버전·사이트맵 신선도 검사와 로컬 Cloudflare HTTP/브라우저 확인을 사용한다. 변경 시 `pnpm test`, `pnpm typecheck`, `pnpm build:free:fixture`를 실행한다.

@@ -27,6 +27,24 @@ test('canonical pages, pagination and search filters have distinct indexing rule
   assert.equal((article.schema['@graph'][2] as any)['@type'],'Report')
 })
 
+test('search metadata identifies SMP and the report company without changing the author headline',()=>{
+  const homepage=pageMetadata('/')
+  const organization=homepage.schema['@graph'][0] as Record<string,unknown>
+  assert.equal(organization.name,'부산대학교 금융투자학회 SMP')
+  assert.deepEqual(organization.alternateName,['SMP','부산대 SMP','Stock Masters of PNU'])
+  assert.deepEqual(organization.sameAs,['https://cafe.naver.com/smppnu','https://www.instagram.com/smp_pnu/'])
+  const report={...item,title:'새로운 성장의 시작',company:'테스트기업',ticker:'123456'}
+  const meta=pageMetadata(`/research/${id}`,report)
+  assert.equal(meta.title,'테스트기업 (123456) 기업분석 · 새로운 성장의 시작 | 부산대 SMP')
+  assert.equal((meta.schema['@graph'][2] as any).headline,report.title)
+  const named=pageMetadata(`/research/${id}`,{...report,title:'테스트기업, 새로운 성장의 시작'})
+  assert.equal((named.title.match(/테스트기업/g)??[]).length,1)
+  const notice=pageMetadata(`/notice/${id}`,{...report,kind:'notice'})
+  assert.equal(notice.title,'새로운 성장의 시작 | 부산대 SMP')
+  const titles=['/','/about','/curriculum','/recruit','/research'].map(path=>pageMetadata(path).title)
+  assert.equal(new Set(titles).size,titles.length)
+})
+
 test('CMS text cannot break HTML, JSON-LD or the one-use bootstrap script',()=>{
   const malicious={...item,title:'</title><script>alert(1)</script>',summary:'$& $` $\' </script><img src=x onerror=alert(1)>'}
   const html=injectPage(shell,`/research/${id}`,detailHtml(malicious,[]),malicious,{path:`/api/detail/research/${id}`,value:{item:malicious}})

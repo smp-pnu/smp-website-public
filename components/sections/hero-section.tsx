@@ -36,6 +36,7 @@ export function HeroSection() {
         <h1 data-hero-title className={`hero-title font-[family-name:var(--font-hero)] text-left text-[min(16cqw,5.5rem)] font-light leading-[1.3] tracking-tight text-white ${isVisible ? "is-visible" : ""}`}>
           STOCK<br /><span className="whitespace-nowrap">MASTERS OF</span><br />PNU
         </h1>
+        <p className="mt-7 font-[family-name:var(--font-body)] text-sm font-normal leading-relaxed text-white/85 sm:text-base">부산대학교 금융투자학회 SMP</p>
         </div>
 
 

@@ -42,7 +42,12 @@ export default function RecruitPage() {
     <SiteHeader />
     <main className="relative z-10">
       <div className="site-page max-w-5xl">
-        <PageIntro eyebrow="RECRUITMENT · 41기" title="RECRUITMENT GUIDE" />
+        <PageIntro eyebrow="RECRUITMENT · 41기" title="RECRUITMENT GUIDE">부산대 투자 동아리 SMP에서 기업을 분석하고, 가치투자를 함께 공부할 학회원을 기다립니다.</PageIntro>
+        <nav aria-label="지원 전 학회 알아보기" className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm text-site-accent">
+          <Link href="/about" className="underline-offset-4 hover:underline">학회 활동 소개 ↗</Link>
+          <Link href="/curriculum" className="underline-offset-4 hover:underline">기업분석 커리큘럼 ↗</Link>
+          <Link href="/research" className="underline-offset-4 hover:underline">학회원 리포트 읽기 ↗</Link>
+        </nav>
         <section aria-label="모집 상태" className="mt-10 border-l-2 border-sky-300 pl-5">
           <h2 className="text-lg font-normal text-site-accent">{statusCopy.label}</h2>
           <p className="mt-3 max-w-2xl text-base leading-loose text-site-body">{statusCopy.text}</p>
