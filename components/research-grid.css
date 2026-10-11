@@ -45,6 +45,9 @@
   transition: transform 600ms cubic-bezier(.4, 0, .2, 1);
 }
 .research-card-arrow { transition: transform 350ms ease; }
+/* Reserve the same two lines even for short or missing CMS text. */
+.research-card-title { height: 3.5rem; }
+.research-card-summary { height: 3rem; }
 .research-card:focus-visible .research-card-info { transform: translate3d(0, var(--cover-overlap), 0); }
 .research-card:focus-visible .research-card-action { color: var(--site-accent); }
 @media (max-width: 639px), (hover: none) {

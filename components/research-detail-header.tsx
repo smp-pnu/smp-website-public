@@ -1,7 +1,7 @@
 import { ArrowDownToLine } from "lucide-react"
 import { contentHref, formatDate, type ContentItem } from "@/lib/content-model"
 import { getPdfSources } from "@/lib/pdf-source"
-import { reportCompany, researchFacts } from "@/lib/research-metadata"
+import { publicReportAuthor, reportCompany, researchFacts } from "@/lib/research-metadata"
 import { CategoryTag } from "./category-tag"
 import { CopyReportLink } from "./copy-report-link"
 import { RESEARCH_CONTEXT } from "@/lib/site-config"
@@ -19,7 +19,7 @@ export function ResearchDetailHeader({ item }: { item: ContentItem }) {
     <h1 className="mt-4 break-words text-3xl font-medium leading-snug text-white sm:text-4xl">{item.title}</h1>
     <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-site-muted">
       {company && <span className="text-site-body">{company}{item.ticker && <span className="ml-2 font-mono text-xs text-site-muted">{item.ticker}</span>}</span>}
-      <time dateTime={item.date}>{formatDate(item.date)}</time>{item.author && <span>{item.author}</span>}
+      <time dateTime={item.date}>{formatDate(item.date)}</time><span>{publicReportAuthor(item.author)}</span>
     </div>
     {structured ? <dl className="mt-7 grid grid-cols-2 gap-y-5 border-y border-site-line-soft py-5 sm:grid-cols-3">
       {[["타겟년도", facts.targetYear || "미제시"], ["목표주가", facts.notRated ? "Not Rated" : facts.targetPrice || "미제시"], ["상승여력", facts.notRated ? "—" : facts.upside || "미제시"]].map(([label, value]) =>
