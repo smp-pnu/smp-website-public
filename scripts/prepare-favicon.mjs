@@ -13,6 +13,13 @@ for (const name of ['icon.svg', 'smp-favicon.svg']) await writeFile(`public/${na
 for (const [name, size] of [['smp-favicon-32.png', 32], ['apple-icon.png', 180], ['icon-light-32x32.png', 32], ['icon-dark-32x32.png', 32]]) {
   await sharp(Buffer.from(svg), { density: 288 }).resize(size, size).png().toFile(`public/${name}`)
 }
+// Search results can use a light background. Preserve the approved mark while
+// providing a larger, opaque PNG at a stable URL for search crawlers.
+await sharp(Buffer.from(svg), { density: 288 })
+  .resize(192, 192)
+  .flatten({ background: '#080a0c' })
+  .png()
+  .toFile('public/smp-search-icon.png')
 // A PNG-backed ICO supports browsers that request /favicon.ico automatically.
 const png = await sharp(Buffer.from(svg), { density: 288 }).resize(32, 32).png().toBuffer()
 const header = Buffer.alloc(22)
