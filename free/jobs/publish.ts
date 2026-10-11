@@ -15,6 +15,7 @@ import { ensureReportCoverCache } from "./report-cover-cache"
 import { repairRegionalImages } from "./regional-image-repair"
 import { queueReportExcerptBackfill } from "./report-excerpt"
 import { withReportExcerpt } from "../../lib/report-excerpt"
+import { publicationAssets, requiresAssetDeployment } from "./publication-assets"
 
 type Job={id:string;kind:"research"|"notice"|"members";revision:string;token:string;item:ContentItem|Member;cover:Cover|null}
 type Completed={job:Job;blocks:Awaited<ReturnType<typeof prepareBody>>;cover:Cover|null}
@@ -83,12 +84,14 @@ async function main() {
     // if even one recovery fails, leave that deployment in place.
     await mkdir(".smp-cache/covers",{recursive:true})
     const records=await env.CMS_DB.prepare("SELECT cover,blocks FROM free_content UNION ALL SELECT cover,NULL AS blocks FROM free_report_covers").all<{cover:string|null;blocks:string|null}>()
-    const assets=new Set<string>()
-    for(const row of records.results) {
-      const text=[row.cover,row.blocks].filter(Boolean).join(" ")
-      for(const match of text.matchAll(/\/report-covers\/[a-f0-9]{32}\/[a-f0-9]{64}\.webp/g)) assets.add(match[0])
+    const existing=publicationAssets(records.results.flatMap(row=>[row.cover?JSON.parse(row.cover):null,row.blocks?JSON.parse(row.blocks):null]),origin.origin)
+    const incoming=publicationAssets(complete.flatMap(result=>[result.blocks,result.cover]),origin.origin)
+    if(!requiresAssetDeployment(existing,incoming,process.env.SMP_FORCE_BUILD==="1")) {
+      await finishPublications(env,origin,complete)
+      console.log(JSON.stringify({prepared:complete.length,notionRequests:requestCount,assetDeployment:false}))
+      return
     }
-    for(const result of complete) for(const match of JSON.stringify({blocks:result.blocks,cover:result.cover}).matchAll(/\/report-covers\/[a-f0-9]{32}\/[a-f0-9]{64}\.webp/g)) assets.add(match[0])
+    const assets=new Set([...existing,...incoming])
     if(assets.size>5000) throw new Error("Asset safety limit exceeded")
     for(const path of assets) {
       const file=`.smp-cache/covers/${path.slice('/report-covers/'.length)}`
@@ -111,13 +114,16 @@ async function main() {
     // Code releases can change catalogue projections without changing Notion.
     if(process.env.SMP_FORCE_BUILD==="1") await rebuildDocuments(env,["research","notice"])
     if(process.env.GITHUB_OUTPUT) await writeFile(process.env.GITHUB_OUTPUT,"assets_changed=true\n",{flag:"a"})
-    for(const result of complete) {
-      const response=await internal(new Request(`${origin}api/internal/jobs/${result.job.id}/complete`,{method:"POST",body:JSON.stringify({token:result.job.token,revision:result.job.revision,blocks:result.blocks,cover:result.cover})}),env)
-      if(!response.ok) console.error("Publication changed during deploy; it will be prepared again")
-    }
+    await finishPublications(env,origin,complete)
     console.log(JSON.stringify({prepared:complete.length,notionRequests:requestCount}))
   } finally {
     await env.CMS_DB.prepare("DELETE FROM free_controls WHERE name='publisher' AND until_at=?").bind(acquiredUntil).run()
+  }
+}
+async function finishPublications(env:Env,origin:URL,complete:Completed[]) {
+  for(const result of complete) {
+    const response=await internal(new Request(`${origin}api/internal/jobs/${result.job.id}/complete`,{method:"POST",body:JSON.stringify({token:result.job.token,revision:result.job.revision,blocks:result.blocks,cover:result.cover})}),env)
+    if(!response.ok) console.error("Publication changed during preparation; it will be prepared again")
   }
 }
 async function fail(env:Env,origin:URL,job:Job,retryAfterMs=900_000) {
