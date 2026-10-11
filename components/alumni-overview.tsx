@@ -1,3 +1,5 @@
+import { alumniEmployers } from "@/lib/alumni-employers"
+import { FinanceBreakdown } from "./finance-breakdown"
 import { PageIntro } from "./page-intro"
 import { DistributionChart } from "@/components/distribution-chart"
 import { CompanyLogo } from "@/components/company-logo"
@@ -9,7 +11,6 @@ const distribution = [
   { name: "금융권", value: 80 }, { name: "대기업", value: 9 },
   { name: "공기업", value: 4 }, { name: "기타", value: 7 },
 ]
-const companies = ["BNK투자증권", "상상인증권", "한화투자증권", "흥국자산운용", "라이나생명", "한국자산관리공사", "한국IR협의회", "우리은행", "펌텍코리아", "NH투자증권", "하나은행", "IBK기업은행", "트로이투자일임", "iM증권", "LS증권", "유안타증권", "한국산업은행", "타이거자산운용투자일임", "KB투자증권", "한국투자증권", "신용보증기금", "한국투자신탁운용", "신한투자증권", "미래에셋증권", "주택도시보증공사", "코리아에셋투자증권", "수협", "타임폴리오자산운용", "NICE평가정보", "노을", "PwC", "한국기업평가", "한국주택금융공사", "넥센타이어", "신한은행"]
 
 export function AlumniOverview({ generation, members }: { generation?: number; members: MemberResult }) {
   return <main className="site-page max-w-6xl text-white">
@@ -19,9 +20,10 @@ export function AlumniOverview({ generation, members }: { generation?: number; m
     </section>
     <section className="grid gap-14 border-t border-site-line py-20 md:grid-cols-2 md:items-center">
       <div><p className="text-xs tracking-[.3em] text-site-accent">WHERE WE ARE</p><h2 className="mt-5 text-4xl font-light">진출 현황</h2><p className="mt-6 leading-loose text-site-body">기업과 시장을 분석하며 쌓은 경험은 금융권을 넘어 다양한 분야로 이어집니다.</p></div>
-      <DistributionChart items={distribution} />
+      <div><DistributionChart items={distribution} /><p className="mt-5 text-xs leading-6 text-site-muted">제공된 Alumni 자료 기준 · 전체 진출 비율</p></div>
+      <FinanceBreakdown />
     </section>
-    <section className="border-t border-site-line py-20"><p className="text-xs tracking-[.3em] text-site-accent">COMPANIES</p><h2 className="mt-5 text-4xl font-light">재직 현황</h2><p className="mt-5 text-sm text-site-body">SMP 선배들이 진출한 기업과 기관</p><div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">{companies.map((company, index) => <div key={company} className="relative flex min-h-28 items-center justify-center overflow-hidden rounded-[4px] border border-site-line bg-site-surface px-5 py-4"><CompanyLogo index={index} name={company} /></div>)}</div><p className="mt-5 text-xs leading-relaxed text-site-body">기업·기관명은 제공된 Alumni 자료 기준입니다.</p></section>
+    <section className="border-t border-site-line py-20"><p className="text-xs tracking-[.3em] text-site-accent">COMPANIES</p><h2 className="mt-5 text-4xl font-light">재직 현황</h2><p className="mt-5 text-sm text-site-body">SMP 선배들이 진출한 기업과 기관</p><div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">{alumniEmployers.map(({ name: company }, index) => <div key={company} className="relative flex min-h-28 items-center justify-center overflow-hidden rounded-[4px] border border-site-line bg-site-surface px-5 py-4"><CompanyLogo index={index} name={company} /></div>)}</div><p className="mt-5 text-xs leading-relaxed text-site-body">기업·기관명은 제공된 Alumni 자료 기준입니다.</p></section>
     <section className="border-t border-site-line py-20"><p className="text-xs tracking-[.3em] text-site-accent">OUR PEOPLE</p><h2 className="mt-5 text-4xl font-light">ALUMNI</h2><MembersDirectory key={generation} result={members} initialGeneration={generation} /></section>
   </main>
 }

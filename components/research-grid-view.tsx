@@ -5,6 +5,7 @@ import { formatDate, type ContentItem } from "@/lib/content-model"
 import { contentDetailHref, type ContentSearch } from "@/lib/content-navigation"
 import { ResearchGridReveal } from "./research-grid-reveal"
 import { CategoryTag } from "./category-tag"
+import { publicReportAuthor } from "@/lib/research-metadata"
 import "./research-grid.css"
 
 export function ResearchGridView({ items, listSearch, renderCover }: { items: ContentItem[]; listSearch?: ContentSearch; renderCover: (item: ContentItem, eager: boolean) => ReactNode }) {
@@ -24,12 +25,12 @@ export function ResearchGridView({ items, listSearch, renderCover }: { items: Co
               </div>
               <time dateTime={item.date} className="shrink-0 text-[11px] tabular-nums tracking-wide text-site-muted">{formatDate(item.date)}</time>
             </div>
-            <h2 className="mt-3 line-clamp-2 break-words text-xl font-medium leading-7 tracking-tight text-white">
+            <h2 title={item.title} className="research-card-title mt-3 line-clamp-2 break-words text-xl font-medium leading-7 tracking-tight text-white">
               {item.title}
             </h2>
-            {item.summary && <p className="mt-2 line-clamp-2 break-words text-sm leading-6 text-site-muted">{item.summary}</p>}
+            <p className="research-card-summary mt-2 line-clamp-2 break-words text-sm leading-6 text-site-muted">{item.summary}</p>
             <div className="flex items-center justify-between gap-3 pt-4">
-              <p className="min-w-0 break-words text-[15px] font-medium leading-6 text-site-body">{item.author}</p>
+              <p title={publicReportAuthor(item.author)} className="min-w-0 truncate text-[15px] font-medium leading-6 text-site-body">{publicReportAuthor(item.author)}</p>
               <span className="research-card-action flex shrink-0 items-center gap-2 text-xs text-site-muted">
                 리포트 읽기<ArrowUpRight aria-hidden="true" className="research-card-arrow h-4 w-4" strokeWidth={1.5} />
               </span>

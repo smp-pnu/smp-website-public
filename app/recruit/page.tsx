@@ -48,29 +48,39 @@ export default function RecruitPage() {
           <Link href="/curriculum" className="underline-offset-4 hover:underline">기업분석 커리큘럼 ↗</Link>
           <Link href="/research" className="underline-offset-4 hover:underline">학회원 리포트 읽기 ↗</Link>
         </nav>
-        <section aria-label="모집 상태" className="mt-10 border-l-2 border-sky-300 pl-5">
-          <h2 className="text-lg font-normal text-site-accent">{statusCopy.label}</h2>
-          <p className="mt-3 max-w-2xl text-base leading-loose text-site-body">{statusCopy.text}</p>
-        </section>
-        <section aria-labelledby="recruit-details" className="mt-14">
-          <h2 id="recruit-details" className="text-2xl font-light text-white">모집 안내</h2>
-          <dl className="mt-6 divide-y divide-site-line border-y border-site-line">
-            {details.map(([label, value]) => <div key={label} className="grid gap-3 py-5 sm:grid-cols-[160px_1fr] sm:gap-8">
-              <dt className="text-sm text-site-accent">{label}</dt>
-              <dd className="whitespace-pre-line text-base leading-loose text-site-body">{value}</dd>
-            </div>)}
-          </dl>
-        </section>
-        <section aria-labelledby="selection-process" className="mt-14">
-          <h2 id="selection-process" className="text-2xl font-light text-white">전형 절차</h2>
-          <RecruitSteps steps={steps} />
-        </section>
-        <div className="mt-14 flex flex-wrap items-center gap-x-10 gap-y-5">
-          {canApply ? <a href={recruitment.applicationUrl!} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-site-accent hover:text-site-accent">APPLY NOW <ArrowRight className="h-4 w-4" aria-hidden="true" /></a>
-            : <button disabled aria-describedby="application-note" className="inline-flex cursor-not-allowed items-center gap-2 text-sm text-site-muted">APPLY NOW <ArrowRight className="h-4 w-4" aria-hidden="true" /></button>}
-          <Link href="/contact" className="inline-flex items-center gap-2 text-sm text-site-accent hover:text-site-accent">CONTACT US <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
-        </div>
-        {!canApply && <p id="application-note" className="mt-4 text-sm text-site-muted">{recruitment.status === "closed" ? "이번 모집의 지원 접수가 종료되었습니다." : "모집 일정과 공식 지원 링크가 확정되면 지원할 수 있습니다."}</p>}
+        <article aria-labelledby="recruit-notice-title" className="paper-panel mt-10 overflow-hidden">
+          <header className="border-t-4 border-t-sky-900 px-6 pb-8 pt-8 sm:px-10 sm:pt-10">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <p className="text-xs font-medium tracking-[.16em] text-slate-500">SMP · RECRUITMENT NOTICE</p>
+              <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-900">{statusCopy.label}</span>
+            </div>
+            <h2 id="recruit-notice-title" className="mt-6 text-2xl font-semibold leading-snug tracking-tight text-slate-950 sm:text-3xl">41기 신입회원 모집 안내</h2>
+            <p className="mt-4 max-w-2xl text-base leading-8 text-slate-600">{statusCopy.text}</p>
+          </header>
+          <div className="px-6 pb-8 sm:px-10 sm:pb-10">
+            <section aria-labelledby="recruit-details">
+              <h3 id="recruit-details" className="sr-only">모집 요강</h3>
+              <dl className="divide-y divide-slate-200 border-y border-slate-300">
+                {details.map(([label, value]) => <div key={label} className="grid gap-2 py-5 sm:grid-cols-[140px_1fr] sm:gap-8">
+                  <dt className="text-sm font-semibold leading-8 text-slate-900">{label}</dt>
+                  <dd className="whitespace-pre-line text-base leading-8 text-slate-700">{value}</dd>
+                </div>)}
+              </dl>
+            </section>
+            <section aria-labelledby="selection-process" className="mt-10">
+              <h3 id="selection-process" className="text-lg font-semibold text-slate-900">전형 절차</h3>
+              <RecruitSteps steps={steps} />
+            </section>
+            <div className="mt-10 border-t border-slate-200 pt-7">
+              <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
+                {canApply ? <a href={recruitment.applicationUrl!} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-3 rounded bg-sky-900 px-5 text-sm font-medium text-white hover:bg-sky-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-800">지원서 작성 <ArrowRight className="h-4 w-4" aria-hidden="true" /></a>
+                  : <button disabled aria-describedby="application-note" className="inline-flex min-h-11 cursor-not-allowed items-center gap-3 rounded bg-slate-100 px-5 text-sm font-medium text-slate-500">지원서 작성 <ArrowRight className="h-4 w-4" aria-hidden="true" /></button>}
+                <Link href="/contact" className="paper-link inline-flex min-h-11 items-center gap-2 text-sm font-medium">모집 문의 <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
+              </div>
+              {!canApply && <p id="application-note" className="mt-4 text-sm leading-7 text-slate-600">{recruitment.status === "closed" ? "이번 모집의 지원 접수가 종료되었습니다." : "모집 일정과 공식 지원 링크가 확정되면 지원할 수 있습니다."}</p>}
+            </div>
+          </div>
+        </article>
       </div>
     </main>
     <SiteFooter />

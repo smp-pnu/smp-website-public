@@ -2,6 +2,15 @@ import type { ContentItem } from "./content-model"
 
 type ResearchFields = Pick<ContentItem, "title" | "category" | "company" | "reportType" | "activity">
 
+// Team codes stay in the CMS for filing; visitors see a readable attribution.
+// Only normalize code-only authors so named contributors remain intact.
+export function publicReportAuthor(author: string) {
+  const value = author.trim()
+  if (!value || /^SMP$/i.test(value) || /^(?:SMP\s*[·:–-]?\s*)?R\s*\d+$/i.test(value)) return "SMP 리서치팀"
+  if (/^(?:SMP\s*[·:–-]?\s*)?N\s*\d+$/i.test(value)) return "SMP 신입세션"
+  return value
+}
+
 export function reportType(item: Pick<ResearchFields, "category" | "reportType">) {
   return item.reportType || (item.category === "산업분석" ? "산업분석" : "기업분석")
 }

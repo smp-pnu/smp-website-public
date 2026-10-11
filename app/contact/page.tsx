@@ -18,14 +18,16 @@ export default function ContactPage() {
     <main className="relative z-10 min-h-[75svh]">
       <div className="site-page max-w-6xl">
         <PageIntro eyebrow="CONNECT WITH SMP" title="CONTACT">학회 활동과 모집에 관한 문의는 아래 공식 채널로 보내주세요.</PageIntro>
-        <div className="mt-14 grid gap-10 md:grid-cols-3">
-          {channels.map(({ label, name, detail, href, action, icon: Icon, external }) => <section key={label} className="flex flex-col border-t border-white/25 pt-7">
-            <Icon className="h-6 w-6 text-site-accent" strokeWidth={1.25} aria-hidden="true" />
-            <h2 className="mt-5 text-xs font-normal tracking-[0.2em] text-site-accent">{label}</h2>
-            <p className="mt-4 break-words text-lg leading-relaxed text-white">{name}</p>
-            {detail && <p className="mt-2 text-sm text-site-muted">{detail}</p>}
+        <div className="mt-14 grid gap-5 md:grid-cols-3">
+          {channels.map(({ label, name, detail, href, action, icon: Icon, external }) => <section key={label} className="paper-panel flex min-h-72 flex-col p-7 sm:p-8">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-xs font-semibold tracking-[0.16em] text-slate-600">{label}</h2>
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-50"><Icon className="h-5 w-5 text-sky-800" strokeWidth={1.5} aria-hidden="true" /></span>
+            </div>
+            <p className="mt-7 break-words text-lg font-medium leading-relaxed text-slate-900">{name}</p>
+            {detail && <p className="mt-2 break-words text-sm text-slate-600">{detail}</p>}
             <div className="mt-auto pt-8">
-              <a href={href} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined} className="inline-flex items-center gap-2 text-sm text-site-accent transition-colors hover:text-site-accent focus-visible:outline-2 focus-visible:outline-site-accent">
+              <a href={href} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined} className="paper-link inline-flex min-h-11 w-full items-center justify-between gap-3 border-t border-slate-200 pt-4 text-sm font-medium">
                 {action}<ArrowUpRight className="h-4 w-4" aria-hidden="true" />
                 {external && <span className="sr-only"> (새 창)</span>}
               </a>

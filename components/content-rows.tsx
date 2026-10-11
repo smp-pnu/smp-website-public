@@ -3,6 +3,7 @@ import { ArrowUpRight } from "lucide-react"
 import { formatDate, type ContentItem } from "@/lib/content-model"
 import { contentDetailHref, type ContentSearch } from "@/lib/content-navigation"
 import { CategoryTag } from "./category-tag"
+import { publicReportAuthor } from "@/lib/research-metadata"
 
 export function ContentRows({ items, listSearch }: { items: ContentItem[]; listSearch?: ContentSearch }) {
   return <ul className="divide-y divide-white/15 border-y border-white/15">{items.map(item => <li key={item.id} id={`content-${item.id}`} className="scroll-mt-28">
@@ -14,7 +15,7 @@ export function ContentRows({ items, listSearch }: { items: ContentItem[]; listS
           {item.industry && <span className="text-site-muted">{item.industry}</span>}
           {item.ticker && <span className="font-mono text-site-muted">{item.ticker}</span>}
           <time dateTime={item.date}>{formatDate(item.date)}</time>
-          {item.author && <span>{item.author}</span>}
+          {(item.author || item.kind === "research") && <span>{item.kind === "research" ? publicReportAuthor(item.author) : item.author}</span>}
         </div>
         <h2 className="mt-3 break-words text-lg font-medium text-white group-hover:text-sky-200 sm:text-xl">{item.title}</h2>
         {item.summary && <p className="mt-2 line-clamp-2 break-words text-sm leading-7 text-slate-300">{item.summary}</p>}

@@ -1,11 +1,18 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import { toContentItem, type ContentItem, type NotionPage } from "../lib/content-model"
-import { relatedResearch, reportActivity, reportCompany, reportType, researchFacts } from "../lib/research-metadata"
+import { publicReportAuthor, relatedResearch, reportActivity, reportCompany, reportType, researchFacts } from "../lib/research-metadata"
 import { createContentSearchIndex, findContentMatches, selectContentPage } from "../lib/content-query"
 import { contentDetailHref, contentReturnHref, normalizeContentSearch } from "../lib/content-navigation"
 
 const base: ContentItem = { id: "1".repeat(32), kind: "research", title: "[인바디] 의료기기로", category: "기업분석", author: "R1", summary: "", date: "2026-10-01", pinned: false, attachments: [], externalUrl: null, semester: "2026-2" }
+
+test("public authors explain internal codes while preserving named contributors", () => {
+  for (const author of ["R1", "R12", "SMP · R3", "SMP", ""]) assert.equal(publicReportAuthor(author), "SMP 리서치팀")
+  assert.equal(publicReportAuthor("SMP · N2"), "SMP 신입세션")
+  assert.equal(publicReportAuthor("김민수 · R1"), "김민수 · R1")
+  assert.equal(publicReportAuthor("부산대학교 공동 연구팀"), "부산대학교 공동 연구팀")
+})
 
 test("optional CMS metadata keeps old reports visible and preserves publication checks", () => {
   const page: NotionPage = { object: "page", id: base.id, created_time: "2026-01-01T00:00:00Z", properties: {
