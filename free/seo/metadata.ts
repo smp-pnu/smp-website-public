@@ -5,7 +5,7 @@ import { SITE_CHANNELS, SITE_NAME_KO, SITE_ORIGIN, SITE_SHORT_NAME_KO } from "..
 export const siteOrigin=SITE_ORIGIN
 export const siteName=SITE_NAME_KO
 export const staticPages:Record<string,{title:string;description:string;noindex?:boolean}>={
-  "/":{title:"부산대 투자 동아리 SMP | 부산대학교 금융투자학회",description:"부산대학교 금융투자학회 SMP(Stock Masters of PNU)는 2006년 시작된 부산대 투자 동아리입니다. 증권·기업분석, 주식 가치투자, 리포트 작성과 포트폴리오 운용을 함께하며 학회 활동과 모집 소식을 전합니다."},
+  "/":{title:"부산대 SMP 공식 홈페이지 | 부산대학교 금융투자학회",description:"부산대학교 금융투자학회 SMP(Stock Masters of PNU)의 공식 홈페이지입니다. 2006년부터 이어온 학회 소개, 기업분석 리포트, 커리큘럼, 모집 및 공지사항을 확인할 수 있습니다."},
   "/about":{title:"학회 소개·증권투자 활동",description:"부산대 투자 동아리 SMP는 어떤 학회인가요? 부산대학교 학생들이 함께하는 증권·산업 리서치, 기업분석 발표, 가치투자와 팀 포트폴리오 운용 활동을 소개합니다."},
   "/curriculum":{title:"기업분석·가치투자 커리큘럼",description:"부산대학교 금융투자학회 SMP의 주식투자·기업분석 교육. 신입교육부터 Junior·방중세션·Senior까지 리포트 작성, 재무 모델링, 기업가치 평가와 포트폴리오 운용을 배웁니다."},
   "/achievements":{title:"활동 성과",description:"부산대학교 금융투자학회 SMP의 금융투자 대회 수상과 활동 성과입니다."},
