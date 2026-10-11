@@ -6,8 +6,9 @@ type ResearchFields = Pick<ContentItem, "title" | "category" | "company" | "repo
 // Only normalize code-only authors so named contributors remain intact.
 export function publicReportAuthor(author: string) {
   const value = author.trim()
-  if (!value || /^SMP$/i.test(value) || /^(?:SMP\s*[·:–-]?\s*)?R\s*\d+$/i.test(value)) return "SMP 리서치팀"
-  if (/^(?:SMP\s*[·:–-]?\s*)?N\s*\d+$/i.test(value)) return "SMP 신입세션"
+  const team = /^(?:SMP\s*[·:–-]?\s*)?([RN])\s*(\d+)$/i.exec(value)
+  if (team) return `${team[1].toUpperCase() === "R" ? "리서치" : "신입"} ${team[2]}팀`
+  if (!value || /^SMP$/i.test(value)) return "SMP 리서치팀"
   return value
 }
 

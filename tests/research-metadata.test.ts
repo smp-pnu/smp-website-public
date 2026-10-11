@@ -8,8 +8,14 @@ import { contentDetailHref, contentReturnHref, normalizeContentSearch } from "..
 const base: ContentItem = { id: "1".repeat(32), kind: "research", title: "[인바디] 의료기기로", category: "기업분석", author: "R1", summary: "", date: "2026-10-01", pinned: false, attachments: [], externalUrl: null, semester: "2026-2" }
 
 test("public authors explain internal codes while preserving named contributors", () => {
-  for (const author of ["R1", "R12", "SMP · R3", "SMP", ""]) assert.equal(publicReportAuthor(author), "SMP 리서치팀")
-  assert.equal(publicReportAuthor("SMP · N2"), "SMP 신입세션")
+  for (const [code, label] of [["R", "리서치"], ["N", "신입"]]) {
+    for (const number of [1, 2, 3, 4, 5, 12]) {
+      for (const author of [`${code}${number}`, `SMP · ${code}${number}`, ` smp - ${code.toLowerCase()} ${number} `]) {
+        assert.equal(publicReportAuthor(author), `${label} ${number}팀`)
+      }
+    }
+  }
+  for (const author of ["SMP", ""]) assert.equal(publicReportAuthor(author), "SMP 리서치팀")
   assert.equal(publicReportAuthor("김민수 · R1"), "김민수 · R1")
   assert.equal(publicReportAuthor("부산대학교 공동 연구팀"), "부산대학교 공동 연구팀")
 })
