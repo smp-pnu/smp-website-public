@@ -159,7 +159,7 @@
 .channel-entry:hover, .channel-entry:focus-visible { background: rgb(164 207 230 / .05); }
 /* Recruitment reads as an open prospectus, with facts aligned across two columns. */
 .recruit-guide { position: relative; isolation: isolate; max-width: 62rem; margin-inline: auto; }
-.recruit-guide::before { content: ""; position: absolute; z-index: -1; pointer-events: none; inset: -2rem -1.5rem; background: linear-gradient(90deg, transparent, rgb(8 16 23 / .42) 10%, rgb(8 16 23 / .42) 90%, transparent); mask-image: linear-gradient(transparent, black 5rem, black calc(100% - 4rem), transparent); }
+.recruit-guide::before { content: ""; position: absolute; z-index: -1; pointer-events: none; inset: -2rem -1.5rem; background: linear-gradient(90deg, transparent, rgb(8 16 23 / .18) 10%, rgb(8 16 23 / .18) 90%, transparent); mask-image: linear-gradient(transparent, black 5rem, black calc(100% - 4rem), transparent); }
 .recruit-opening { display: grid; gap: 2rem; padding-block: 2.5rem; border-block: 1px solid var(--site-line); }
 .recruit-schedule { padding-top: 1.5rem; border-top: 1px solid var(--site-line); }
 .recruit-columns { display: grid; column-gap: 4rem; }
@@ -183,7 +183,7 @@
 /* An uninterrupted reading column; the scrim fades into the existing photograph. */
 .notice-detail { max-width: 51rem; }
 .notice-article { position: relative; isolation: isolate; padding-block: .75rem 1rem; }
-.notice-article::before { content: ""; position: absolute; z-index: -1; pointer-events: none; inset: -2rem -1.5rem -3rem; background: linear-gradient(90deg, transparent, rgb(10 20 28 / .72) 15%, rgb(10 20 28 / .72) 85%, transparent); mask-image: linear-gradient(transparent, black 5rem, black calc(100% - 4rem), transparent); }
+.notice-article::before { content: ""; position: absolute; z-index: -1; pointer-events: none; inset: -2rem -1.5rem -3rem; background: linear-gradient(90deg, transparent, rgb(10 20 28 / .34) 15%, rgb(10 20 28 / .34) 85%, transparent); mask-image: linear-gradient(transparent, black 5rem, black calc(100% - 4rem), transparent); }
 .notice-article-header { padding-bottom: 2rem; border-bottom: 1px solid var(--site-line); }
 .notice-article-title { margin-top: 1rem; color: white; font-size: clamp(1.75rem,3.6vw,2.625rem); font-weight: 400; line-height: 1.4; letter-spacing: -.035em; text-wrap: balance; overflow-wrap: anywhere; }
 .notice-article-meta { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: .75rem; row-gap: .25rem; margin-top: 1.5rem; color: var(--site-muted); font-size: .8125rem; }
