@@ -4,6 +4,7 @@ import { getPdfSources, isTrustedAttachmentUrl } from "../../lib/pdf-source"
 import { selectContentPage } from "../../lib/content-query"
 import { contentListHref } from "../../lib/content-navigation"
 import { escapeHtml as e, staticPages, siteOrigin } from "./metadata"
+import { RESEARCH_CONTEXT } from "../../lib/site-config"
 
 // A small, escaped HTML view for first responses. The same published data is
 // handed to React, and no user-agent-specific version is ever served.
@@ -58,14 +59,15 @@ function attachmentsHtml(item:ContentItem) {
   return links.length?`<section aria-label="첨부 자료"><h2>첨부 자료</h2><ul>${links.join("")}</ul></section>`:""
 }
 export function detailHtml(item:ContentItem,blocks:ContentBlock[],pending=false) {
-  return `<main class="site-page max-w-4xl ${item.kind==="notice"?"notice-content":""}"><a href="/${item.kind}" class="text-site-accent">← ${item.kind.toUpperCase()}</a><article class="mt-10"><header class="border-b border-site-line pb-8"><p class="text-site-accent">${e(item.category)}</p><h1 class="mt-4 text-3xl leading-snug text-white">${e(item.title)}</h1><p class="mt-5 text-site-body"><time datetime="${e(item.date)}">${e(item.date)}</time> · ${e(item.author)}</p>${item.company||item.ticker||item.industry?`<p class="mt-4 text-site-body">${e([item.company,item.ticker,item.industry].filter(Boolean).join(" · "))}</p>`:""}<p class="mt-6 text-site-body">${e(item.summary)}</p></header><div class="seo-prose py-8">${pending?"<p>본문을 준비하고 있습니다.</p>":blockHtml(blocks)}${attachmentsHtml(item)}</div></article><p><a href="/${item.kind}" class="text-site-accent">목록으로 돌아가기</a></p></main>`
+  const points=item.kind==="research"&&item.investmentPoints?.length?`<details><summary>투자 포인트</summary><ul>${item.investmentPoints.map(point=>`<li>${e(point)}</li>`).join("")}</ul></details>`:""
+  return `<main class="site-page max-w-4xl ${item.kind==="notice"?"notice-content":""}"><a href="/${item.kind}" class="text-site-accent">← ${item.kind.toUpperCase()}</a><article class="mt-10"><header class="border-b border-site-line pb-8"><p class="text-site-accent">${e(item.category)}</p><h1 class="mt-4 text-3xl leading-snug text-white">${e(item.title)}</h1><p class="mt-5 text-site-body"><time datetime="${e(item.date)}">${e(item.date)}</time> · ${e(item.author)}</p>${item.company||item.ticker||item.industry?`<p class="mt-4 text-site-body">${e([item.company,item.ticker,item.industry].filter(Boolean).join(" · "))}</p>`:""}<p class="mt-6 text-site-body">${e(item.summary)}</p>${item.kind==="research"?`<p class="mt-5 text-xs leading-6 text-site-muted">${e(RESEARCH_CONTEXT)}</p>`:""}${points}</header><div class="seo-prose py-8">${pending?"<p>본문을 준비하고 있습니다.</p>":blockHtml(blocks)}${attachmentsHtml(item)}</div></article><p><a href="/${item.kind}" class="text-site-accent">목록으로 돌아가기</a></p></main>`
 }
 export function listHtml(kind:ContentKind,items:ContentItem[],search:URLSearchParams) {
   const result=selectContentPage(sortContent(items),kind,Object.fromEntries(search))
   const body=`<main class="site-page max-w-6xl"><h1 class="text-4xl text-white">${e(staticPages[`/${kind}`].title)}</h1><p class="mt-6 text-site-body">${e(staticPages[`/${kind}`].description)}</p><ol class="mt-10 divide-y divide-site-line">${result.visibleItems.map(item=>`<li class="py-6"><a class="text-xl text-white" href="${e(contentHref(item))}">${e(item.title)}</a><p class="mt-2 text-site-muted">${e(item.date)} · ${e(item.author)} · ${e(item.category)}</p><p class="mt-3 text-site-body">${e(item.summary)}</p></li>`).join("")}</ol><nav class="mt-10 flex flex-wrap gap-4" aria-label="페이지 이동">${Array.from({length:result.totalPages},(_,i)=>`<a href="${e(contentListHref(kind,{...result.listSearch,page:String(i+1)}))}" ${result.page===i+1?'aria-current="page"':""}>${i+1}</a>`).join("")}</nav></main>`
   return {body,page:result.page,totalPages:result.totalPages}
 }
-export function sitemapXml(items:ContentItem[]) {
-  const entries=[...Object.entries(staticPages).filter(([path,page])=>!page.noindex&&path!=="/alumni").map(([path])=>({path})),...items.map(item=>({path:contentHref(item),modified:item.editedAt}))]
+export function sitemapXml(items:ContentItem[],includeStatic=true) {
+  const entries=[...(includeStatic?Object.entries(staticPages).filter(([path,page])=>!page.noindex&&path!=="/alumni").map(([path])=>({path,modified:undefined as string|undefined})):[]),...items.map(item=>({path:contentHref(item),modified:item.editedAt}))]
   return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${entries.map(entry=>`<url><loc>${e(siteOrigin+entry.path)}</loc>${"modified" in entry&&typeof entry.modified==="string"&&Number.isFinite(Date.parse(entry.modified))?`<lastmod>${e(entry.modified)}</lastmod>`:""}</url>`).join("")}</urlset>`
 }

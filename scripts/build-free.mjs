@@ -25,7 +25,7 @@ if (!fixture && (!process.env.SMP_FREE_DATABASE_ID || process.env.SMP_FREE_DATAB
 const config = {
   name: fixture ? "smp-fixture-preview" : "smp-website-free", account_id: process.env.CLOUDFLARE_ACCOUNT_ID ?? "f4dcd5f46e5ca4400e2b3449ea5e4497",
   main: "worker.js", no_bundle: true, find_additional_modules: false, compatibility_date: "2026-10-09", compatibility_flags: ["nodejs_compat"],
-  assets: { directory: "client", binding: "ASSETS", html_handling:"drop-trailing-slash", not_found_handling: "404-page", run_worker_first: ["/api/*","!/api/health","/research","/research/*","/notice","/notice/*","/sitemap.xml"] },
+  assets: { directory: "client", binding: "ASSETS", html_handling:"drop-trailing-slash", not_found_handling: "404-page", run_worker_first: ["/api/*","!/api/health","/research","/research/*","/notice","/notice/*","/sitemap-research.xml","/sitemap-notice.xml","/feed.xml"] },
   d1_databases: [{ binding: "CMS_DB", database_name: fixture ? "smp-migration-preview" : "smp-website-free", database_id: fixture ? "16cf8db5-1f95-48f3-af68-b32cfa7f7908" : process.env.SMP_FREE_DATABASE_ID, migrations_dir: "../../cloudflare/migrations" }],
   vars: { SMP_RUNTIME: "cloudflare", SMP_FIXTURE: fixture ? "1" : "0", SMP_READ_ONLY: fixture ? "1" : "0", ...(fixture ? {
     NOTION_TOKEN: "local-cloudflare-fixture", NOTION_REPORTS_DATA_SOURCE_ID: "33333333333343338333333333333333", NOTION_NOTICES_DATA_SOURCE_ID: "22222222222242228222222222222222", NOTION_MEMBERS_DATA_SOURCE_ID: "44444444444444448444444444444444",

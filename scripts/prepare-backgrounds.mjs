@@ -10,4 +10,6 @@ await mkdir("public/backgrounds", { recursive: true })
 for (const name of sources) {
   await sharp(`public/${name}`).rotate().resize({ width: 2560, height: 2560, fit: "inside", withoutEnlargement: true })
     .webp({ quality: 82, effort: 4 }).toFile(`public/backgrounds/${name.replace(/\.[^.]+$/, ".webp")}`)
+  await sharp(`public/${name}`).rotate().resize({ width: 1280, height: 1280, fit: "inside", withoutEnlargement: true })
+    .webp({ quality: 76, effort: 4 }).toFile(`public/backgrounds/${name.replace(/\.[^.]+$/, "-mobile.webp")}`)
 }

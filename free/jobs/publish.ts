@@ -104,6 +104,8 @@ async function main() {
     }
     command("scripts/build-free.mjs")
     command("scripts/deploy-free.mjs")
+    // Code releases can change catalogue projections without changing Notion.
+    if(process.env.SMP_FORCE_BUILD==="1") await rebuildDocuments(env,["research","notice"])
     if(process.env.GITHUB_OUTPUT) await writeFile(process.env.GITHUB_OUTPUT,"assets_changed=true\n",{flag:"a"})
     for(const result of complete) {
       const response=await internal(new Request(`${origin}api/internal/jobs/${result.job.id}/complete`,{method:"POST",body:JSON.stringify({token:result.job.token,revision:result.job.revision,blocks:result.blocks,cover:result.cover})}),env)

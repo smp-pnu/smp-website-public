@@ -55,6 +55,7 @@ export function SiteFooter() {
             © {new Date().getFullYear()} {SITE_NAME_KO}. All rights reserved.
           </p>
           <p className="mt-2 text-xs leading-relaxed text-site-muted">Created by SI YEONG KIM</p>
+          <a href="/feed.xml" className="mt-3 inline-block text-xs text-site-muted underline-offset-4 hover:underline">최신 리포트·공지 RSS</a>
         </div>
       </div>
     </footer>

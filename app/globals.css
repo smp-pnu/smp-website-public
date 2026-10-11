@@ -8,13 +8,13 @@
   to { transform: translateX(0); }
 }
 @keyframes hero-title-enter {
-  from { opacity: 0; transform: translateX(-32px); }
-  to { opacity: 1; transform: translateX(0); }
+  from { transform: translateX(-16px); }
+  to { transform: translateX(0); }
 }
 .hero-shadow { transform: translateX(-100%); }
-.hero-title { opacity: 0; transform: translateX(-32px); }
+.hero-title { opacity: 1; transform: none; }
 .hero-shadow.is-visible { animation: hero-panel-enter 700ms cubic-bezier(.22,1,.36,1) both; }
-.hero-title.is-visible { animation: hero-title-enter 850ms cubic-bezier(.22,1,.36,1) 700ms both; }
+.hero-title.is-visible { animation: hero-title-enter 600ms cubic-bezier(.22,1,.36,1) both; }
 @media (prefers-reduced-motion: reduce) {
   .hero-shadow, .hero-title { animation: none; opacity: 1; transform: none; }
 }

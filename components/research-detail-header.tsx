@@ -4,6 +4,7 @@ import { getPdfSources } from "@/lib/pdf-source"
 import { reportCompany, researchFacts } from "@/lib/research-metadata"
 import { CategoryTag } from "./category-tag"
 import { CopyReportLink } from "./copy-report-link"
+import { RESEARCH_CONTEXT } from "@/lib/site-config"
 
 export function ResearchDetailHeader({ item }: { item: ContentItem }) {
   const facts = researchFacts(item.summary)
@@ -28,6 +29,7 @@ export function ResearchDetailHeader({ item }: { item: ContentItem }) {
       {pdf && <a href={`/api/content/research/${item.id}/pdf?${pdf.query}&download=1`} download className="inline-flex min-h-11 items-center gap-2 rounded-[2px] bg-sky-200 px-4 text-sm font-medium text-slate-950 hover:bg-sky-100"><ArrowDownToLine size={15} aria-hidden="true" />PDF 다운로드</a>}
       <CopyReportLink href={contentHref(item)} />
     </div>
+    <p className="mt-5 text-xs leading-6 text-site-muted">{RESEARCH_CONTEXT}</p>
     {!!item.investmentPoints?.length && <details className="mt-6 border-t border-site-line-soft pt-5">
       <summary className="cursor-pointer text-sm text-site-body">투자 포인트</summary>
       <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-7 text-site-body">{item.investmentPoints.map((point, index) => <li key={index}>{point}</li>)}</ul>
