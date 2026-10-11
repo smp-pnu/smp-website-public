@@ -1,11 +1,16 @@
 import type { ContentBlock } from "./notion-model"
 
 // Plain source text, never an AI-authored investment recommendation.
-export type ReportExcerpt = { version: 1; pages: { number: number; text: string }[] }
+export type ReportExcerpt = { version: 2; pages: { number: number; text: string }[] }
 export function reportExcerpt(pages: string[]): ReportExcerpt {
-  return { version: 1, pages: pages.slice(0, 2).flatMap((raw, index) => {
-    const text = raw.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffd]/g, "")
-      .split(/\r?\n/).map(line => line.replace(/[ \t]+/g, " ").trim()).filter(Boolean).join("\n")
+  return { version: 2, pages: pages.slice(0, 2).flatMap((raw, index) => {
+    const lines = raw.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffd]/g, "")
+      .split(/\r?\n/).map(line => line.replace(/[ \t]+/g, " ").trim()).filter(Boolean)
+    // Begin at a prose-sized line rather than chart axes, author tables or a
+    // table of contents. This only selects a source passage; it never rewrites it.
+    const start=lines.findIndex(line=>line.length>=35 && ((line.match(/[가-힣]/g)??[]).length>=15 || (line.match(/[a-zA-Z]/g)??[]).length>=50))
+    if(start<0)return []
+    const text=lines.slice(start).join("\n")
     // Image-only/garbled PDFs are left alone; there is no paid OCR fallback.
     if ((text.match(/[가-힣a-zA-Z]/g) ?? []).length < 100) return []
     const limit = text.slice(0, 1200)
@@ -16,7 +21,7 @@ export function reportExcerpt(pages: string[]): ReportExcerpt {
 export function validReportExcerpt(value: unknown): value is ReportExcerpt {
   if (!value || typeof value !== "object") return false
   const v = value as ReportExcerpt
-  return v.version === 1 && Array.isArray(v.pages) && v.pages.length <= 2 && v.pages.every((page, i) =>
+  return v.version === 2 && Array.isArray(v.pages) && v.pages.length <= 2 && v.pages.every((page, i) =>
     page && Number.isInteger(page.number) && page.number >= 1 && page.number <= 2 && (i === 0 || page.number > v.pages[i - 1].number)
     && typeof page.text === "string" && page.text.length > 0 && page.text.length <= 1200)
 }

@@ -11,7 +11,7 @@ test('same PDF bytes reuse both images across edits, re-publication and a change
   let renders=0,saves=0,extracts=0
   let bytes=new TextEncoder().encode('%PDF-original')
   const png=await sharp({create:{width:2048,height:2899,channels:3,background:'#ffffff'}}).png().toBuffer()
-  const deps={extract:async()=>{extracts++;return {version:1 as const,pages:[{number:1,text:"원문 발췌"}]}},download:async()=>bytes,render:async()=>{renders++;return png},save:async(report:string,data:Uint8Array)=>{saves++;return `/report-covers/${report}/${createHash('sha256').update(data).digest('hex')}.webp`}}
+  const deps={extract:async()=>{extracts++;return {version:2 as const,pages:[{number:1,text:"원문 발췌"}]}},download:async()=>bytes,render:async()=>{renders++;return png},save:async(report:string,data:Uint8Array)=>{saves++;return `/report-covers/${report}/${createHash('sha256').update(data).digest('hex')}.webp`}}
   const first=await prepareCover(item,null,deps)
   assert.ok(first?.pdfHash)
   assert.equal(renders,1);assert.equal(saves,2)
@@ -32,6 +32,6 @@ test('same PDF bytes reuse both images across edits, re-publication and a change
 test('failed PDF verification and foreign image paths never reuse an unverified cover',async()=>{
   const data=new TextEncoder().encode('%PDF-test')
   const foreign={url:`/report-covers/${'f'.repeat(32)}/${'a'.repeat(64)}.webp`,previewUrl:'/foreign.webp',width:2048,height:2899,pdfHash:createHash('sha256').update(data).digest('hex')}
-  await assert.rejects(prepareCover(item,foreign,{extract:async()=>({version:1 as const,pages:[]}),download:async()=>{throw Error('Source unavailable')},render:async()=>{throw Error('Must not render')},save:async()=>''}),/Source unavailable/)
-  await assert.rejects(prepareCover(item,foreign,{extract:async()=>({version:1 as const,pages:[]}),download:async()=>data,render:async()=>{throw Error('Render required')},save:async()=>''}),/Render required/)
+  await assert.rejects(prepareCover(item,foreign,{extract:async()=>({version:2 as const,pages:[]}),download:async()=>{throw Error('Source unavailable')},render:async()=>{throw Error('Must not render')},save:async()=>''}),/Source unavailable/)
+  await assert.rejects(prepareCover(item,foreign,{extract:async()=>({version:2 as const,pages:[]}),download:async()=>data,render:async()=>{throw Error('Render required')},save:async()=>''}),/Render required/)
 })

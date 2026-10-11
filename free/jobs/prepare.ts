@@ -90,7 +90,7 @@ export async function prepareCover(item:ContentItem,previous?:Cover|null,depende
   const data=await dependencies.download(pdf.url)
   const pdfHash=createHash("sha256").update(data).digest("hex")
   const reusable=previous?.pdfHash===pdfHash && path.test(previous.url) && path.test(previous.previewUrl)
-  const excerpt=reusable && validReportExcerpt(previous.excerpt) ? previous.excerpt : await dependencies.extract(data).catch(()=>({version:1 as const,pages:[]}))
+  const excerpt=reusable && validReportExcerpt(previous.excerpt) ? previous.excerpt : await dependencies.extract(data).catch(()=>({version:2 as const,pages:[]}))
   if(reusable) return {...previous,sourceKey:key,excerpt}
   const png=await dependencies.render(data)
   const large=await sharp(png).webp({quality:94}).toBuffer({resolveWithObject:true})
