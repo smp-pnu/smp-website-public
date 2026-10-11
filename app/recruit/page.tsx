@@ -31,8 +31,8 @@ const activity = [
 const steps = ["서류 제출", "서류 합격자 발표", "면접", "최종 합격자 발표"]
 
 function DetailRows({ items }: { items: string[][] }) {
-  return <dl className="space-y-5">
-    {items.map(([label, value]) => <div key={label} className="grid gap-1 sm:grid-cols-[112px_minmax(0,1fr)] sm:gap-6">
+  return <dl className="recruit-facts">
+    {items.map(([label, value]) => <div key={label}>
       <dt className="text-sm leading-7 text-site-muted">{label}</dt>
       <dd className="whitespace-pre-line text-[15px] leading-7 text-site-body">{value}</dd>
     </div>)}
@@ -57,7 +57,7 @@ export default function RecruitPage() {
       <article aria-labelledby="recruit-notice-title" className="recruit-guide mt-9 sm:mt-12">
         <header className="recruit-opening">
           <div>
-            <p className="editorial-eyebrow">41ST RECRUITMENT</p>
+            <p className="editorial-eyebrow">NEXT CHAPTER · SMP 41</p>
             <h2 id="recruit-notice-title" className="mt-4 text-[clamp(1.75rem,3vw,2.5rem)] font-light leading-snug tracking-tight text-white">41기 신입회원 모집</h2>
             <p className="mt-4 max-w-md text-[15px] leading-8 text-site-body">{statusCopy.text}</p>
           </div>
@@ -67,16 +67,18 @@ export default function RecruitPage() {
             <p className="mt-2 text-xs leading-6 text-site-muted">{recruitment.scheduleConfirmed ? "확정된 모집 일정입니다." : "세부 일정 추후 안내"}</p>
           </div>
         </header>
-        <section aria-labelledby="recruit-eligibility" className="recruit-section">
-          <div><p className="editorial-eyebrow">01 / ELIGIBILITY</p><h3 id="recruit-eligibility" className="mt-3 text-xl font-medium text-white">지원 자격</h3></div>
-          <DetailRows items={eligibility} />
-        </section>
-        <section aria-labelledby="recruit-activity" className="recruit-section">
-          <div><p className="editorial-eyebrow">02 / EXPERIENCE</p><h3 id="recruit-activity" className="mt-3 text-xl font-medium text-white">활동 안내</h3></div>
-          <DetailRows items={activity} />
-        </section>
-        <section aria-labelledby="selection-process" className="recruit-section">
-          <div><p className="editorial-eyebrow">03 / PROCESS</p><h3 id="selection-process" className="mt-3 text-xl font-medium text-white">전형 절차</h3></div>
+        <div className="recruit-columns">
+          <section aria-labelledby="recruit-eligibility" className="recruit-section">
+            <h3 id="recruit-eligibility" className="recruit-section-title"><span aria-hidden="true">01</span>지원 자격</h3>
+            <DetailRows items={eligibility} />
+          </section>
+          <section aria-labelledby="recruit-activity" className="recruit-section">
+            <h3 id="recruit-activity" className="recruit-section-title"><span aria-hidden="true">02</span>활동 안내</h3>
+            <DetailRows items={activity} />
+          </section>
+        </div>
+        <section aria-labelledby="selection-process" className="recruit-section recruit-process">
+          <h3 id="selection-process" className="recruit-section-title"><span aria-hidden="true">03</span>전형 절차</h3>
           <div><RecruitSteps steps={steps} />
             <p className="mt-6 text-sm leading-7 text-site-muted">서류 접수와 면접, 결과 발표 일정은 모집 공고 확정 후 안내합니다. 최종 합격자에게는 개별 연락드립니다.</p>
           </div>
