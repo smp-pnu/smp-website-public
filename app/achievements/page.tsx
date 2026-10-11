@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { PageIntro } from "@/components/page-intro"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { awardGroups } from "@/lib/awards"
+import { awardGroups, awardSource } from "@/lib/awards"
 
 export const metadata: Metadata = { title: "ACHIEVEMENTS | SMP" }
 
@@ -19,7 +19,7 @@ export default function AchievementsPage() {
           <h2 className="text-2xl font-light text-site-accent sm:text-3xl">{group.year}</h2>
           <ul className="divide-y divide-site-line-soft">
             {group.awards.map(([title, result]) => <li key={`${title}-${result}`} className="grid gap-2 py-5 first:pt-0 last:pb-0 lg:grid-cols-[1fr_220px] lg:gap-8">
-              <h3 className="text-base font-normal leading-relaxed text-white">{title}</h3>
+              <div><h3 className="text-base font-normal leading-relaxed text-white">{title}</h3>{awardSource(group.year,title) && <a href={awardSource(group.year,title)} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs text-site-muted underline underline-offset-4 hover:text-site-accent">부산대학교 공식 소식 ↗</a>}</div>
               <p className="text-sm leading-relaxed text-site-accent lg:text-right">{result}</p>
             </li>)}
           </ul>

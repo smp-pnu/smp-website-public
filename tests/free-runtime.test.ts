@@ -312,6 +312,47 @@ test("member uploads are prepared once, hidden while pending and served without 
     assert.equal((await memberPhoto(env,id)).status,404)
   }finally{sqlite.close()}
 })
+
+test('legacy excerpt backfill prioritizes CMS jobs and never queues more than eight reports per day',async()=>{
+  const {queueReportExcerptBackfill}=await import('../free/jobs/report-excerpt')
+  const {sqlite,env,db}=setup(),now=Date.UTC(2026,9,11)
+  try {
+    const pages=Array.from({length:20},(_,i)=>({...page(),id:i.toString(16).padStart(32,'0')}))
+    await storePages(env,pages,'research')
+    sqlite.prepare("UPDATE free_content SET cover=?").run(JSON.stringify({url:'old-cover'}))
+    assert.equal(await queueReportExcerptBackfill(db,now),0,'CMS jobs win')
+    sqlite.exec('DELETE FROM free_jobs')
+    for(let batch=0;batch<4;batch++) {
+      assert.equal(await queueReportExcerptBackfill(db,now),2)
+      assert.equal(await queueReportExcerptBackfill(db,now),0,'existing queue is not duplicated')
+      sqlite.exec("UPDATE free_content SET cover=json_set(cover,'$.excerpt',json('{\"version\":1,\"pages\":[]}')) WHERE id IN(SELECT id FROM free_jobs)")
+      sqlite.exec('DELETE FROM free_jobs')
+    }
+    assert.equal(await queueReportExcerptBackfill(db,now),0)
+    assert.equal(await queueReportExcerptBackfill(db,now+86400000),2)
+    assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM free_jobs").get()!.n,2)
+  } finally{sqlite.close()}
+})
+
+test('same-revision excerpt enrichment persists in the reusable cache without expanding public catalogues',async()=>{
+  const {sqlite,env}=setup()
+  const url=`/report-covers/${id}/${'a'.repeat(64)}.webp`
+  const cover={url,previewUrl:url,width:2048,height:2899,sourceKey:'b'.repeat(64),pdfHash:'c'.repeat(64)}
+  try {
+    await storePage(env,page(),'research');env.NOTION_FETCH=async()=>Response.json(page())
+    const {job}=await (await internal(req('jobs/claim'),env)).json() as any
+    assert.equal((await internal(req(`jobs/${id}/complete`,{...job,blocks:[],cover}),env)).status,200)
+    sqlite.prepare('INSERT INTO free_jobs(id,revision,next_at) VALUES (?,?,0)').run(id,job.revision)
+    const {job:again}=await (await internal(req('jobs/claim'),env)).json() as any
+    const excerpt={version:1,pages:[{number:1,text:'공개 PDF에서 가져온 원문'}]}
+    assert.equal((await internal(req(`jobs/${id}/complete`,{...again,blocks:[],cover:{...cover,excerpt:{version:99,pages:[]}}}),env)).status,400)
+    assert.equal((await internal(req(`jobs/${id}/complete`,{...again,blocks:[],cover:{...cover,excerpt}}),env)).status,200)
+    assert.deepEqual(JSON.parse(String(sqlite.prepare('SELECT cover FROM free_report_covers').get()!.cover)).excerpt,excerpt)
+    const catalogue=String(sqlite.prepare("SELECT body FROM free_documents WHERE name='research'").get()!.body)
+    assert.doesNotMatch(catalogue,/excerpt|pdfHash|sourceKey|공개 PDF에서/)
+  }finally{sqlite.close()}
+})
+
 test("Notion throttling does not retry before the shared Retry-After expires",async()=>{
   const {sqlite,env}=setup();let calls=0
   try {

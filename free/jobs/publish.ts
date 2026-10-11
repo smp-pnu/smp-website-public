@@ -13,6 +13,8 @@ import { reconcileIfDue } from "./reconcile"
 import { syncReportMetadataUsing } from "../../lib/report-metadata-service"
 import { ensureReportCoverCache } from "./report-cover-cache"
 import { repairRegionalImages } from "./regional-image-repair"
+import { queueReportExcerptBackfill } from "./report-excerpt"
+import { withReportExcerpt } from "../../lib/report-excerpt"
 
 type Job={id:string;kind:"research"|"notice"|"members";revision:string;token:string;item:ContentItem|Member;cover:Cover|null}
 type Completed={job:Job;blocks:Awaited<ReturnType<typeof prepareBody>>;cover:Cover|null}
@@ -45,6 +47,7 @@ async function main() {
   try {
     await reconcileIfDue(env)
     await repairRegionalImages(env.CMS_DB)
+    await queueReportExcerptBackfill(env.CMS_DB)
     const complete:Completed[]=[]
     for(let count=0;count<4 && Date.now()<deadline;count++) {
       const claim=await internal(new Request(`${origin}api/internal/jobs/claim`,{method:"POST"}),env)
@@ -64,8 +67,9 @@ async function main() {
         const item=job.kind==="members"?toMember(page,source(env,"members")):toContentItem(page,job.kind)
         if(!item) continue
         job.revision=page.last_edited_time??page.created_time
-        const blocks=job.kind==="members"?[]:await prepareBody(env,item as ContentItem,origin.href)
+        let blocks=job.kind==="members"?[]:await prepareBody(env,item as ContentItem,origin.href)
         const cover=job.kind==="members"?await prepareMemberPhoto(item as Member):await prepareCover(item as ContentItem,job.cover)
+        if(job.kind==="research") blocks=withReportExcerpt(job.id,blocks,cover?.excerpt)
         complete.push({job,blocks,cover})
       } catch(error) {
         await fail(env,origin,job,error instanceof Busy?error.seconds*1000:900_000)

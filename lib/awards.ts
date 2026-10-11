@@ -54,3 +54,11 @@ export const awardGroups = [
     ["제1회 UIC 전국 금융투자인사이트 대회", "최우수상"],
   ] },
 ]
+
+// Only records corroborated by these PNU announcements receive a source link.
+const awardSources:Record<string,string>={
+  "2025:제12회 한국투자증권 모의투자대회":"https://biz.pusan.ac.kr/bbs/biz/1233/1145067/artclView.do",
+  "2025:제11회 한국투자증권 모의투자대회":"https://biz.pusan.ac.kr/bbs/biz/1233/1145065/artclView.do",
+  "2024:제10회 한국투자증권 BANKIS 모의투자대회":"https://biz.pusan.ac.kr/bbs/biz/1233/1145065/artclView.do",
+}
+export function awardSource(year:string,title:string) {return awardSources[`${year}:${title}`]}

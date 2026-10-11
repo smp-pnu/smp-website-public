@@ -17,7 +17,7 @@ import { SearchField } from "@/components/search-field"
 import { AlumniOverview } from "@/components/alumni-overview"
 import { MembersDirectory } from "@/components/members-directory"
 import { NetworkTabs } from "@/components/network-tabs"
-import { relatedResearch } from "@/lib/research-metadata"
+import type { RelatedReports } from "@/lib/related-reports"
 import { isNotionFileUrl } from "@/lib/pdf-source"
 import { contentReturnHref } from "@/lib/content-navigation"
 import { contentHref, formatDate, sortContent, type ContentKind } from "@/lib/content-model"
@@ -44,7 +44,7 @@ export function DetailPage({ kind }: { kind: ContentKind }) {
   const { id } = useParams()
   const location=useLocation()
   const search = useSearch()
-  const { value, error } = useApi<{ item: PreparedItem; blocks: ContentBlock[]; bodyPending?: boolean }>(`/api/detail/${kind}/${id}`, 0)
+  const { value, error } = useApi<{ item: PreparedItem; blocks: ContentBlock[]; bodyPending?: boolean; related?:RelatedReports }>(`/api/detail/${kind}/${id}`, 0)
   const item = value?.item
   useEffect(() => { if(item||error) updatePageMetadata(location.pathname+location.search,item) }, [item,error,location.pathname,location.search])
   const back = item ? contentReturnHref(item, search) : `/${kind}`
@@ -55,14 +55,12 @@ export function DetailPage({ kind }: { kind: ContentKind }) {
       {kind === "research" && <Attachments item={item} />}
       <div className="py-8">{value.bodyPending ? <p role="status" className="text-site-muted">본문을 준비하고 있습니다. 잠시 후 다시 방문해주세요.</p> : <NotionContent blocks={value.blocks} />}</div>
       {kind === "notice" && <Attachments item={item} />}
-      {kind === "research" && <Related item={item} />}
+      {kind === "research" && <Related related={value.related} />}
     </article> : <Status error={error} />}
     <div className="mt-14 border-t border-site-line pt-7"><Link href={back} className="text-sm text-site-accent">목록으로 돌아가기</Link></div>
   </main><SiteFooter /></>
 }
-function Related({item}:{item:PreparedItem}) {
-  const {value}=useApi<ContentResult>("/api/catalog/research")
-  const related=useMemo(()=>value && relatedResearch(item,value.items),[item,value])
+function Related({related}:{related?:RelatedReports}) {
   if(!related) return null
   return <aside aria-label="관련 리포트" className="mt-12 border-t border-site-line pt-7"><h2 className="text-sm font-medium text-site-body">{related.label}</h2><ul className="mt-4 divide-y divide-site-line-soft">{related.items.map(report=><li key={report.id}><Link href={contentHref(report)} className="flex items-center justify-between gap-4 py-4"><span><span className="block text-sm leading-6 text-site-body">{report.title}</span><time className="text-xs text-site-muted">{formatDate(report.date)}</time></span><span aria-hidden="true">↗</span></Link></li>)}</ul></aside>
 }
