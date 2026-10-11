@@ -13,6 +13,8 @@ import Recruit from "../../app/recruit/page"
 import Contact from "../../app/contact/page"
 import Missing from "../../app/not-found"
 import { staticPages, metadataHtml } from "./metadata"
+export { sitemapXml } from "./content"
+export { sitemapIndexXml } from "./feeds"
 
 const components:Record<string,ComponentType>={"/":Home,"/about":About,"/curriculum":Curriculum,"/achievements":Achievements,"/recruit":Recruit,"/contact":Contact,"/404":Missing}
 export function prerender(template:string,path:string,shell=false) {

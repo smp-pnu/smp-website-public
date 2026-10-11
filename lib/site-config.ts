@@ -19,6 +19,7 @@ export const SITE_NAME_KO = "부산대학교 금융투자학회 SMP"
 export const SITE_NAME_EN = "STOCK MASTERS OF PNU"
 export const SITE_SHORT_NAME_KO = "부산대 SMP"
 export const SITE_ORIGIN = "https://pnusmp.com"
+export const RESEARCH_CONTEXT = "SMP 학회원이 작성한 학술 연구자료입니다. 분석과 목표주가는 작성 당시의 판단이며 현재 정보와 다를 수 있습니다. 분석 기준일과 근거는 PDF 원문을 확인해주세요."
 export const SITE_CHANNELS = {
   email: "smppnu@gmail.com",
   instagram: "https://www.instagram.com/smp_pnu/",

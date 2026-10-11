@@ -6,6 +6,7 @@ import { publicBudget } from "./budget"
 import { enqueue } from "./catalog"
 import { published } from "./notion"
 import type { Context, Env } from "./types"
+import { publicFeed } from "./feed"
 
 export async function readDetail(env:Env,ctx:Context,kind:ContentKind,id:string) {
   const item=await published(env,kind,id)
@@ -18,8 +19,9 @@ export async function readDetail(env:Env,ctx:Context,kind:ContentKind,id:string)
 type ReadDocument=(kind:ContentKind)=>Promise<Response>
 export async function publicPage(request:Request,env:Env,ctx:Context,readDocument:ReadDocument) {
   const url=new URL(request.url),match=/^\/(research|notice)(?:\/([a-f\d-]{32,36}))?\/?$/.exec(url.pathname)
-  const sitemap=url.pathname==="/sitemap.xml"
-  if(!match&&!sitemap) return env.ASSETS.fetch(request)
+  const sitemap=/^\/sitemap-(research|notice)\.xml$/.exec(url.pathname)
+  const feed=url.pathname==="/feed.xml"
+  if(!match&&!sitemap&&!feed) return env.ASSETS.fetch(request)
   const kind=match?.[1] as ContentKind,id=match?.[2]?normalizeId(match[2]):null
   if(match?.[2]&&!id) return new Response("Not found",{status:404,headers:{"X-Robots-Tag":"noindex"}})
   const denied=await publicBudget(request,env,id?{id,kind}:undefined)
@@ -28,11 +30,12 @@ export async function publicPage(request:Request,env:Env,ctx:Context,readDocumen
   // continue working for the publishing runner and existing file links.
   const canonicalPath=match?`/${kind}${id?`/${id}`:""}`:url.pathname
   if(env.SMP_FIXTURE!=="1" && (url.hostname==="www.pnusmp.com"||url.pathname!==canonicalPath)) return Response.redirect(siteOrigin+canonicalPath+url.search,301)
+  if(feed) return publicFeed(env)
   if(sitemap) {
-    const responses=await Promise.all([readDocument("research"),readDocument("notice")])
-    if(responses.some(r=>!r.ok)) return new Response("Catalogue temporarily unavailable",{status:503,headers:{"Retry-After":"60"}})
-    const results=await Promise.all(responses.map(r=>r.json() as Promise<{items:ContentItem[]}>))
-    return new Response(sitemapXml(results.flatMap(r=>r.items)),{headers:{"Content-Type":"application/xml; charset=utf-8"}})
+    const response=await readDocument(sitemap[1] as ContentKind)
+    if(!response.ok) return new Response("Catalogue temporarily unavailable",{status:503,headers:{"Retry-After":"60"}})
+    const result=await response.json() as {items:ContentItem[]}
+    return new Response(sitemapXml(result.items,false),{headers:{"Content-Type":"application/xml; charset=utf-8"}})
   }
   let body:string,data:{path:string;value:unknown},item:ContentItem|undefined
   if(id) {

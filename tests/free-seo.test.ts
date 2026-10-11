@@ -121,10 +121,10 @@ test('HTML details recheck publication, hide outdated bodies, and skip Notion fo
     assert.equal((await request(`/research/${id}`,'POST')).status,405)
     // Lists and sitemaps share the same freshness and withdrawal checks.
     await storePage(env,page,'research');await rebuildDocuments(env)
-    const xml=await(await request('/sitemap.xml')).text()
+    const xml=await(await request('/sitemap-research.xml')).text()
     assert.doesNotMatch(xml,new RegExp(`/research/${id}`))
     sqlite.prepare('UPDATE free_sync SET checked_at=?').run(Date.now()-301_000)
-    assert.equal((await request('/sitemap.xml')).status,503)
+    assert.equal((await request('/sitemap-research.xml')).status,503)
     assert.equal((await request('/research')).status,503)
   } finally { await Promise.all(pending);sqlite.close() }
 })
