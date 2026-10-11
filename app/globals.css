@@ -146,26 +146,29 @@
 .page-intro__eyebrow { color: var(--site-accent); font-size: .75rem; line-height: 1.5; letter-spacing: .22em; }
 .page-intro__title { margin-top: 1rem; color: var(--site-heading); font-size: clamp(2rem, 4vw, 3rem); font-weight: 300; line-height: 1.3; letter-spacing: -.025em; overflow-wrap: anywhere; text-wrap: balance; }
 .page-intro__description { max-width: 42rem; margin: 1.25rem auto 0; color: var(--site-body); font-size: 1rem; line-height: 1.9; }
-/* Shared light surfaces for recruitment information and contact channels. */
-.paper-panel { --paper-line: #e2e7eb; color-scheme: light; color: #334155; background: #fff; border: 1px solid var(--paper-line); border-radius: 6px; box-shadow: 0 6px 24px rgb(0 0 0 / .07); }
+/* Cool, mostly opaque surfaces preserve contrast over photographic backgrounds. */
+.paper-panel { --paper-line: rgb(36 65 86 / .14); --paper-heading: #112432; --paper-body: #334554; --paper-muted: #465968; color-scheme: light; color: var(--paper-body); background: linear-gradient(135deg, rgb(233 239 243 / .96), rgb(220 230 237 / .94)); border: 1px solid rgb(222 235 244 / .38); border-radius: 6px; box-shadow: 0 6px 24px rgb(0 0 0 / .06); }
 .paper-divider { border-color: var(--paper-line); }
-.paper-eyebrow { color: #64748b; font-size: .625rem; font-weight: 500; line-height: 1.6; letter-spacing: .16em; }
-.paper-section-title { color: #0f172a; font-size: 1.125rem; font-weight: 500; line-height: 1.5; letter-spacing: -.02em; }
-.paper-panel-footer { border-top: 1px solid var(--paper-line); background: #f6f8fa; }
-.paper-link { color: #33556d; text-underline-offset: .25em; }
-.paper-link:hover { color: #0c4a6e; text-decoration: underline; }
+.paper-heading { color: var(--paper-heading); }
+.paper-copy { color: var(--paper-body); }
+.paper-muted { color: var(--paper-muted); }
+.paper-eyebrow { color: var(--paper-muted); font-size: .625rem; font-weight: 500; line-height: 1.6; letter-spacing: .16em; }
+.paper-section-title { color: var(--paper-heading); font-size: 1.125rem; font-weight: 500; line-height: 1.5; letter-spacing: -.02em; }
+.paper-panel-footer { border-top: 1px solid var(--paper-line); background: rgb(29 58 77 / .04); }
+.paper-link { color: #244a63; text-underline-offset: .25em; }
+.paper-link:hover { color: #12374e; text-decoration: underline; }
 .paper-link:focus-visible { outline: 2px solid #0369a1; outline-offset: 4px; border-radius: 2px; }
 .channel-card { transition: border-color 180ms ease; }
-.channel-card:hover { border-color: #8ca8b9; }
+.channel-card:hover { border-color: rgb(206 228 243 / .7); }
 .channel-card .paper-panel-footer { transition: color 180ms ease, background-color 180ms ease; }
-.channel-card:hover .paper-panel-footer, .channel-card:focus-visible .paper-panel-footer { color: #164e63; background: #edf3f6; }
+.channel-card:hover .paper-panel-footer, .channel-card:focus-visible .paper-panel-footer { color: #153b53; background: rgb(29 58 77 / .07); }
 .paper-action-arrow { transition: transform 180ms ease; }
 .channel-card:hover .paper-action-arrow { transform: translate(2px, -2px); }
 .channel-card:focus-visible { outline: 2px solid #b9def3; outline-offset: 4px; }
 .recruit-apply { color: #fff; background: #183b50; border: 1px solid #183b50; }
 .recruit-apply:hover { background: #254e66; }
 .recruit-apply:focus-visible { outline: 2px solid #0369a1; outline-offset: 4px; }
-.recruit-apply:disabled { color: #64748b; background: #e9eef2; border-color: #dfe6eb; }
+.recruit-apply:disabled { color: var(--paper-muted); background: rgb(29 58 77 / .04); border-color: var(--paper-line); }
 @media (prefers-reduced-motion: reduce) { .channel-card, .channel-card .paper-panel-footer, .paper-action-arrow { transition: none; } .channel-card:hover .paper-action-arrow { transform: none; } }
 @media (min-width: 640px) { .site-page { padding-block: 4.5rem 6rem; } }
 
