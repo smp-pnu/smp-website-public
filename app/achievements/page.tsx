@@ -4,14 +4,14 @@ import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { awardGroups, awardSource } from "@/lib/awards"
 
-export const metadata: Metadata = { title: "ACHIEVEMENTS | SMP" }
+export const metadata: Metadata = { title: "ACCOLADES | SMP" }
 
 export default function AchievementsPage() {
   return <>
     <SiteHeader />
     <main className="relative z-10">
       <div className="site-page max-w-6xl">
-        <PageIntro eyebrow="SMP RECORD" title="ACHIEVEMENTS">SMP의 대회 수상과 활동 성과입니다.</PageIntro>
+        <PageIntro eyebrow="SMP RECORD" title="ACCOLADES">SMP의 대회 수상과 활동 성과입니다.</PageIntro>
         <nav aria-label="수상 연도" className="mt-10 flex flex-wrap justify-center gap-2 border-b border-site-line pb-6">
           {awardGroups.map((group, index) => <a key={group.year} href={`#awards-${index}`} className="inline-flex min-h-11 items-center rounded-[4px] border border-site-line bg-white/[0.025] px-3 text-sm text-site-body transition-colors hover:bg-white/5 hover:text-site-accent focus-visible:outline-2 focus-visible:outline-site-accent">{group.year}</a>)}
         </nav>
