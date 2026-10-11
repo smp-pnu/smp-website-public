@@ -2,6 +2,8 @@
 // asset-looking string, but that must never trigger a download or deployment.
 export function publicationAssets(values:unknown[],origin="https://pnusmp.com"):Set<string> {
   const paths=new Set<string>()
+  // Existing notice images still use the original production hostname.
+  const origins=new Set([origin,"https://pnusmp.com","https://smp-website-free.smp-website.workers.dev"])
   function visit(value:unknown) {
     if(!value || typeof value!=='object')return
     if(Array.isArray(value)){value.forEach(visit);return}
@@ -9,7 +11,7 @@ export function publicationAssets(values:unknown[],origin="https://pnusmp.com"):
       if((key==='url'||key==='previewUrl') && typeof child==='string') {
         let url:URL
         try{url=new URL(child,origin)}catch{continue}
-        if(![origin,"https://pnusmp.com"].includes(url.origin)||url.search||url.hash)continue
+        if(!origins.has(url.origin)||url.search||url.hash)continue
         if(/^\/report-covers\/[a-f0-9]{32}\/[a-f0-9]{64}\.webp$/.test(url.pathname))paths.add(url.pathname)
       } else if(typeof child==='object')visit(child)
     }

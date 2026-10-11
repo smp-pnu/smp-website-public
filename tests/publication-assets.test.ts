@@ -23,4 +23,5 @@ test('configured publisher origin remains supported after adding a custom domain
  assert.deepEqual([...publicationAssets([{image:{external:{url:origin+path}}}],origin)],[path])
  assert.deepEqual([...publicationAssets([{url:'https://pnusmp.com'+path}],origin)],[path])
  assert.equal(publicationAssets([{url:'https://other.example'+path}],origin).size,0)
+ assert.deepEqual([...publicationAssets([{url:'https://smp-website-free.smp-website.workers.dev'+path}])],[path])
 })
