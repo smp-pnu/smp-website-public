@@ -3,12 +3,13 @@ import { getPdfSources, isTrustedAttachmentUrl } from "../../lib/pdf-source"
 import { streamPdf } from "../../lib/pdf-response"
 import { limitedBody, validNotionSignature } from "../../lib/webhook-security"
 import { publicBudget, spend } from "./budget"
-import { enqueue, rebuildDocuments, storePage, syncKind, removePage } from "./catalog"
+import { rebuildDocuments, storePage, syncKind, removePage } from "./catalog"
 import { notion, published, source } from "./notion"
 import { Busy, type Context, type Env } from "./types"
 import { memberPhoto } from "./member-photo"
 import { queueDriveCleanup } from "../../lib/drive-cleanup-relay"
 import { captureWebhookVerification } from "./webhook-setup"
+import { publicPage, readDetail } from "./pages"
 
 declare const __SMP_FIXTURE__: boolean
 const headers = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer", "Cross-Origin-Resource-Policy": "same-origin" }
@@ -68,7 +69,7 @@ async function handle(request: Request, env: Env, ctx: Context): Promise<Respons
   if (path.startsWith("/api/internal/")) return reply({ error: "Not found" },404)
 
   if (path === "/api/notion/webhook" && request.method === "POST") return webhook(request, env)
-  if (!path.startsWith("/api/")) return new Response("Not found", { status: 404 })
+  if (!path.startsWith("/api/")) return publicPage(request,env,ctx,name=>document(request,env,ctx,name))
   if(!/^\/api\/(search$|catalog\/(research|notice|members)$|member-photo\/[a-f0-9]{32}$|(detail|content)\/(research|notice)\/[a-f\d-]{32,36}(\/(pdf|file|block-file))?$)/.test(path)) return new Response("Not found",{status:404})
   const match = /^\/api\/(detail|content)\/(research|notice)\/([a-f\d-]{32,36})(?:\/(pdf|file|block-file))?$/.exec(path)
   const reference=match && normalizeId(match[3])
@@ -82,14 +83,12 @@ async function handle(request: Request, env: Env, ctx: Context): Promise<Respons
   if (!match) return new Response("Not found", { status: 404 })
   const id = normalizeId(match[3]), kind = match[2] as ContentKind
   if (!id) return new Response("Not found", { status: 404 })
+  if (match[1] === "detail" && !match[4]) {
+    const value=await readDetail(env,ctx,kind,id)
+    return value?reply(value):new Response("Not found",{status:404})
+  }
   const item = await published(env, kind, id)
   if (!item) return new Response("Not found", { status: 404 })
-  if (match[1] === "detail" && !match[4]) {
-    const record = await env.CMS_DB.prepare("SELECT blocks,body_revision,cover FROM free_content WHERE id=? AND kind=?").bind(id, kind).first<{ blocks: string | null; body_revision: string | null; cover: string | null }>()
-    const ready = !!record && record.body_revision === item.editedAt && !!record.blocks
-    if (!ready && env.SMP_READ_ONLY !== "1") ctx.waitUntil(enqueue(env, id, item.editedAt ?? ""))
-    return reply({ item: { ...item, ...(record?.cover ? { cover: JSON.parse(record.cover) } : {}) }, blocks: ready ? JSON.parse(record!.blocks!) : [], bodyPending: !ready })
-  }
   if (match[4] === "pdf") {
     const query = url.searchParams.get("source") === "external" ? "source=external" : `index=${url.searchParams.get("index") ?? "0"}`
     const pdf = getPdfSources(item).find(file => file.query === query)

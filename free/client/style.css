@@ -2,3 +2,10 @@
 @font-face { font-family: 'SMP Hero'; src: url('../../app/fonts/cormorant-garamond-latin-300.woff2') format('woff2'); font-weight: 300; font-display: swap; }
 :root { --font-body: 'Noto Sans KR'; --font-hero: 'SMP Hero'; }
 body { margin: 0; background: var(--site-background); font-family: var(--font-body), sans-serif; }
+[data-prerender] .hero-title, [data-prerender] .hero-shadow, [data-prerender] .curriculum-step-item { opacity: 1; transform: none; }
+.seo-prose { color: var(--site-body); line-height: 2; overflow-wrap: anywhere; }
+.seo-prose > * + * { margin-top: 1.25rem; }
+.seo-prose h2, .seo-prose h3, .seo-prose h4 { color: white; font-size: 1.4rem; }
+.seo-prose a { color: var(--site-accent); text-decoration: underline; }
+.seo-prose table { width: 100%; }
+.seo-prose td, .seo-prose th { padding: .75rem; border: 1px solid var(--site-line); }

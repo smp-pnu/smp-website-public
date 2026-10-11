@@ -3,6 +3,7 @@ import { Navigate, useLocation, useParams } from "react-router"
 import Link from "next/link"
 import Form from "next/form"
 import { useApi } from "./api"
+import { updatePageMetadata } from "./seo"
 import { PageIntro } from "@/components/page-intro"
 import { NoticeListing } from "@/components/notice-listing"
 import { SiteHeader } from "@/components/site-header"
@@ -41,10 +42,11 @@ export function ListPage({ kind }: { kind: ContentKind }) {
 
 export function DetailPage({ kind }: { kind: ContentKind }) {
   const { id } = useParams()
+  const location=useLocation()
   const search = useSearch()
   const { value, error } = useApi<{ item: PreparedItem; blocks: ContentBlock[]; bodyPending?: boolean }>(`/api/detail/${kind}/${id}`, 0)
   const item = value?.item
-  useEffect(() => { if (item?.title) document.title = `SMP · ${item.title}` }, [item?.title])
+  useEffect(() => { if(item||error) updatePageMetadata(location.pathname+location.search,item) }, [item,error,location.pathname,location.search])
   const back = item ? contentReturnHref(item, search) : `/${kind}`
   return <><SiteHeader /><main className={`relative z-10 mx-auto min-h-[75svh] max-w-4xl px-6 py-16 sm:py-20 ${kind === "notice" ? "notice-content" : ""}`}>
     <Link href={back} className="text-sm tracking-widest text-site-accent">← {kind.toUpperCase()}</Link>
