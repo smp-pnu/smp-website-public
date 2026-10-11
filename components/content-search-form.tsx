@@ -75,13 +75,18 @@ export function ContentSearchForm({
 
   return <Form action={`/${kind}`} prefetch={false} role="search" aria-label={`${label} 검색`} aria-busy={isPending}
     onSubmit={event => { event.preventDefault(); navigate(contentListHref(kind, { q: value, category })) }}
-    className="mb-7 mt-10 border-b border-white/15 pb-5 sm:mt-12">
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 lg:gap-y-5">
-      <div className="col-span-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 lg:col-span-1">
+    className="mb-6 mt-10 sm:mt-14">
+    <div className="grid grid-cols-[minmax(0,1fr)_9rem] items-center gap-4 lg:grid-cols-[minmax(0,1fr)_10rem_24rem]">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h2 className="text-base font-normal tracking-tight text-white sm:text-lg">{activeFilters.length ? "검색 결과" : `전체 ${label}`}</h2>
         <p role="status" className="text-xs tabular-nums text-site-muted">{isPending ? "검색 중…" : `총 ${total}건`}</p>
       </div>
-      <div className="relative col-span-2 min-w-0 lg:col-span-1 lg:w-96 lg:justify-self-end" onFocus={() => setOpen(true)} onBlur={event => {
+      <div className="min-w-0">
+        <FilterSelect name="category" label="분류" value={category} disabled={isPending}
+          options={[{ value: "", label: "전체 분류" }, ...categories.map(value => ({ value, label: value }))]}
+          onChange={next => navigate(contentListHref(kind, { q: value, category: next }))} />
+      </div>
+      <div className="relative col-span-2 min-w-0 lg:col-span-1" onFocus={() => setOpen(true)} onBlur={event => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false)
       }}>
         <SearchField id={`${id}-query`} label={`${label} 검색`} name="q" maxLength={100} autoComplete="off" value={value} isPending={isPending}
@@ -102,11 +107,6 @@ export function ContentSearchForm({
           {!matches.length && <p role="status" className="px-4 py-5 text-sm text-site-muted">현재 조건에 맞는 게시물이 없습니다.</p>}
           <button type="submit" onMouseDown={event => event.preventDefault()} className="flex min-h-11 w-full items-center justify-between border-t border-white/10 px-4 py-3 text-sm text-sky-200 hover:bg-white/5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-200">전체 검색결과 보기<span aria-hidden="true">→</span></button>
         </div>}
-      </div>
-      <div className="col-span-2 w-40 sm:w-44">
-        <FilterSelect name="category" label="분류" value={category} disabled={isPending}
-          options={[{ value: "", label: "전체 분류" }, ...categories.map(value => ({ value, label: value }))]}
-          onChange={next => navigate(contentListHref(kind, { q: value, category: next }))} />
       </div>
     </div>
     {activeFilters.length > 0 && <div aria-label="적용한 검색 조건" className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1">

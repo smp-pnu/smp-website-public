@@ -5,7 +5,8 @@ import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { NotionContent } from "@/components/notion-content"
 import { ContentAttachments } from "./content-attachments"
-import { formatDate, type ContentItem, type ContentKind } from "@/lib/content-model"
+import { type ContentItem, type ContentKind } from "@/lib/content-model"
+import { NoticeDetailHeader } from "./notice-detail-header"
 import { contentReturnHref, type ContentSearch } from "@/lib/content-navigation"
 import { getContentItem } from "@/lib/notion"
 import { getPublishedBlocks } from "@/lib/content-catalog"
@@ -15,15 +16,10 @@ export async function ContentDetail({ kind, id, search }: { kind: ContentKind; i
   const item = await getContentItem(kind, id)
   if (!item) notFound()
   const returnHref = contentReturnHref(item, search)
-  return <><SiteHeader /><main className={`relative z-10 mx-auto min-h-[75svh] max-w-4xl px-6 py-16 sm:py-20 ${kind === "notice" ? "notice-content" : ""}`}>
+  return <><SiteHeader /><main className={`relative z-10 mx-auto min-h-[75svh] max-w-4xl px-6 py-16 sm:py-20 ${kind === "notice" ? "notice-content notice-detail" : ""}`}>
     <Link prefetch={false} href={returnHref} className="text-sm tracking-widest text-site-accent">← {kind === "notice" ? "NOTICE" : "RESEARCH"}</Link>
-    <article className="mt-10">
-      {kind === "research" ? <ResearchDetailHeader item={item} /> : <header className="border-b border-white/20 pb-8">
-        <p className="text-sm text-site-accent">{item.pinned && "고정 · "}{item.category}</p>
-        <h1 className="mt-4 break-words text-3xl font-medium leading-snug text-white sm:text-4xl">{item.title}</h1>
-        <p className="mt-5 text-sm text-site-body"><time dateTime={item.date}>{formatDate(item.date)}</time>{item.author && ` · ${item.author}`}</p>
-        {item.summary && <p className="mt-6 leading-8 text-site-body">{item.summary}</p>}
-      </header>}
+    <article className={kind === "notice" ? "notice-article mt-8" : "mt-10"}>
+      {kind === "research" ? <ResearchDetailHeader item={item} /> : <NoticeDetailHeader item={item} />}
       {kind === "research" && <div className="mt-8"><ContentAttachments item={item} /></div>}
       <div className="py-8">
         <Suspense fallback={<p role="status" className="text-sm text-site-muted">본문을 불러오는 중입니다.</p>}>

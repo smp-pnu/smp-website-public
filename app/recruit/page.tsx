@@ -31,10 +31,10 @@ const activity = [
 const steps = ["서류 제출", "서류 합격자 발표", "면접", "최종 합격자 발표"]
 
 function DetailRows({ items }: { items: string[][] }) {
-  return <dl className="mt-5 space-y-5">
-    {items.map(([label, value]) => <div key={label} className="grid gap-1 sm:grid-cols-[96px_minmax(0,1fr)] sm:gap-5">
-      <dt className="text-sm leading-7 paper-muted">{label}</dt>
-      <dd className="whitespace-pre-line text-[15px] leading-7 paper-copy">{value}</dd>
+  return <dl className="space-y-5">
+    {items.map(([label, value]) => <div key={label} className="grid gap-1 sm:grid-cols-[112px_minmax(0,1fr)] sm:gap-6">
+      <dt className="text-sm leading-7 text-site-muted">{label}</dt>
+      <dd className="whitespace-pre-line text-[15px] leading-7 text-site-body">{value}</dd>
     </div>)}
   </dl>
 }
@@ -54,38 +54,37 @@ export default function RecruitPage() {
       <nav aria-label="지원 전 학회 알아보기" className="mt-7 flex flex-wrap justify-center gap-x-6 gap-y-3 text-sm text-site-body">
         {[["/about", "학회 소개"], ["/curriculum", "커리큘럼"], ["/research", "학회원 리포트"]].map(([href, label]) => <Link key={href} href={href} className="inline-flex min-h-11 items-center gap-2 underline-offset-4 hover:text-white hover:underline">{label}<ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" /></Link>)}
       </nav>
-      <article aria-labelledby="recruit-notice-title" className="paper-panel mt-9 overflow-hidden sm:mt-12">
-        <header className="grid gap-7 p-6 sm:p-9 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-12">
+      <article aria-labelledby="recruit-notice-title" className="recruit-guide mt-9 sm:mt-12">
+        <header className="recruit-opening">
           <div>
-            <p className="paper-eyebrow">SMP · 41ST RECRUITMENT</p>
-            <h2 id="recruit-notice-title" className="mt-3 text-2xl font-medium leading-snug tracking-tight paper-heading sm:text-[28px]">41기 신입회원 모집 안내</h2>
-            <p className="mt-3 max-w-xl text-[15px] leading-7 paper-copy">{statusCopy.text}</p>
+            <p className="editorial-eyebrow">41ST RECRUITMENT</p>
+            <h2 id="recruit-notice-title" className="mt-4 text-[clamp(1.75rem,3vw,2.5rem)] font-light leading-snug tracking-tight text-white">41기 신입회원 모집</h2>
+            <p className="mt-4 max-w-md text-[15px] leading-8 text-site-body">{statusCopy.text}</p>
           </div>
-          <div aria-label="모집 일정" className="paper-divider border-t pt-6 lg:min-w-56 lg:border-t-0 lg:border-l lg:py-1 lg:pl-9">
-            <span className="inline-flex items-center gap-2 text-xs font-medium text-sky-800"><span className="h-1.5 w-1.5 rounded-full bg-sky-700" aria-hidden="true" />{statusCopy.label}</span>
-            <p className="mt-2 text-[23px] font-medium tracking-tight paper-heading">{recruitment.period}</p>
-            <p className="mt-1 text-xs leading-6 paper-muted">{recruitment.scheduleConfirmed ? "확정된 모집 일정입니다." : "세부 일정 추후 안내"}</p>
+          <div aria-label="모집 일정" className="recruit-schedule">
+            <span className="inline-flex items-center gap-2 text-xs text-site-accent"><span className="h-1.5 w-1.5 rounded-full bg-sky-200" aria-hidden="true" />{statusCopy.label}</span>
+            <p className="mt-3 text-[clamp(1.75rem,3vw,2.25rem)] font-light tracking-tight text-white">{recruitment.period}</p>
+            <p className="mt-2 text-xs leading-6 text-site-muted">{recruitment.scheduleConfirmed ? "확정된 모집 일정입니다." : "세부 일정 추후 안내"}</p>
           </div>
         </header>
-        <div className="paper-divider grid border-t lg:grid-cols-2">
-          <section aria-labelledby="recruit-eligibility" className="p-6 sm:p-9">
-            <h3 id="recruit-eligibility" className="paper-section-title">지원 자격</h3>
-            <DetailRows items={eligibility} />
-          </section>
-          <section aria-labelledby="recruit-activity" className="paper-divider border-t p-6 sm:p-9 lg:border-t-0 lg:border-l">
-            <h3 id="recruit-activity" className="paper-section-title">활동 안내</h3>
-            <DetailRows items={activity} />
-          </section>
-        </div>
-        <section aria-labelledby="selection-process" className="paper-divider border-t p-6 sm:p-9">
-          <h3 id="selection-process" className="paper-section-title">전형 절차</h3>
-          <RecruitSteps steps={steps} />
-          <p className="mt-5 text-sm leading-7 paper-muted">서류 접수와 면접, 결과 발표 일정은 모집 공고 확정 후 안내합니다. 최종 합격자에게는 개별 연락드립니다.</p>
+        <section aria-labelledby="recruit-eligibility" className="recruit-section">
+          <div><p className="editorial-eyebrow">01 / ELIGIBILITY</p><h3 id="recruit-eligibility" className="mt-3 text-xl font-medium text-white">지원 자격</h3></div>
+          <DetailRows items={eligibility} />
         </section>
-        <footer className="paper-panel-footer flex flex-col gap-5 px-6 py-5 sm:px-9 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
-          <p id="application-note" className="text-sm leading-7 paper-copy">{canApply ? "모집 요강을 확인한 뒤 공식 지원서를 작성해주세요." : recruitment.status === "closed" ? "이번 모집의 지원 접수가 종료되었습니다." : "일정과 공식 지원 링크가 확정되면 접수를 시작합니다."}</p>
+        <section aria-labelledby="recruit-activity" className="recruit-section">
+          <div><p className="editorial-eyebrow">02 / EXPERIENCE</p><h3 id="recruit-activity" className="mt-3 text-xl font-medium text-white">활동 안내</h3></div>
+          <DetailRows items={activity} />
+        </section>
+        <section aria-labelledby="selection-process" className="recruit-section">
+          <div><p className="editorial-eyebrow">03 / PROCESS</p><h3 id="selection-process" className="mt-3 text-xl font-medium text-white">전형 절차</h3></div>
+          <div><RecruitSteps steps={steps} />
+            <p className="mt-6 text-sm leading-7 text-site-muted">서류 접수와 면접, 결과 발표 일정은 모집 공고 확정 후 안내합니다. 최종 합격자에게는 개별 연락드립니다.</p>
+          </div>
+        </section>
+        <footer className="recruit-footer flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
+          <p id="application-note" className="text-sm leading-7 text-site-body">{canApply ? "모집 요강을 확인한 뒤 공식 지원서를 작성해주세요." : recruitment.status === "closed" ? "이번 모집의 지원 접수가 종료되었습니다." : "일정과 공식 지원 링크가 확정되면 접수를 시작합니다."}</p>
           <div className="flex shrink-0 flex-wrap items-center gap-x-6 gap-y-3">
-            <Link href="/contact" className="paper-link inline-flex min-h-11 items-center gap-2 text-sm font-medium">모집 문의<ArrowUpRight className="h-4 w-4" aria-hidden="true" /></Link>
+            <Link href="/contact" className="editorial-link inline-flex min-h-11 items-center gap-2 text-sm font-medium">모집 문의<ArrowUpRight className="h-4 w-4" aria-hidden="true" /></Link>
             {canApply ? <a href={recruitment.applicationUrl!} target="_blank" rel="noopener noreferrer" className="recruit-apply inline-flex min-h-11 items-center justify-between gap-6 rounded px-4 text-sm font-medium">지원서 작성<ArrowRight className="h-4 w-4" aria-hidden="true" /><span className="sr-only"> (새 창)</span></a>
               : <button disabled aria-describedby="application-note" className="recruit-apply inline-flex min-h-11 cursor-not-allowed items-center justify-between gap-6 rounded px-4 text-sm font-medium">지원서 작성<ArrowRight className="h-4 w-4" aria-hidden="true" /></button>}
           </div>

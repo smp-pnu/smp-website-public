@@ -3,6 +3,7 @@ import { contentDetailHref, contentListHref, type ContentSearch } from "@/lib/co
 import type { ContentResult } from "@/lib/notion"
 import { ResearchGrid } from "@/components/research-grid"
 import { ContentRows } from "./content-rows"
+import { NoticeRows } from "./notice-rows"
 import { ContentPagination } from "./content-pagination"
 import { selectContentPage } from "@/lib/content-query"
 import { ContentSearchForm, type ContentSuggestion } from "./content-search-form"
@@ -31,7 +32,7 @@ export function ContentList({ result, kind, search }: { result: ContentResult; k
   let content
   if (result.state !== "ready" || !result.items.length) content = <ContentState state={result.state} kind={kind} />
   else if (!total) content = <p className="border-y border-site-line py-20 text-center text-site-body">검색 결과가 없습니다. 다른 검색어로 검색해보세요.</p>
-  else content = isResearch && !listView ? <ResearchGrid items={visibleItems} listSearch={listSearch} /> : <ContentRows items={visibleItems} listSearch={listSearch} />
+  else content = !isResearch ? <NoticeRows items={visibleItems} listSearch={listSearch} /> : !listView ? <ResearchGrid items={visibleItems} listSearch={listSearch} /> : <ContentRows items={visibleItems} listSearch={listSearch} />
 
   return <>
     {isResearch ? <ResearchSearchForm key={JSON.stringify(listSearch)} search={listSearch} total={total} semesters={semesters} industries={industries} categories={categories}
