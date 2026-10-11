@@ -25,7 +25,7 @@ export async function queueReportExcerptBackfill(db: Database, now = Date.now())
   const key = `excerpt-backfill:${new Date(now).toISOString().slice(0, 10)}`
   const result = await db.prepare(`INSERT OR IGNORE INTO free_jobs(id,revision,next_at)
     SELECT id,revision,? FROM free_content WHERE kind='research' AND cover IS NOT NULL
-      AND json_extract(cover,'$.excerpt.version') IS NULL
+      AND COALESCE(json_extract(cover,'$.excerpt.version'),0)<2
       AND NOT EXISTS(SELECT 1 FROM free_jobs)
       AND COALESCE((SELECT until_at FROM free_controls WHERE name=?),0)<8
     ORDER BY json_extract(item,'$.date') DESC,id DESC

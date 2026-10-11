@@ -8,8 +8,8 @@ test('PDF source excerpts are bounded, preserve readable lines and reject sparse
   const excerpt=reportExcerpt([prose,'123 456 \ufffd',prose])
   assert.equal(excerpt.pages.length,1);assert.equal(excerpt.pages[0].number,1)
   assert.ok(excerpt.pages[0].text.length<=2400);assert.match(excerpt.pages[0].text,/\n/)
-  assert.ok(validReportExcerpt(excerpt));assert.ok(validReportExcerpt({version:1,pages:[]}))
-  for(const value of [null,{version:2,pages:[]},{version:1,pages:[{number:3,text:prose}]},{version:1,pages:[{number:1,text:prose}]}]) assert.equal(validReportExcerpt(value),false)
+  assert.ok(validReportExcerpt(excerpt));assert.ok(validReportExcerpt({version:2,pages:[]}))
+  for(const value of [null,{version:99,pages:[]},{version:2,pages:[{number:3,text:prose}]},{version:2,pages:[{number:1,text:prose}]}]) assert.equal(validReportExcerpt(value),false)
 })
 test('source excerpts fill only empty bodies and never overwrite authored text or nested blocks',()=>{
   const excerpt=reportExcerpt([prose])
@@ -20,6 +20,13 @@ test('source excerpts fill only empty bodies and never overwrite authored text o
     [{id:'p',type:'paragraph',paragraph:{rich_text:[]},children:[{id:'nested',type:'paragraph',paragraph:{rich_text:[{plain_text:'본문'}]}}]}],
     [{id:'i',type:'image',image:{external:{url:'https://pnusmp.com/photo.webp'}}}],
   ]) assert.equal(withReportExcerpt('test',body,excerpt),body)
-  assert.deepEqual(withReportExcerpt('test',[],{version:1,pages:[]}),[])
+  assert.deepEqual(withReportExcerpt('test',[],{version:2,pages:[]}),[])
   assert.doesNotMatch(blockHtml(withReportExcerpt('test',[],reportExcerpt([prose+'<script>alert(1)</script>']))),/<script>/)
+})
+
+test('excerpts start at source prose rather than axes and omit contents-only pages',()=>{
+ const excerpt=reportExcerpt(['200\n400\n600\nInBody KOSDAQ\n팀장 SMP\n'+prose,'01 산업분석 05\n02 기업개요 09\nCONTENTS'])
+ assert.equal(excerpt.pages.length,1)
+ assert.ok(excerpt.pages[0].text.startsWith('이 자료는 기업의 사업 구조'))
+ assert.doesNotMatch(excerpt.pages[0].text,/200|InBody/)
 })

@@ -325,7 +325,7 @@ test('legacy excerpt backfill prioritizes CMS jobs and never queues more than ei
     for(let batch=0;batch<4;batch++) {
       assert.equal(await queueReportExcerptBackfill(db,now),2)
       assert.equal(await queueReportExcerptBackfill(db,now),0,'existing queue is not duplicated')
-      sqlite.exec("UPDATE free_content SET cover=json_set(cover,'$.excerpt',json('{\"version\":1,\"pages\":[]}')) WHERE id IN(SELECT id FROM free_jobs)")
+      sqlite.exec("UPDATE free_content SET cover=json_set(cover,'$.excerpt',json('{\"version\":2,\"pages\":[]}')) WHERE id IN(SELECT id FROM free_jobs)")
       sqlite.exec('DELETE FROM free_jobs')
     }
     assert.equal(await queueReportExcerptBackfill(db,now),0)
@@ -344,7 +344,7 @@ test('same-revision excerpt enrichment persists in the reusable cache without ex
     assert.equal((await internal(req(`jobs/${id}/complete`,{...job,blocks:[],cover}),env)).status,200)
     sqlite.prepare('INSERT INTO free_jobs(id,revision,next_at) VALUES (?,?,0)').run(id,job.revision)
     const {job:again}=await (await internal(req('jobs/claim'),env)).json() as any
-    const excerpt={version:1,pages:[{number:1,text:'공개 PDF에서 가져온 원문'}]}
+    const excerpt={version:2,pages:[{number:1,text:'공개 PDF에서 가져온 원문'}]}
     assert.equal((await internal(req(`jobs/${id}/complete`,{...again,blocks:[],cover:{...cover,excerpt:{version:99,pages:[]}}}),env)).status,400)
     assert.equal((await internal(req(`jobs/${id}/complete`,{...again,blocks:[],cover:{...cover,excerpt}}),env)).status,200)
     assert.deepEqual(JSON.parse(String(sqlite.prepare('SELECT cover FROM free_report_covers').get()!.cover)).excerpt,excerpt)
