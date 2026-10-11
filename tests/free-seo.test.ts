@@ -9,6 +9,7 @@ import { storePage, rebuildDocuments } from '../free/server/catalog'
 import { blockHtml, detailHtml, listHtml, sitemapXml } from '../free/seo/content'
 import { injectPage, metadataHtml, pageMetadata } from '../free/seo/metadata'
 import worker from '../free/server/worker'
+import {readDetail} from '../free/server/pages'
 
 const id='a0000000000000000000000000000001'
 const item:ContentItem={id,kind:'research',title:'기업 분석',summary:'목표주가 100,000원',date:'2020-01-01',category:'기업분석',author:'SMP',pinned:false,attachments:[],externalUrl:null}
@@ -108,6 +109,13 @@ test('HTML details recheck publication, hide outdated bodies, and skip Notion fo
     let html=await response.text()
     assert.match(html,/<h1[^>]*>공개 검증 제목<\/h1>/);assert.match(html,/현재 공개 본문/)
     assert.match(html,/smp-initial-data/)
+    const relatedItem={...item,id:'b'.repeat(32),company:'동일 기업'}
+    page.properties.기업명={type:'rich_text',rich_text:[{plain_text:'동일 기업'}]}
+    const detail=await readDetail(env,{waitUntil:p=>pending.push(p)},'research',id,async()=>Response.json({items:[relatedItem]}))
+    assert.equal(detail?.related?.items[0].id,relatedItem.id)
+    const stale=await readDetail(env,{waitUntil:p=>pending.push(p)},'research',id,async()=>new Response('',{status:503}))
+    assert.equal(stale?.related,null)
+    assert.ok(stale?.item,'stale catalogue must not block a valid detail')
     page.last_edited_time='2020-01-02T00:00:00Z'
     html=await(await request(`/research/${id}`)).text()
     assert.doesNotMatch(html,/현재 공개 본문/);assert.match(html,/본문을 준비/)
@@ -127,4 +135,20 @@ test('HTML details recheck publication, hide outdated bodies, and skip Notion fo
     assert.equal((await request('/sitemap-research.xml')).status,503)
     assert.equal((await request('/research')).status,503)
   } finally { await Promise.all(pending);sqlite.close() }
+})
+
+test('cover discovery, large sharing images and related links use the same public report data',()=>{
+  const cover={url:`/report-covers/${id}/${'a'.repeat(64)}.webp`,previewUrl:`/report-covers/${id}/${'b'.repeat(64)}.webp`,width:2048,height:2899}
+  const report={...item,cover}
+  const related={label:'같은 업종의 리포트',items:[{...item,id:'b'.repeat(32),title:'관련 <기업>'}]}
+  const html=detailHtml(report,[],false,related)
+  assert.match(html,new RegExp(`src="${cover.previewUrl}"`));assert.match(html,/alt="기업 분석 리포트 표지"/)
+  assert.match(html,/href="\/research\/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"/);assert.match(html,/관련 &lt;기업&gt;/)
+  assert.equal(pageMetadata(`/research/${id}`,report).image,'https://pnusmp.com'+cover.previewUrl)
+  const xml=sitemapXml([report],false)
+  assert.match(xml,/xmlns:image=/);assert.match(xml,new RegExp(`<image:loc>https://pnusmp.com${cover.previewUrl}</image:loc>`))
+  assert.match(listHtml('research',[report],new URLSearchParams()).body,/loading="lazy"/)
+  const foreign={...report,cover:{...cover,url:'https://bad.example/tracking'}}
+  assert.doesNotMatch(detailHtml(foreign,[]),/tracking/);assert.doesNotMatch(sitemapXml([foreign]),/image:loc/)
+  assert.doesNotMatch(sitemapXml([]),/report-covers/)
 })

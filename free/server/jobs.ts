@@ -5,6 +5,7 @@ import { spend } from "./budget"
 import { published, notion, source } from "./notion"
 import { rebuildDocuments } from "./catalog"
 import type { Env } from "./types"
+import { validReportExcerpt } from "../../lib/report-excerpt"
 const json = (body: unknown, status = 200) => Response.json(body, { status })
 export async function internal(request: Request, env: Env) {
   const path = new URL(request.url).pathname
@@ -52,6 +53,7 @@ export async function internal(request: Request, env: Env) {
   } else if(entry) revision=(await published(env,entry.kind,id))?.editedAt
   if (revision !== lease.revision) return json({ error: "Publication changed" },409)
   if (!Array.isArray(input.blocks) || input.blocks.length > 500) return json({ error: "Invalid body" },400)
+  if(input.cover?.excerpt!==undefined && !validReportExcerpt(input.cover.excerpt)) return json({error:"Invalid excerpt"},400)
   if (input.cover && (!new RegExp(`^/report-covers/${id}/[a-f0-9]{64}\\.webp$`).test(input.cover.url)
     || !new RegExp(`^/report-covers/${id}/[a-f0-9]{64}\\.webp$`).test(input.cover.previewUrl)
     || ![input.cover.width,input.cover.height].every(n=>Number.isSafeInteger(n)&&n>0&&n<=4096)
@@ -73,7 +75,7 @@ export async function internal(request: Request, env: Env) {
     env.CMS_DB.prepare(`INSERT INTO free_report_covers(id,revision,cover)
       SELECT id,revision,cover FROM free_content WHERE id=? AND revision=? AND kind='research' AND cover IS NOT NULL
       ON CONFLICT(id) DO UPDATE SET revision=excluded.revision,cover=excluded.cover
-      WHERE free_report_covers.revision<excluded.revision`).bind(id,lease.revision),
+      WHERE free_report_covers.revision<=excluded.revision`).bind(id,lease.revision),
     env.CMS_DB.prepare(`DELETE FROM free_report_covers WHERE id=? AND EXISTS(
       SELECT 1 FROM free_content WHERE id=? AND revision=? AND kind='research' AND cover IS NULL)`).bind(id,id,lease.revision),
     env.CMS_DB.prepare("DELETE FROM free_jobs WHERE id=? AND lease_token=? AND revision=?").bind(id,input.token,lease.revision),

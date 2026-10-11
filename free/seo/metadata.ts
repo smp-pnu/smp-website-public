@@ -1,4 +1,5 @@
 import type { ContentItem } from "../../lib/content-model"
+import { publicCover, type CoveredItem } from "../../lib/public-cover"
 import { SITE_CHANNELS, SITE_NAME_KO, SITE_ORIGIN, SITE_SHORT_NAME_KO } from "../../lib/site-config"
 
 export const siteOrigin=SITE_ORIGIN
@@ -26,7 +27,7 @@ const organization={
   logo:`${siteOrigin}/smp-symbol-full.svg`,email:SITE_CHANNELS.email,
   sameAs:[SITE_CHANNELS.cafe,SITE_CHANNELS.instagram],
 }
-type SeoItem=ContentItem & {cover?:{url:string}}
+type SeoItem=CoveredItem
 function articleTitle(item:SeoItem) {
   const company=item.company?.trim()
   // Keep the author's title intact; supply a company only when it is missing.
@@ -47,7 +48,8 @@ export function pageMetadata(path:string,item?:SeoItem) {
   const title=article?articleTitle(article):pathname==="/"?base.title:`${base?.title??"페이지를 찾을 수 없습니다"}${paginated?` · ${page}페이지`:""} | ${SITE_SHORT_NAME_KO}`
   const description=(article?[article.company,article.ticker,article.industry,article.summary||`${article.author||"SMP"}의 ${article.category||"리포트"}`].filter(Boolean).join(" · "):base?.description??"요청한 페이지를 찾을 수 없습니다.").replace(/\s+/g," ").slice(0,200)
   let image=`${siteOrigin}/backgrounds/research-desk.webp`
-  if(article?.cover?.url?.startsWith("/report-covers/")) image=siteOrigin+article.cover.url
+  const cover=article && publicCover(article)
+  if(cover) image=siteOrigin+cover.previewUrl
   const schema:unknown[]=[organization,{"@type":"WebSite","@id":`${siteOrigin}/#website`,url:siteOrigin,name:siteName,alternateName:[SITE_SHORT_NAME_KO,"SMP"],inLanguage:"ko-KR",publisher:{"@id":organization["@id"]}}]
   if(article) schema.push({"@type":article.kind==="research"?"Report":"Article","@id":`${canonical}#article`,url:canonical,mainEntityOfPage:canonical,headline:article.title,description,inLanguage:"ko-KR",image,
     ...(article.date?{datePublished:article.date}:{}),...(article.editedAt?{dateModified:article.editedAt}:{}),
