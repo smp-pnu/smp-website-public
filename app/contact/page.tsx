@@ -19,23 +19,23 @@ export default function ContactPage() {
     <SiteHeader />
     <main className="site-page min-h-[75svh] max-w-6xl">
       <PageIntro eyebrow="CONNECT WITH SMP" title="CONTACT">학회 활동과 모집에 관한 문의는 아래 공식 채널로 보내주세요.</PageIntro>
-      <div className="mt-12 grid gap-5 md:grid-cols-3 sm:mt-14">
-        {channels.map(({ id, label, title, detail, description, href, action, logo, external }) => <a key={id} href={href} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined} aria-labelledby={`channel-${id}-title channel-${id}-address`} className="paper-panel channel-card group flex min-h-[340px] flex-col p-7 sm:p-8">
-          <div className="flex items-center justify-between gap-4">
-            <span className="flex h-14 w-14 items-center justify-center rounded-[10px] border border-slate-100 bg-white">
-              <Image src={`/channel-logos/${logo}`} alt="" width={32} height={32} className="h-8 w-8 object-contain" aria-hidden="true" />
-            </span>
-            <span className="text-[10px] font-medium tracking-[.17em] text-slate-500">{label}</span>
+      <div className="mt-12 grid gap-4 lg:grid-cols-3 sm:mt-14 sm:gap-5">
+        {channels.map(({ id, label, title, detail, description, href, action, logo, external }) => <a key={id} href={href} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined} aria-labelledby={`channel-${id}-title channel-${id}-address`} aria-describedby={external ? `channel-${id}-new-window` : undefined} className="paper-panel channel-card group flex min-w-0 flex-col overflow-hidden">
+          <div className="p-6 sm:p-8">
+            <div className="flex items-center gap-4">
+              <Image src={`/channel-logos/${logo}`} alt="" width={32} height={32} className="h-8 w-8 shrink-0 object-contain" aria-hidden="true" />
+              <div>
+                <p className="paper-eyebrow">{label}</p>
+                <h2 id={`channel-${id}-title`} className="paper-section-title mt-1">{title}</h2>
+              </div>
+            </div>
+            <p className="mt-6 text-[15px] leading-7 text-slate-600">{description}</p>
+            <p id={`channel-${id}-address`} className="mt-3 break-words text-sm font-medium leading-6 text-slate-800">{detail}</p>
           </div>
-          <h2 id={`channel-${id}-title`} className="mt-7 text-xl font-medium tracking-tight text-slate-950">{title}</h2>
-          <p className="mt-3 text-sm leading-7 text-slate-600">{description}</p>
-          <p id={`channel-${id}-address`} className="mt-3 break-words text-sm font-medium leading-6 text-slate-800">{detail}</p>
-          <div className="mt-auto pt-7">
-            <span className="flex min-h-11 items-center justify-between gap-3 border-t border-slate-200 pt-4 text-sm font-medium text-slate-800">
-              {action}<ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none" aria-hidden="true" />
-              {external && <span className="sr-only"> (새 창)</span>}
-            </span>
-          </div>
+          <span className="paper-panel-footer mt-auto flex min-h-[68px] items-center justify-between gap-3 px-6 py-4 text-sm font-medium text-slate-700 sm:px-8">
+            {action}<ArrowUpRight className="paper-action-arrow h-4 w-4" aria-hidden="true" />
+            {external && <span id={`channel-${id}-new-window`} className="sr-only">새 창에서 열립니다.</span>}
+          </span>
         </a>)}
       </div>
     </main>
