@@ -3,10 +3,11 @@ import Link from "next/link"
 import { PageIntro } from "@/components/page-intro"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
+import { SITE_INTRO, SITE_NAME_KO } from "@/lib/site-config"
 
 export const metadata: Metadata = {
-  title: "부산대학교 금융투자학회 SMP 소개",
-  description: "부산대학교 금융투자학회 SMP 공식 홈페이지에서 학회의 기업분석, 가치투자, 리서치와 포트폴리오 운용 활동을 소개합니다.",
+  title: `${SITE_NAME_KO} 소개`,
+  description: `${SITE_NAME_KO} 공식 홈페이지에서 학회의 기업분석, 가치투자, 리서치와 포트폴리오 운용 활동을 소개합니다.`,
 }
 
 export default function AboutPage() {
@@ -14,9 +15,9 @@ export default function AboutPage() {
     <>
       <SiteHeader />
       <main className="site-page max-w-4xl">
-        <PageIntro eyebrow="SMP ABOUT" title="ABOUT SMP">부산대학교에서 증권·기업분석과 가치투자를 함께 연구하는 금융투자학회입니다.</PageIntro>
+        <PageIntro eyebrow="SMP ABOUT" title="ABOUT SMP">{SITE_NAME_KO}의 투자 철학과 활동을 소개합니다.</PageIntro>
         <div className="mt-12 space-y-8 text-base leading-[2] text-site-body sm:text-lg">
-          <p>SMP(Stock Masters of PNU)는 2006년 시작된 부산대학교 금융투자학회입니다. 부산대 투자 동아리로서 기업의 내재가치를 분석하고 그 가치를 실제 투자로 검증하는 가치투자를 중심으로, 산업과 기업에 대한 깊이 있는 리서치와 포트폴리오 운용을 함께 이어오고 있습니다. 단순히 금융 지식을 배우는 데 그치지 않고, 직접 기업을 분석해 적정가치를 산출하고 정규 세션에서 토론하며, 실제 시장에서 자신들의 투자 논리를 검증합니다.</p>
+          <p>{SITE_INTRO} 부산대 SMP는 기업의 내재가치를 분석하고 그 가치를 실제 투자로 검증하는 가치투자를 중심으로, 산업과 기업에 대한 깊이 있는 리서치와 포트폴리오 운용을 함께 이어오고 있습니다. 직접 기업을 분석해 적정가치를 산출하고 정규 세션에서 토론하며, 실제 시장에서 투자 논리를 검증합니다.</p>
           <p>40기에 이르기까지 SMP는 기업분석, 포트폴리오 운용, 금융투자 대회 등 다양한 무대에서 꾸준히 성과를 쌓아왔으며, 전국 대학 투자학회와의 교류와 선후배 네트워크를 통해 활동의 범위를 넓혀왔습니다. 부산대학교 금융투자 학술활동의 시작을 함께해온 학회라는 자부심, 그리고 오랜 시간 축적해온 리서치 경험과 투자 철학을 바탕으로 SMP는 지금도 더 깊이 분석하고, 더 논리적으로 투자하며, 다음 세대의 투자자를 만들어가고 있습니다.</p>
         </div>
         <section className="mt-20 border-t border-site-line pt-16 sm:mt-28 sm:pt-20">
