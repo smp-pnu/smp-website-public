@@ -3,10 +3,7 @@ import { financialEmployerCount, financialSectors } from "@/lib/alumni-employers
 
 export function FinanceBreakdown() {
   return <section aria-labelledby="finance-breakdown-title" className="rounded border border-site-line bg-site-surface p-5 sm:p-7 md:col-span-2">
-    <div className="flex flex-wrap items-baseline justify-between gap-2">
-      <h3 id="finance-breakdown-title" className="text-base font-medium text-white">금융 분야 세부 현황</h3>
-      <p className="text-xs text-site-muted">공개 자료에 수록된 {financialEmployerCount}개 회사·기관</p>
-    </div>
+    <h3 id="finance-breakdown-title" className="text-base font-medium text-white">금융 분야 세부 현황</h3>
     <div className="mt-5 grid items-start gap-x-7 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
       {financialSectors.map(sector => <details key={sector.name} className="group">
         <summary className="cursor-pointer list-none rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-site-accent [&::-webkit-details-marker]:hidden">
@@ -22,6 +19,5 @@ export function FinanceBreakdown() {
         <p className="mt-3 text-xs leading-6 text-site-muted">{sector.companies.join(" · ")}</p>
       </details>)}
     </div>
-    <p className="mt-5 text-xs leading-6 text-site-muted">회사·기관 수 기준이며 재직 인원 비율과는 다릅니다. 분야를 누르면 해당 회사·기관을 볼 수 있습니다.</p>
   </section>
 }
