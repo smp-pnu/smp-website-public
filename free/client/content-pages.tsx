@@ -11,7 +11,8 @@ import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { ContentList } from "@/components/content-list"
 import { ResearchDetailHeader } from "@/components/research-detail-header"
-import { PdfViewer } from "@/components/pdf-viewer"
+import { ResearchPdf } from "@/components/research-pdf"
+import type { PublicReportAiSummary } from "@/lib/report-ai-summary"
 import { NotionContent } from "@/components/notion-content"
 import { SiteSearchResults } from "@/components/site-search-results"
 import { SearchField } from "@/components/search-field"
@@ -45,7 +46,7 @@ export function DetailPage({ kind }: { kind: ContentKind }) {
   const { id } = useParams()
   const location=useLocation()
   const search = useSearch()
-  const { value, error } = useApi<{ item: PreparedItem; blocks: ContentBlock[]; bodyPending?: boolean; related?:RelatedReports }>(`/api/detail/${kind}/${id}`, 0)
+  const { value, error } = useApi<{ item: PreparedItem; blocks: ContentBlock[]; bodyPending?: boolean; related?:RelatedReports; aiSummary?:PublicReportAiSummary|null }>(`/api/detail/${kind}/${id}`, 0)
   const item = value?.item
   useEffect(() => { if(item||error) updatePageMetadata(location.pathname+location.search,item) }, [item,error,location.pathname,location.search])
   const back = item ? contentReturnHref(item, search) : `/${kind}`
@@ -53,7 +54,7 @@ export function DetailPage({ kind }: { kind: ContentKind }) {
     <Link href={back} className="text-sm tracking-widest text-site-accent">← {kind.toUpperCase()}</Link>
     {item ? <article className={kind === "notice" ? "notice-article mt-8" : "mt-10"}>
       {kind === "research" ? <ResearchDetailHeader item={item} /> : <NoticeDetailHeader item={item} />}
-      {kind === "research" && <Attachments item={item} />}
+      {kind === "research" && <Attachments item={item} aiSummary={value.aiSummary} />}
       <div className="py-8">{value.bodyPending ? <p role="status" className="text-site-muted">본문을 준비하고 있습니다. 잠시 후 다시 방문해주세요.</p> : <NotionContent blocks={value.blocks} />}</div>
       {kind === "notice" && <Attachments item={item} />}
       {kind === "research" && <Related related={value.related} />}
@@ -65,11 +66,11 @@ function Related({related}:{related?:RelatedReports}) {
   if(!related) return null
   return <aside aria-label="관련 리포트" className="mt-12 border-t border-site-line pt-7"><h2 className="text-sm font-medium text-site-body">{related.label}</h2><ul className="mt-4 divide-y divide-site-line-soft">{related.items.map(report=><li key={report.id}><Link href={contentHref(report)} className="flex items-center justify-between gap-4 py-4"><span><span className="block text-sm leading-6 text-site-body">{report.title}</span><time className="text-xs text-site-muted">{formatDate(report.date)}</time></span><span aria-hidden="true">↗</span></Link></li>)}</ul></aside>
 }
-function Attachments({ item }: { item: PreparedItem }) {
+function Attachments({ item, aiSummary }: { item: PreparedItem; aiSummary?:PublicReportAiSummary|null }) {
   const pdfs = getPdfSources(item)
   return <section aria-label="첨부 자료" className="mt-8">{pdfs.map((pdf, index) => {
     const url = `/api/content/${item.kind}/${item.id}/pdf?${pdf.query}`
-    return <div key={pdf.query} className="mt-5"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h3 className="text-sm text-site-body">{pdf.name}</h3>{(item.kind !== "research" || index > 0) && <a href={`${url}&download=1`} download className="rounded-md bg-sky-300 px-4 py-2 text-sm text-slate-950">PDF 다운로드 ↓</a>}</div><PdfViewer url={url} preview={index === 0 && item.cover ? { url: item.cover.previewUrl, width: item.cover.width, height: item.cover.height, title: item.title } : undefined} /></div>
+    return <div key={pdf.query} className="mt-5"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h3 className="text-sm text-site-body">{pdf.name}</h3>{(item.kind !== "research" || index > 0) && <a href={`${url}&download=1`} download className="rounded-md bg-sky-300 px-4 py-2 text-sm text-slate-950">PDF 다운로드 ↓</a>}</div><ResearchPdf key={url} url={url} summary={index === 0 ? aiSummary : null} preview={index === 0 && item.cover ? { url: item.cover.previewUrl, width: item.cover.width, height: item.cover.height, title: item.title } : undefined} /></div>
   })}<ul className="mt-4 space-y-3">{item.attachments.map((file, index) => pdfs.some(pdf => pdf.query === `index=${index}`) ? null : <li key={index}><a href={isTrustedAttachmentUrl(file.url) ? `/api/content/${item.kind}/${item.id}/file?index=${index}` : file.url} target="_blank" rel="noopener noreferrer" className="text-site-accent underline">{file.name} ↗</a></li>)}{item.externalUrl && !pdfs.some(pdf => pdf.query === "source=external") && <li><a href={item.externalUrl} target="_blank" rel="noopener noreferrer" className="text-site-accent underline">관련 링크 열기 ↗</a></li>}</ul></section>
 }
 export function SearchPage() {
