@@ -20,8 +20,8 @@ await sharp(Buffer.from(svg), { density: 288 })
   .flatten({ background: '#080a0c' })
   .png()
   .toFile('public/smp-search-icon.png')
-// A PNG-backed ICO supports browsers that request /favicon.ico automatically.
-const png = await sharp(Buffer.from(svg), { density: 288 }).resize(32, 32).png().toBuffer()
+// Use the same opaque mark for legacy clients requesting /favicon.ico.
+const png = await sharp('public/smp-search-icon.png').resize(32, 32).png().toBuffer()
 const header = Buffer.alloc(22)
 header.writeUInt16LE(1, 2)
 header.writeUInt16LE(1, 4)
