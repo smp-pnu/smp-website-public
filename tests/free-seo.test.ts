@@ -32,6 +32,8 @@ test('search metadata identifies SMP and the report company without changing the
   const homepage=pageMetadata('/')
   assert.equal(homepage.title,'부산대학교 금융투자학회 SMP | 공식 홈페이지')
   assert.match(homepage.description,/공식 홈페이지/)
+  assert.match(homepage.description,/부산대 SMP/)
+  assert.ok(homepage.description.length<=80,'Keep the homepage summary within Naver’s recommended 80 characters')
   const organization=homepage.schema['@graph'][0] as Record<string,unknown>
   assert.equal(organization.name,'부산대학교 금융투자학회 SMP')
   assert.deepEqual(organization.alternateName,['부산대 SMP','부산대학교 SMP','SMP','Stock Masters of PNU'])
