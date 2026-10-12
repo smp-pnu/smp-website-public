@@ -8,7 +8,7 @@ import "react-pdf/dist/Page/AnnotationLayer.css"
 
 const buttonClass = "rounded border border-white/25 px-3 py-2 text-sm text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-2 focus-visible:outline-sky-300"
 
-export default function PdfCanvas({ url, onReady, onRetry, pageRequest }: { url: string; onReady: () => void; onRetry: () => void; pageRequest?: { page: number; sequence: number } }) {
+export default function PdfCanvas({ url, onReady, onRetry }: { url: string; onReady: () => void; onRetry: () => void }) {
   const reader = useRef<HTMLDivElement>(null)
   const viewport = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
@@ -21,14 +21,6 @@ export default function PdfCanvas({ url, onReady, onRetry, pageRequest }: { url:
   const [fullscreenAvailable, setFullscreenAvailable] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
   const [fullscreenError, setFullscreenError] = useState(false)
-  const requestedPage = pageRequest?.page, requestSequence = pageRequest?.sequence
-  useEffect(() => {
-    if (!pages || !requestedPage || !Number.isInteger(requestedPage)) return
-    const next = Math.max(1, Math.min(pages, requestedPage))
-    setPage(next); setResumePage(null)
-    try { localStorage.setItem(`smp:pdf-page:v1:${url}`, String(next)) } catch { /* Optional reading preference. */ }
-    viewport.current?.scrollTo({ top: 0, left: 0 })
-  }, [requestedPage, requestSequence, pages, url])
   const fail = useCallback(() => { setFailed(true); onReady() }, [onReady])
   useEffect(() => {
     setFullscreenAvailable(Boolean(document.fullscreenEnabled))

@@ -11,12 +11,12 @@ const PdfCanvas = dynamic(() => import("./pdf-canvas"), {
 
 export type PdfPreview = { url: string; fallbackUrl?: string; width: number; height: number; title: string }
 
-type PdfViewerProps = { url: string; preview?: PdfPreview; pageRequest?: { page: number; sequence: number } }
+type PdfViewerProps = { url: string; preview?: PdfPreview }
 export function PdfViewer(props: PdfViewerProps) {
   return <PdfReader key={props.url} {...props} />
 }
 
-function PdfReader({ url, preview, pageRequest }: PdfViewerProps) {
+function PdfReader({ url, preview }: PdfViewerProps) {
   const [ready, setReady] = useState(false)
   const [imageUrl, setImageUrl] = useState(preview?.url)
   const showReader = useCallback(() => setReady(true), [])
@@ -35,7 +35,7 @@ function PdfReader({ url, preview, pageRequest }: PdfViewerProps) {
         </div>
       </div>}
       <div className={ready ? undefined : "pointer-events-none absolute inset-0 opacity-0"} inert={!ready} aria-hidden={!ready}>
-        <PdfCanvas url={url} onReady={showReader} onRetry={showPreview} pageRequest={pageRequest} />
+        <PdfCanvas url={url} onReady={showReader} onRetry={showPreview} />
       </div>
     </div>
     <noscript><p className="p-6 text-slate-300">PDF 미리보기를 사용하려면 JavaScript를 켜주세요. 위 다운로드 버튼으로도 파일을 받을 수 있습니다.</p></noscript>

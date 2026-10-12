@@ -36,6 +36,7 @@ test('search metadata identifies SMP and the report company without changing the
   assert.ok(homepage.description.length<=80,'Keep the homepage summary within Naver’s recommended 80 characters')
   const organization=homepage.schema['@graph'][0] as Record<string,unknown>
   assert.equal(organization.name,'부산대학교 금융투자학회 SMP')
+  assert.equal(organization.logo,'https://pnusmp.com/smp-search-icon-light.png')
   assert.deepEqual(organization.alternateName,['부산대 SMP','부산대학교 SMP','SMP','Stock Masters of PNU'])
   const website=homepage.schema['@graph'][1] as Record<string,unknown>
   assert.equal(website.name,organization.name)

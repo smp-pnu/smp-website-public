@@ -1,6 +1,5 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import './report-ai-summary.css';
 
 @custom-variant dark (&:is(.dark *));
 

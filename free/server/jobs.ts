@@ -5,7 +5,6 @@ import { spend } from "./budget"
 import { published, notion, source } from "./notion"
 import { rebuildDocuments } from "./catalog"
 import type { Env } from "./types"
-import { validReportExcerpt } from "../../lib/report-excerpt"
 const json = (body: unknown, status = 200) => Response.json(body, { status })
 export async function internal(request: Request, env: Env) {
   const path = new URL(request.url).pathname
@@ -53,11 +52,12 @@ export async function internal(request: Request, env: Env) {
   } else if(entry) revision=(await published(env,entry.kind,id))?.editedAt
   if (revision !== lease.revision) return json({ error: "Publication changed" },409)
   if (!Array.isArray(input.blocks) || input.blocks.length > 500) return json({ error: "Invalid body" },400)
-  if(input.cover?.excerpt!==undefined && !validReportExcerpt(input.cover.excerpt)) return json({error:"Invalid excerpt"},400)
   if (input.cover && (!new RegExp(`^/report-covers/${id}/[a-f0-9]{64}\\.webp$`).test(input.cover.url)
     || !new RegExp(`^/report-covers/${id}/[a-f0-9]{64}\\.webp$`).test(input.cover.previewUrl)
     || ![input.cover.width,input.cover.height].every(n=>Number.isSafeInteger(n)&&n>0&&n<=4096)
     || (entry?.kind==='research' && (!/^[a-f0-9]{64}$/.test(input.cover.sourceKey??'') || !/^[a-f0-9]{64}$/.test(input.cover.pdfHash??''))))) return json({error:"Invalid cover"},400)
+  const cover=input.cover?{url:input.cover.url,previewUrl:input.cover.previewUrl,width:input.cover.width,height:input.cover.height,
+    ...(entry?.kind==='research'?{sourceKey:input.cover.sourceKey,pdfHash:input.cover.pdfHash}:{})}:null
   const media:string[]=[]
   function collect(blocks: {id:string;type:string;children?:unknown[]}[]) {
     for(const block of blocks) {
@@ -71,7 +71,7 @@ export async function internal(request: Request, env: Env) {
     env.CMS_DB.prepare("DELETE FROM free_media WHERE page_id=?").bind(id),
     env.CMS_DB.prepare("INSERT INTO free_media(page_id,block_id) SELECT ?,value FROM json_each(?)").bind(id,JSON.stringify(media)),
     env.CMS_DB.prepare("UPDATE free_content SET blocks=?,body_revision=?,cover=? WHERE id=? AND revision=?")
-      .bind(JSON.stringify(input.blocks),lease.revision,input.cover?JSON.stringify(input.cover):null,id,lease.revision),
+      .bind(JSON.stringify(input.blocks),lease.revision,cover?JSON.stringify(cover):null,id,lease.revision),
     env.CMS_DB.prepare(`INSERT INTO free_report_covers(id,revision,cover)
       SELECT id,revision,cover FROM free_content WHERE id=? AND revision=? AND kind='research' AND cover IS NOT NULL
       ON CONFLICT(id) DO UPDATE SET revision=excluded.revision,cover=excluded.cover
