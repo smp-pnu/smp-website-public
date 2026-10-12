@@ -30,11 +30,14 @@ test('canonical pages, pagination and search filters have distinct indexing rule
 
 test('search metadata identifies SMP and the report company without changing the author headline',()=>{
   const homepage=pageMetadata('/')
-  assert.equal(homepage.title,'부산대 SMP 공식 홈페이지 | 부산대학교 금융투자학회')
+  assert.equal(homepage.title,'부산대학교 금융투자학회 SMP | 공식 홈페이지')
   assert.match(homepage.description,/공식 홈페이지/)
   const organization=homepage.schema['@graph'][0] as Record<string,unknown>
   assert.equal(organization.name,'부산대학교 금융투자학회 SMP')
-  assert.deepEqual(organization.alternateName,['SMP','부산대 SMP','Stock Masters of PNU'])
+  assert.deepEqual(organization.alternateName,['부산대 SMP','부산대학교 SMP','SMP','Stock Masters of PNU'])
+  const website=homepage.schema['@graph'][1] as Record<string,unknown>
+  assert.equal(website.name,organization.name)
+  assert.deepEqual(website.alternateName,organization.alternateName)
   assert.deepEqual(organization.sameAs,['https://cafe.naver.com/smppnu','https://www.instagram.com/smp_pnu/'])
   const report={...item,title:'새로운 성장의 시작',company:'테스트기업',ticker:'123456'}
   const meta=pageMetadata(`/research/${id}`,report)

@@ -4,6 +4,7 @@ import localFont from 'next/font/local'
 import { ScrollReveal } from '@/components/scroll-reveal'
 import { HomeBackground } from '@/components/home-background'
 import { NetworkTransition } from '@/components/network-transition'
+import { SITE_DESCRIPTION, SITE_HOME_TITLE } from '@/lib/site-config'
 import './globals.css'
 import './fonts/body-font'
 
@@ -15,9 +16,8 @@ const heroFont = localFont({ src: './fonts/cormorant-garamond-latin-300.woff2', 
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: '부산대 SMP 공식 홈페이지 | 부산대학교 금융투자학회',
-  description:
-    '부산대학교 금융투자학회 SMP(Stock Masters of PNU)의 공식 홈페이지입니다. 학회 소개, 기업분석 리포트, 커리큘럼, 모집 및 공지사항을 확인할 수 있습니다.',
+  title: SITE_HOME_TITLE,
+  description: SITE_DESCRIPTION,
   icons: {
     icon: [
       { url: '/smp-search-icon.png', type: 'image/png', sizes: '192x192' },

@@ -18,6 +18,11 @@ export const NAV_ITEMS: NavItem[] = [
 export const SITE_NAME_KO = "부산대학교 금융투자학회 SMP"
 export const SITE_NAME_EN = "STOCK MASTERS OF PNU"
 export const SITE_SHORT_NAME_KO = "부산대 SMP"
+// Genuine names for the same organization, in preferred fallback order.
+export const SITE_ALTERNATE_NAMES = [SITE_SHORT_NAME_KO, "부산대학교 SMP", "SMP", "Stock Masters of PNU"] as const
+export const SITE_HOME_TITLE = `${SITE_NAME_KO} | 공식 홈페이지`
+export const SITE_DESCRIPTION = `${SITE_NAME_KO}(Stock Masters of PNU)의 공식 홈페이지입니다. ${SITE_SHORT_NAME_KO}의 학회 소개, 기업·산업 분석 리포트, 가치투자 커리큘럼, 모집 및 공지사항을 확인하세요.`
+export const SITE_INTRO = `${SITE_NAME_KO}(Stock Masters of PNU)는 2006년 시작된 학회로, 부산대학교 학생들이 기업·산업 분석과 가치투자를 함께 연구합니다.`
 export const SITE_ORIGIN = "https://pnusmp.com"
 export const RESEARCH_CONTEXT = "SMP 학회원이 작성한 학술 연구자료입니다. 분석과 목표주가는 작성 당시의 판단이며 현재 정보와 다를 수 있습니다. 분석 기준일과 근거는 PDF 원문을 확인해주세요."
 export const SITE_CHANNELS = {

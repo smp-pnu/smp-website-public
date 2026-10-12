@@ -1,5 +1,6 @@
 import Image from "next/image"
 import { cn } from "@/lib/utils"
+import { SITE_NAME_KO } from "@/lib/site-config"
 
 type LogoVariant = "color" | "white"
 
@@ -29,7 +30,7 @@ export function LogoSymbol({
   return (
     <Image
       src={SYMBOL_SRC[variant]}
-      alt="SMP 부산대학교 금융투자학회 심볼"
+      alt={`${SITE_NAME_KO} 심볼`}
       width={98}
       height={46}
       priority
@@ -52,7 +53,7 @@ export function LogoFull({
   return (
     <Image
       src={FULL_SRC[variant]}
-      alt="SMP STOCK MASTERS OF PNU 로고"
+      alt={`${SITE_NAME_KO} 로고`}
       width={104}
       height={55}
       priority
