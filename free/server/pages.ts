@@ -9,6 +9,7 @@ import type { Context, Env } from "./types"
 import { publicFeed } from "./feed"
 import { publicCover } from "../../lib/public-cover"
 import { relatedReports, type RelatedReports } from "../../lib/related-reports"
+import { approvedReportSummary } from "../../lib/report-ai-pilot"
 
 export async function readDetail(env:Env,ctx:Context,kind:ContentKind,id:string,readDocument?:ReadDocument) {
   const item=await published(env,kind,id)
@@ -25,8 +26,11 @@ export async function readDetail(env:Env,ctx:Context,kind:ContentKind,id:string,
       if(response.ok) related=relatedReports(item,(await response.json() as {items:ContentItem[]}).items)
     } catch { /* Related links must never prevent reading a published report. */ }
   }
-  const cover=record?.cover && publicCover({...item,cover:JSON.parse(record.cover)})
-  return {item:{...item,...(cover?{cover}:{})},blocks:ready?JSON.parse(record!.blocks!) as ContentBlock[]:[],bodyPending:!ready,related}
+  const savedCover=record?.cover ? JSON.parse(record.cover) : null
+  const cover=savedCover && publicCover({...item,cover:savedCover})
+  const aiSummary=ready && kind==="research" && cover ? approvedReportSummary(id,savedCover.pdfHash) : null
+  const blocks:ContentBlock[]=ready?JSON.parse(record!.blocks!):[]
+  return {item:{...item,...(cover?{cover}:{})},blocks:aiSummary?blocks.filter(block=>block.id!==`${id}-excerpt`):blocks,bodyPending:!ready,related,aiSummary}
 }
 type ReadDocument=(kind:ContentKind)=>Promise<Response>
 export async function publicPage(request:Request,env:Env,ctx:Context,readDocument:ReadDocument) {
@@ -54,7 +58,7 @@ export async function publicPage(request:Request,env:Env,ctx:Context,readDocumen
     const detail=await readDetail(env,ctx,kind,id,readDocument)
     if(!detail) return new Response("게시글이 없거나 비공개 상태입니다.",{status:404,headers:{"Content-Type":"text/plain; charset=utf-8","X-Robots-Tag":"noindex"}})
     item=detail.item
-    body=detailHtml(detail.item,detail.blocks,detail.bodyPending,detail.related)
+    body=detailHtml(detail.item,detail.blocks,detail.bodyPending,detail.related,detail.aiSummary)
     data={path:`/api/detail/${kind}/${id}`,value:detail}
   } else {
     const response=await readDocument(kind)
