@@ -1,5 +1,5 @@
-// Only URL-bearing fields are assets. An excerpt or caption may mention an
-// asset-looking string, but that must never trigger a download or deployment.
+// Only URL-bearing fields are assets. Captions may mention an asset-looking
+// string, but that must never trigger a download or deployment.
 export function publicationAssets(values:unknown[],origin="https://pnusmp.com"):Set<string> {
   const paths=new Set<string>()
   // Existing notice images still use the original production hostname.

@@ -2,6 +2,7 @@ import type { ContentItem } from "../../lib/content-model"
 import type { ContentBlock } from "../../lib/notion-model"
 import { rssXml } from "../seo/feeds"
 import type { Env } from "./types"
+import { withoutGeneratedPdfExcerpt } from "../../lib/report-content"
 
 export async function publicFeed(env:Env) {
   // Same publication-freshness window as the public catalogue. Never fetch
@@ -17,5 +18,9 @@ export async function publicFeed(env:Env) {
     SELECT item,blocks,id,SUM(length(CAST(blocks AS BLOB))+length(CAST(item AS BLOB)))
       OVER (ORDER BY json_extract(item,'$.date') DESC,id DESC) AS bytes FROM latest
   ) WHERE bytes<=160000 ORDER BY json_extract(item,'$.date') DESC,id DESC`).all<{item:string;blocks:string}>()
-  return new Response(rssXml(rows.results.map(row=>({item:JSON.parse(row.item) as ContentItem,blocks:JSON.parse(row.blocks) as ContentBlock[]}))),{headers:{"Content-Type":"application/rss+xml; charset=utf-8","Cache-Control":"private, no-store"}})
+  return new Response(rssXml(rows.results.map(row=>{
+    const item=JSON.parse(row.item) as ContentItem
+    const blocks=JSON.parse(row.blocks) as ContentBlock[]
+    return {item,blocks:item.kind==="research"?withoutGeneratedPdfExcerpt(blocks,item.id):blocks}
+  })),{headers:{"Content-Type":"application/rss+xml; charset=utf-8","Cache-Control":"private, no-store"}})
 }

@@ -13,20 +13,19 @@ for (const name of ['icon.svg', 'smp-favicon.svg']) await writeFile(`public/${na
 for (const [name, size] of [['smp-favicon-32.png', 32], ['apple-icon.png', 180], ['icon-light-32x32.png', 32], ['icon-dark-32x32.png', 32]]) {
   await sharp(Buffer.from(svg), { density: 288 }).resize(size, size).png().toFile(`public/${name}`)
 }
-// Search results can use a light background. Preserve the approved mark while
-// providing a larger, opaque PNG at a stable URL for search crawlers.
-await sharp(Buffer.from(svg), { density: 288 })
-  .resize(192, 192)
-  .flatten({ background: '#080a0c' })
-  .png()
-  .toFile('public/smp-search-icon.png')
-// Use the same opaque mark for legacy clients requesting /favicon.ico.
-const png = await sharp('public/smp-search-icon.png').resize(32, 32).png().toBuffer()
+// Google can display the Organization logo against white. Use a high-contrast
+// black S on white and a fresh URL so search crawlers do not retain the old
+// white-on-black artwork at an immutable asset path.
+await sharp(Buffer.from(svg), { density: 288 }).resize(512, 512).flatten({ background: '#080a0c' })
+  .negate({ alpha: false }).png().toFile('public/smp-search-icon-light.png')
+await sharp('public/smp-search-icon-light.png').resize(192, 192).png().toFile('public/smp-search-icon.png')
+// Keep a square, opaque legacy icon available to clients requesting /favicon.ico.
+const png = await sharp('public/smp-search-icon-light.png').resize(48, 48).png().toBuffer()
 const header = Buffer.alloc(22)
 header.writeUInt16LE(1, 2)
 header.writeUInt16LE(1, 4)
-header[6] = 32
-header[7] = 32
+header[6] = 48
+header[7] = 48
 header.writeUInt16LE(1, 10)
 header.writeUInt16LE(32, 12)
 header.writeUInt32LE(png.length, 14)

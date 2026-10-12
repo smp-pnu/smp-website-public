@@ -24,7 +24,7 @@ const organization={
   "@type":"Organization","@id":`${siteOrigin}/#organization`,name:siteName,
   alternateName:SITE_ALTERNATE_NAMES,url:siteOrigin,foundingDate:"2006",
   description:SITE_INTRO,
-  logo:`${siteOrigin}/smp-symbol-full.svg`,email:SITE_CHANNELS.email,
+  logo:`${siteOrigin}/smp-search-icon-light.png`,email:SITE_CHANNELS.email,
   sameAs:[SITE_CHANNELS.cafe,SITE_CHANNELS.instagram],
 }
 type SeoItem=CoveredItem
