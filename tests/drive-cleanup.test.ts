@@ -22,18 +22,22 @@ function fixture() {
   const bodies: Record<string, any[]> = {}
   const calls: string[] = []
   const f = { trashed: false, mutations: 0, owner: "school@example.com", mime: "application/pdf", inside: true }
-  let failPath = "", corruptPagination = false, restoreBeforeTrash = false, pageReads = 0
+  let failPath = "", failStatus = 503, retryAfter = "60", corruptPagination = false, restoreBeforeTrash = false, pageReads = 0
+  let now = Date.now()
+  class Clock extends Date { static now() { return now } }
+  const sleeps:number[]=[]
   let queryHook: (() => void) | undefined
   const iterator = (items: any[]) => ({ hasNext: () => !!items.length, next: () => items.shift() })
   const root = { getId: () => rootId, getOwner: () => ({ getEmail: () => "school@example.com" }),
     isTrashed: () => false, getParents: () => iterator([]) }
   const context: any = {
+    Date: Clock,
     console: { log() {} },
     PropertiesService: { getScriptProperties: () => ({ getProperties: () => ({ ...props }),
       getProperty: (key: string) => props[key] ?? null, setProperty: (key: string, value: string) => { props[key] = value },
       setProperties: (values: object) => Object.assign(props, values), deleteProperty: (key: string) => { delete props[key] } }) },
     LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock() {} }) },
-    Utilities: { sleep() {}, Charset: { UTF_8: "utf8" }, DigestAlgorithm: { SHA_256: "sha256" },
+    Utilities: { sleep(ms:number) { sleeps.push(ms) }, Charset: { UTF_8: "utf8" }, DigestAlgorithm: { SHA_256: "sha256" },
       computeDigest: (_: string, text: string) => [...createHash("sha256").update(text).digest()],
       computeHmacSha256Signature: (text: string, key: string) => [...createHmac("sha256", key).update(text).digest()] },
     DriveApp: { getFolderById: () => root, getFileById: (id: string) => {
@@ -45,7 +49,8 @@ function fixture() {
     UrlFetchApp: { fetch: (url: string, options: any) => {
       const path = url.replace("https://api.notion.com/v1/", "")
       calls.push(path); assert.equal(options.headers.Authorization, `Bearer ${token}`)
-      let status = path === failPath ? 503 : 200, data: any
+      assert.equal(options.followRedirects,false)
+      let status = path === failPath ? failStatus : 200, data: any
       if (path === `data_sources/${reports}` || path === `data_sources/${notices}`) data = { id: path.split("/")[1], in_trash: false }
       else if (path.endsWith("/query")) {
         queryHook?.()
@@ -59,12 +64,13 @@ function fixture() {
         if (!data) status = 404
       } else if (/^blocks\/[a-f0-9]{32}\/children\?/.test(path)) data = { results: bodies[path.split("/")[1]] ?? [], has_more: false }
       else throw new Error(`Unexpected endpoint ${path}`)
-      return { getResponseCode: () => status, getContentText: () => JSON.stringify(data) }
+      return { getResponseCode: () => status, getContentText: () => JSON.stringify(data), getAllHeaders:()=>({"Retry-After":retryAfter}) }
     } },
   }
   runInNewContext(worker, context)
-  return { context, props, pages, bodies, calls, f, run: (preview = false) => clone(context.smpRun_(preview)),
-    fail: (path: string) => { failPath = path }, badCursor: () => { corruptPagination = true },
+  return { context, props, pages, bodies, calls, sleeps, f, run: (preview = false) => clone(context.smpRun_(preview)),
+    scheduled:()=>clone(context.syncDeletedReports()), advance:(ms:number)=>{now+=ms},
+    fail: (path: string,status=503,after="60") => { failPath = path;failStatus=status;retryAfter=after }, badCursor: () => { corruptPagination = true },
     restoreAtFinalCheck: () => { restoreBeforeTrash = true; pageReads = 0 },
     onQuery: (hook: () => void) => { queryHook = hook } }
 }
@@ -190,4 +196,49 @@ test("a batch of more than ten missing reports pauses before any Drive mutation"
   x.pages[pageId].in_trash = true
   assert.equal(x.run().safetyStop, false)
   assert.equal(x.f.mutations, 1)
+})
+
+test("idle scheduled cleanup performs one full scan per day rather than every five minutes",()=>{
+  const x=fixture()
+  x.scheduled();const count=x.calls.length
+  for(let i=1;i<288;i++){x.advance(5*60_000);assert.equal(x.scheduled().idle,true)}
+  assert.equal(x.calls.length,count)
+  assert.ok(x.sleeps.every(ms=>ms===2100))
+  x.advance(5*60_000)
+  assert.equal(x.scheduled().idle,undefined)
+  assert.ok(x.calls.length>count)
+})
+
+test("signed deletion hints wake an idle cleaner and keep all deletion safeguards",()=>{
+  const x=fixture();x.scheduled();x.pages[pageId].in_trash=true
+  const payload=JSON.stringify({version:1,pageId,issuedAt:Date.now()})
+  const signature=createHmac("sha256",token).update(`smp-drive-cleanup-v1\n${payload}`).digest("hex")
+  assert.equal(x.context.doPost({postData:{contents:JSON.stringify({payload,signature})}}).ok,true)
+  assert.equal(x.scheduled().trashed,1)
+  assert.equal(x.f.mutations,1)
+})
+
+test("partial scans resume next tick; completed shared-file checks return to the daily cadence",()=>{
+  const x=fixture()
+  for(let i=1;i<=65;i++){const id=i.toString(16).padStart(32,"0");x.pages[id]=page(id,reports,"")}
+  assert.equal(x.scheduled().pendingReferences,true)
+  assert.equal(x.scheduled().pendingReferences,false)
+  assert.equal(x.scheduled().idle,true)
+  const y=fixture();y.pages[otherId]=page(otherId);y.scheduled();y.pages[pageId].in_trash=true
+  const cfg=y.context.smpConfig_(),state=y.context.smpLoad_(cfg)
+  state.pending[pageId]=true;y.context.smpSave_(state)
+  assert.equal(y.scheduled().shared,1)
+  assert.equal(y.scheduled().idle,true)
+  assert.equal(y.f.mutations,0)
+})
+
+test("cleanup honors persisted provider backoff without spending quota or advancing its scan",()=>{
+  const x=fixture();x.fail(`data_sources/${reports}`,429,"3600")
+  assert.throws(()=>x.scheduled(),/429/)
+  const count=x.calls.length
+  x.advance(5*60_000);assert.equal(x.scheduled().deferred,true)
+  assert.equal(x.calls.length,count)
+  x.advance(55*60_000);x.fail("")
+  assert.equal(x.scheduled().idle,undefined)
+  assert.ok(x.calls.length>count)
 })

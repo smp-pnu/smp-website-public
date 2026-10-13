@@ -4,7 +4,7 @@
  * No public content, file bytes, credentials, or permanent-delete API is used.
  */
 function previewCleanup() { return smpRun_(true); }
-function syncDeletedReports() { return smpRun_(false); }
+function syncDeletedReports() { return smpRun_(false, true); }
 function enableCleanup() {
   smpRun_(true); // Configuration/source validation must succeed first.
   const props = PropertiesService.getScriptProperties();
@@ -12,7 +12,7 @@ function enableCleanup() {
   const triggers = ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'syncDeletedReports');
   if (!triggers.length) ScriptApp.newTrigger('syncDeletedReports').timeBased().everyMinutes(5).create();
   triggers.slice(1).forEach(t => ScriptApp.deleteTrigger(t));
-  console.log('SMP cleanup enabled: every 5 minutes, trash only.');
+  console.log('SMP cleanup enabled: hints every 5 minutes, daily reconciliation, trash only.');
 }
 function disableCleanup() {
   PropertiesService.getScriptProperties().setProperty('ENABLED', 'false');
@@ -61,7 +61,8 @@ function smpConfig_() {
   const p = PropertiesService.getScriptProperties();
   const cfg = { token: p.getProperty('NOTION_TOKEN'), reports: smpId_(p.getProperty('REPORTS_DATA_SOURCE_ID')),
     notices: smpId_(p.getProperty('NOTICES_DATA_SOURCE_ID')), root: p.getProperty('DRIVE_REPORTS_ROOT_ID'),
-    enabled: p.getProperty('ENABLED') === 'true', deadline: Date.now() + 180000 };
+    enabled: p.getProperty('ENABLED') === 'true', deadline: Date.now() + 180000,
+    pauseUntil: Number(p.getProperty('NOTION_BACKOFF_UNTIL')) || 0 };
   if (!cfg.token || !cfg.reports || !cfg.notices || cfg.reports === cfg.notices || !/^[\w-]{10,200}$/.test(cfg.root || '')) {
     throw new Error('Missing or invalid cleanup Script Properties');
   }
@@ -112,12 +113,23 @@ function smpSave_(state) {
 
 function smpNotion_(cfg, path, body) {
   if (Date.now() > cfg.deadline) throw new Error('Notion scan deadline exceeded');
-  Utilities.sleep(350); // Under Notion's per-connection average rate limit.
+  if (cfg.pauseUntil > Date.now()) throw new Error('Notion backoff is active');
+  // Leave at least 150 requests/minute for the website and publishing runner.
+  // This script holds a global lock, so its own executions cannot overlap.
+  Utilities.sleep(2100);
   const response = UrlFetchApp.fetch('https://api.notion.com/v1/' + path, {
     method: body ? 'post' : 'get', headers: { Authorization: 'Bearer ' + cfg.token, 'Notion-Version': '2025-09-03' },
-    contentType: 'application/json', ...(body ? { payload: JSON.stringify(body) } : {}), muteHttpExceptions: true,
+    contentType: 'application/json', ...(body ? { payload: JSON.stringify(body) } : {}), muteHttpExceptions: true, followRedirects: false,
   });
   const status = response.getResponseCode();
+  if (status === 429 || status >= 500) {
+    const headers = response.getAllHeaders();
+    const key = Object.keys(headers).find(name => name.toLowerCase() === 'retry-after');
+    const raw = key ? String(headers[key]) : '';
+    const retryAt = /^\d+$/.test(raw) ? Date.now() + Number(raw) * 1000 : Date.parse(raw);
+    cfg.pauseUntil = Math.max(Date.now() + 60000, Number.isSafeInteger(retryAt) ? retryAt : 0);
+    PropertiesService.getScriptProperties().setProperty('NOTION_BACKOFF_UNTIL', String(cfg.pauseUntil));
+  }
   if (status !== 200) throw new Error('Notion request failed (' + status + ')');
   return JSON.parse(response.getContentText());
 }
@@ -219,7 +231,7 @@ function smpInside_(file, rootId) {
   return false;
 }
 
-function smpRun_(preview) {
+function smpRun_(preview, scheduled) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(1000)) throw new Error('Cleanup already running');
   const props = PropertiesService.getScriptProperties();
@@ -227,6 +239,15 @@ function smpRun_(preview) {
   try {
     const cfg = smpConfig_(), state = smpLoad_(cfg);
     if (!preview && !cfg.enabled) return { disabled: true };
+    if (scheduled && cfg.pauseUntil > Date.now()) {
+      stats.deferred = true; stats.nextAt = cfg.pauseUntil; return stats;
+    }
+    // Hints still receive a full fresh safety check. When there are no hints,
+    // one completed daily pass recovers missed webhooks without 288 full scans.
+    // Partial/failed scans do not advance scanCompletedAt and resume next tick.
+    if (scheduled && !Object.keys(state.pending).length && state.scanCompletedAt > Date.now() - 86400000) {
+      stats.idle = true; stats.nextAt = state.scanCompletedAt + 86400000; return stats;
+    }
     const root = DriveApp.getFolderById(cfg.root);
     if (root.isTrashed()) throw new Error('Report folder is in trash');
     const owner = root.getOwner().getEmail();
@@ -288,10 +309,16 @@ function smpRun_(preview) {
         state.reports[candidate.id] = { files: candidate.files, done: Date.now() };
         delete state.pending[candidate.id];
         smpSave_(state);
+      } else if (!preview) {
+        // A shared file stays protected. Recheck it on the next daily pass,
+        // not every five minutes forever, while retaining its deletion record.
+        state.reports[candidate.id] = { files: candidate.files };
+        delete state.pending[candidate.id];
       }
     }
     // Retain completed deletion receipts for 35 days, never scan old PDFs.
     for (const id of Object.keys(state.reports)) if (state.reports[id].done < Date.now() - 35 * 86400000) delete state.reports[id];
+    if (!preview) state.scanCompletedAt = Date.now();
     smpSave_(state);
     return stats;
   } catch (error) {
