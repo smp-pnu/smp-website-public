@@ -41,7 +41,7 @@ test('search metadata identifies SMP and the report company without changing the
   const website=homepage.schema['@graph'][1] as Record<string,unknown>
   assert.equal(website.name,organization.name)
   assert.deepEqual(website.alternateName,organization.alternateName)
-  assert.deepEqual(organization.sameAs,['https://cafe.naver.com/smppnu','https://www.instagram.com/smp_pnu/'])
+  assert.deepEqual(organization.sameAs,['https://cafe.naver.com/smppnu','https://www.instagram.com/smp_pnu/','https://www.youtube.com/channel/UCCj6Ivz5mw2LCqpmldfJyGg'])
   const report={...item,title:'새로운 성장의 시작',company:'테스트기업',ticker:'123456'}
   const meta=pageMetadata(`/research/${id}`,report)
   assert.equal(meta.title,'테스트기업 (123456) 기업분석 · 새로운 성장의 시작 | 부산대 SMP')

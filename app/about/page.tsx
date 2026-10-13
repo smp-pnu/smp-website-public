@@ -3,11 +3,11 @@ import Link from "next/link"
 import { PageIntro } from "@/components/page-intro"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { SITE_INTRO, SITE_NAME_KO } from "@/lib/site-config"
+import { SITE_INTRO, SITE_NAME_KO, SITE_PAGE_METADATA, SITE_SHORT_NAME_KO } from "@/lib/site-config"
 
 export const metadata: Metadata = {
-  title: `${SITE_NAME_KO} 소개`,
-  description: `${SITE_NAME_KO} 공식 홈페이지에서 학회의 기업분석, 가치투자, 리서치와 포트폴리오 운용 활동을 소개합니다.`,
+  title: `${SITE_PAGE_METADATA.about.title} | ${SITE_SHORT_NAME_KO}`,
+  description: SITE_PAGE_METADATA.about.description,
 }
 
 export default function AboutPage() {
@@ -58,9 +58,9 @@ export default function AboutPage() {
           <h2 id="about-questions" className="mt-6 text-2xl font-medium text-white sm:text-3xl">SMP가 궁금하다면</h2>
           <div className="mt-10 divide-y divide-site-line">
             {[
-              { question:"부산대 SMP는 어떤 활동을 하는 학회인가요?", answer:"증권투자에 관심 있는 부산대학교 학생들이 함께 기업과 산업을 분석하고, 리포트 발표와 토론을 통해 투자 논리를 검증합니다. Research Team의 기업분석과 Trading Team의 자금 운용을 함께 경험합니다.", href:"/research", link:"기업·산업 분석 리포트 읽기" },
+              { question:"부산대 SMP는 어떤 투자 동아리인가요?", answer:"증권투자에 관심 있는 부산대학교 학생들이 함께 기업과 산업을 분석하는 학회입니다. 리포트 발표와 토론을 통해 투자 논리를 검증하고, Research Team의 기업분석과 Trading Team의 자금 운용을 함께 경험합니다.", href:"/research", link:"기업·산업 분석 리포트 읽기" },
               { question:"주식투자와 기업분석은 어떻게 공부하나요?", answer:"신입교육에서 리서치와 재무 모델링의 기초를 익히고, Junior·방중세션·Senior 과정에서 팀 리포트 작성과 기업가치 평가, 포트폴리오 운용으로 배움을 이어갑니다.", href:"/curriculum", link:"가치투자 커리큘럼 보기" },
-              { question:"투자 동아리에 지원하려면 무엇을 확인해야 하나요?", answer:"모집 안내에서 지원 자격과 활동 기간, 선발 절차를 먼저 확인해주세요. 모집 상태와 공식 지원 링크도 같은 페이지에서 안내합니다.", href:"/recruit", link:"SMP 모집 안내 확인" },
+              { question:"금융·투자 학회에 지원하려면 무엇을 확인해야 하나요?", answer:"SMP는 전공에 관계없이 부산대학교 학생이 지원할 수 있습니다. 모집 안내에서 지원 자격과 활동 기간, 선발 절차를 먼저 확인해주세요. 모집 상태와 공식 지원 링크도 같은 페이지에서 안내합니다.", href:"/recruit", link:"부산대 SMP 신입회원 모집 안내" },
               { question:"학회에 문의하거나 활동 소식을 보려면 어떻게 하나요?", answer:"공식 이메일과 네이버 카페, 인스타그램을 통해 SMP의 활동과 모집 소식을 확인할 수 있습니다. 문의 페이지에 공식 채널을 모아두었습니다.", href:"/contact", link:"공식 연락처·채널 보기" },
             ].map(({question,answer,href,link})=><div key={href} className="py-7 first:pt-0">
               <h3 className="text-lg font-medium leading-relaxed text-white">{question}</h3>
