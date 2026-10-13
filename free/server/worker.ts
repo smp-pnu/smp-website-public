@@ -3,7 +3,8 @@ import { getPdfSources, isTrustedAttachmentUrl } from "../../lib/pdf-source"
 import { streamPdf } from "../../lib/pdf-response"
 import { limitedBody, validNotionSignature } from "../../lib/webhook-security"
 import { publicBudget, spend } from "./budget"
-import { rebuildDocuments, storePage, syncKind, removePage } from "./catalog"
+import { rebuildDocuments, storePage, removePage } from "./catalog"
+import { runScheduledSync } from "./sync"
 import { notion, published, source } from "./notion"
 import { Busy, type Context, type Env } from "./types"
 import { memberPhoto } from "./member-photo"
@@ -132,8 +133,14 @@ export default {
     // Three independent CMS sources use three scheduled Workers in the SAME
     // account. Request/API quotas remain shared. Each invocation handles only
     // one small source batch, rather than exceeding Free CPU with three.
-    if(await syncKind({...env,NOTION_WORKLOAD:"sync"},kind)) await rebuildDocuments(env,[kind])
+    await runScheduledSync(env,kind,event.scheduledTime)
     if(kind==="research" && Math.floor((event.scheduledTime??Date.now())/60_000)%60===0) {
+      // Housekeeping has its own hourly admission: an idle sync may skip this
+      // minute, and duplicate cron delivery must not repeat the deletes.
+      const now=Date.now(),nextHour=(Math.floor(now/3_600_000)+1)*3_600_000
+      const cleanup=await env.CMS_DB.prepare(`INSERT INTO free_controls(name,until_at) VALUES ('sync-housekeeping',?)
+        ON CONFLICT(name) DO UPDATE SET until_at=excluded.until_at WHERE until_at<=? RETURNING name`).bind(nextHour,now).first()
+      if(!cleanup) return
       await env.CMS_DB.prepare("DELETE FROM free_budget WHERE key IN (SELECT key FROM free_budget WHERE expires_at < ? LIMIT 512)").bind(Date.now() - 86_400_000).run()
       await env.CMS_DB.prepare("DELETE FROM free_events WHERE id IN (SELECT id FROM free_events WHERE expires_at < ? LIMIT 1000)").bind(Date.now()).run()
       await env.CMS_DB.prepare("DELETE FROM free_webhook_setup WHERE expires_at < ?").bind(Date.now()).run()

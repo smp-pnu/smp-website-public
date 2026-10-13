@@ -1,7 +1,7 @@
 import { contentHref, normalizeId, toContentItem, type ContentKind, type NotionPage } from "../../lib/content-model"
 import { memberSearchEntries, toMember } from "../../lib/member-model"
 import { industrySector } from "../../lib/wics"
-import { notion, source } from "./notion"
+import { source } from "./notion"
 import type { Env } from "./types"
 import { staticEntries } from "../../lib/site-search-static"
 import { isNotionFileUrl } from "../../lib/pdf-source"
@@ -100,16 +100,4 @@ export async function removePage(env:Env,id:string,revision=new Date().toISOStri
     env.CMS_DB.prepare("INSERT INTO free_tombstones(id,revision) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET revision=MAX(revision,excluded.revision)").bind(id,revision),
   ])
   return changes(results[0])>0
-}
-export async function syncKind(env:Env,kind:ContentKind|"members") {
-  const state=await env.CMS_DB.prepare("SELECT watermark,cursor,started_at FROM free_sync WHERE kind=?").bind(kind).first<{watermark:string;cursor:string|null;started_at:number|null}>()
-  const started=state?.started_at??Date.now()
-  const batch=await notion<{results:NotionPage[];has_more:boolean;next_cursor:string|null}>(env,`data_sources/${source(env,kind)}/query`,{
-    page_size:4,sorts:[{timestamp:"last_edited_time",direction:"ascending"}],filter:{timestamp:"last_edited_time",last_edited_time:{on_or_after:state?.watermark??"1970-01-01T00:00:00.000Z"}},...(state?.cursor?{start_cursor:state.cursor}:{}),
-  })
-  if(!batch || batch.has_more && (!batch.next_cursor || batch.next_cursor===state?.cursor)) throw new Error("Invalid CMS page")
-  const changed=await storePages(env,batch.results,kind)
-  if(batch.has_more) await env.CMS_DB.prepare("UPDATE free_sync SET cursor=?,started_at=? WHERE kind=?").bind(batch.next_cursor,started,kind).run()
-  else await env.CMS_DB.prepare("UPDATE free_sync SET checked_at=?,watermark=?,cursor=NULL,started_at=NULL WHERE kind=?").bind(Date.now(),new Date(started-120_000).toISOString(),kind).run()
-  return changed
 }

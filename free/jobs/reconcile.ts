@@ -35,7 +35,9 @@ export async function reconcile(env:Env) {
     } while(cursor)
     const missing=await env.CMS_DB.prepare("SELECT id FROM free_content WHERE kind=? AND revision<=? AND id NOT IN(SELECT value FROM json_each(?))").bind(kind,started,JSON.stringify(ids)).all<{id:string}>()
     for(const {id} of missing.results) await removePage(env,id,started)
-    await env.CMS_DB.prepare("UPDATE free_sync SET checked_at=?,watermark=?,cursor=NULL,started_at=NULL WHERE kind=?").bind(Date.now(),started,kind).run()
+    // Preserve a newer incremental checkpoint if it completed during this
+    // full pass. Freshness describes the start of verification, not its end.
+    await env.CMS_DB.prepare("UPDATE free_sync SET checked_at=MAX(checked_at,?),watermark=?,cursor=NULL,started_at=NULL WHERE kind=? AND watermark<=?").bind(Date.parse(started),started,kind,started).run()
   }
   await rebuildDocuments(env)
   await env.CMS_DB.prepare("DELETE FROM free_controls WHERE name LIKE 'publish-at:%' AND until_at<=?").bind(Date.parse(started)).run()
