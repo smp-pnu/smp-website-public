@@ -28,7 +28,13 @@ const router = createBrowserRouter([{ Component: Layout, errorElement:<main clas
 ] }])
 // Keep the useful server HTML visible while the initial route chunk loads.
 // Subsequent navigation also keeps the current page until its code is ready.
-const mount=()=>createRoot(document.getElementById("root")!).render(<RouterProvider router={router} />)
+const mount=()=>{
+  const root=document.getElementById("root")!
+  // A crawler or an old open tab can miss a lazy route chunk. Keep the readable
+  // HTML and ordinary navigation links instead of replacing them with an error.
+  if(router.state.errors && root.hasAttribute("data-prerender") && root.childElementCount>0) return
+  createRoot(root).render(<RouterProvider router={router} />)
+}
 if(router.state.initialized) mount()
 else {
   const unsubscribe=router.subscribe(state=>{if(state.initialized){unsubscribe();mount()}})
