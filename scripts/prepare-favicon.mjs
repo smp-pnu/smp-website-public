@@ -19,21 +19,21 @@ for (const name of ['smp-favicon-32.png', 'icon-light-32x32.png', 'icon-dark-32x
 }
 // Keep established search/touch raster URLs stable. These get a black backdrop
 // so the white S remains visible even on Google's white search-result chip.
-// Do not advertise this opaque PNG as rel=icon: that makes it a tab candidate.
+// Advertise the 192px PNG before the SVG as a raster favicon candidate.
+// Keep the transparent SVG last for browsers; crawler selection is not guaranteed.
 // Render from the same alpha mask as the tab, discarding invisible RGB noise.
 // A small indexed PNG avoids sending a large true-colour image to favicon crawlers.
 await sharp(Buffer.from(tabSvg), { density: 288 }).resize(512, 512)
   .flatten({ background: '#000000' })
   .png({ palette: true, colours: 64, effort: 10 }).toFile('public/smp-search-icon-light.png')
 await sharp('public/smp-search-icon-light.png').resize(192, 192).png({ palette: true, colours: 64, effort: 10 }).toFile('public/smp-search-icon.png')
-// Google supports apple-touch-icon as a favicon source; it also supplies the
-// black tile for home-screen bookmarks without competing in the rel=icon list.
+// The touch icon uses the same black tile as the standard raster favicon.
 await sharp('public/smp-search-icon-light.png').resize(180, 180).png({ palette: true, colours: 64, effort: 10 }).toFile('public/apple-icon.png')
-// Supply transparent frames for legacy tabs and crawlers requesting /favicon.ico.
-// Larger frames avoid limiting this fallback to a small browser-tab bitmap.
+// Root favicon requests get a contrasting raster too, including search crawlers
+// and legacy browsers that do not select the explicitly linked transparent SVG.
 const sizes = [16, 32, 48, 96, 256]
 const frames = await Promise.all(sizes.map(size =>
-  sharp(Buffer.from(tabSvg), { density: 288 }).resize(size, size).png().toBuffer(),
+  sharp('public/smp-search-icon-light.png').resize(size, size).png().toBuffer(),
 ))
 const header = Buffer.alloc(6 + 16 * frames.length)
 header.writeUInt16LE(1, 2)

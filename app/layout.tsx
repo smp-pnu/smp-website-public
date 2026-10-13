@@ -20,6 +20,7 @@ export const metadata: Metadata = {
   description: SITE_DESCRIPTION,
   icons: {
     icon: [
+      { url: '/smp-search-icon.png', type: 'image/png', sizes: '192x192' },
       { url: '/icon.svg?v=20261013-white', type: 'image/svg+xml', sizes: 'any' },
     ],
     apple: { url: '/apple-icon.png', sizes: '180x180' },
