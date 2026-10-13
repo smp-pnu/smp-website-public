@@ -18,7 +18,7 @@
 | 자동 게시·검증 워크플로 | `.github/workflows/free-publish.yml`, `checks.yml` |
 | Notion 알림 주소 교체 | `free/server/webhook-setup.ts`, [연결 절차](free-webhook.md) |
 
-PDF 변환·Sharp·Canvas를 Worker에 추가하지 않습니다. 무거운 준비는 GitHub 게시 작업에서 수행합니다. PDF 전달은 `lib/pdf-response.ts`의 Cloudflare 기본 스트림 경로를 보존합니다. 상세·PDF에는 목록의 공개 상태 캐시를 권한 근거로 쓰지 않으며, 서명 없는 웹훅은 거절합니다. 기존 카드/검색/PDF 컴포넌트 수정 시 정적 화면에서도 함께 검증합니다.
+PDF 변환·Sharp·Canvas를 Worker에 추가하지 않습니다. 무거운 준비는 GitHub 게시 작업에서 수행합니다. PDF 전달은 `lib/pdf-response.ts`의 Cloudflare 기본 스트림 경로를 보존합니다. 상세·PDF는 별도 단건 검증 결과를 최대 60초 재사용합니다(`free/server/publication.ts`). 현재 게시 버전·소속이 일치해야 하며, 만료나 오류 때 오래된 검증으로 우회하지 않습니다. 게시 완료는 계속 실시간 검증합니다. 서명 없는 웹훅은 거절합니다. 기존 카드/검색/PDF 컴포넌트 수정 시 정적 화면에서도 함께 검증합니다.
 
 ## 이전 Next.js/Vercel 경로의 기록
 

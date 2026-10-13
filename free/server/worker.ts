@@ -6,7 +6,8 @@ import { publicBudget, spend } from "./budget"
 import { rebuildDocuments, storePage, removePage } from "./catalog"
 import { runScheduledSync } from "./sync"
 import { requestPublisher } from "./publisher"
-import { notion, published, source } from "./notion"
+import { notion, source } from "./notion"
+import { visitorPublication } from "./publication"
 import { Busy, type Context, type Env } from "./types"
 import { memberPhoto } from "./member-photo"
 import { queueDriveCleanup } from "../../lib/drive-cleanup-relay"
@@ -90,7 +91,7 @@ async function handle(request: Request, env: Env, ctx: Context): Promise<Respons
     const value=await readDetail(env,ctx,kind,id,name=>document(request,env,ctx,name))
     return value?reply(value):new Response("Not found",{status:404})
   }
-  const item = await published(env, kind, id)
+  const item = await visitorPublication(env, kind, id)
   if (!item) return new Response("Not found", { status: 404 })
   if (match[4] === "pdf") {
     const query = url.searchParams.get("source") === "external" ? "source=external" : `index=${url.searchParams.get("index") ?? "0"}`
@@ -152,6 +153,7 @@ export default {
       await env.CMS_DB.prepare("DELETE FROM free_budget WHERE key IN (SELECT key FROM free_budget WHERE expires_at < ? LIMIT 512)").bind(Date.now() - 86_400_000).run()
       await env.CMS_DB.prepare("DELETE FROM free_events WHERE id IN (SELECT id FROM free_events WHERE expires_at < ? LIMIT 1000)").bind(Date.now()).run()
       await env.CMS_DB.prepare("DELETE FROM free_webhook_setup WHERE expires_at < ?").bind(Date.now()).run()
+      await env.CMS_DB.prepare("DELETE FROM free_publication_checks WHERE id IN (SELECT id FROM free_publication_checks WHERE checked_at < ? LIMIT 512)").bind(Date.now()-60_000).run()
     }
   },
 }

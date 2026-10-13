@@ -19,7 +19,7 @@ const START = Date.parse("2026-10-14T00:00:00.000Z")
 const emptyBatch = () => Response.json({results:[],has_more:false,next_cursor:null})
 function setup() {
   const sqlite = new DatabaseSync(":memory:")
-  for (const name of ["0002_free_runtime","0003_free_guards","0004_document_versions","0005_webhook_setup","0006_report_cover_cache","0007_sync_runs"]) {
+  for (const name of ["0002_free_runtime","0003_free_guards","0004_document_versions","0005_webhook_setup","0006_report_cover_cache","0007_sync_runs","0008_publication_checks"]) {
     sqlite.exec(readFileSync(new URL(`../cloudflare/migrations/${name}.sql`,import.meta.url),"utf8"))
   }
   const prepare = (sql:string,values:unknown[]=[]):Statement => ({

@@ -89,10 +89,10 @@ test('list HTML exposes crawlable pagination; sitemap includes only provided pub
   assert.doesNotMatch(xml,/<lastmod>/) // Do not invent modification dates.
 })
 
-test('HTML details recheck publication, hide outdated bodies, and skip Notion for unknown IDs',async()=>{
+test('HTML details follow publication revisions, hide outdated bodies, and skip Notion for unknown IDs',async()=>{
   Object.assign(globalThis,{__SMP_FIXTURE__:false})
   const sqlite=new DatabaseSync(':memory:')
-  for(const name of ['0002_free_runtime','0003_free_guards','0004_document_versions','0006_report_cover_cache']) sqlite.exec(readFileSync(new URL(`../cloudflare/migrations/${name}.sql`,import.meta.url),'utf8'))
+  for(const name of ['0002_free_runtime','0003_free_guards','0004_document_versions','0006_report_cover_cache','0008_publication_checks']) sqlite.exec(readFileSync(new URL(`../cloudflare/migrations/${name}.sql`,import.meta.url),'utf8'))
   const prepare=(sql:string,params:unknown[]=[]):Statement=>({
     bind:(...args)=>prepare(sql,args),
     async first<T>(){return(sqlite.prepare(sql).get(...params as any[])??null) as T|null},
@@ -119,16 +119,21 @@ test('HTML details recheck publication, hide outdated bodies, and skip Notion fo
     assert.match(html,/smp-initial-data/)
     const relatedItem={...item,id:'b'.repeat(32),company:'동일 기업'}
     page.properties.기업명={type:'rich_text',rich_text:[{plain_text:'동일 기업'}]}
+    page.last_edited_time='2020-01-01T01:00:00Z'
+    await storePage(env,page,'research')
     const detail=await readDetail(env,{waitUntil:p=>pending.push(p)},'research',id,async()=>Response.json({items:[relatedItem]}))
     assert.equal(detail?.related?.items[0].id,relatedItem.id)
     const stale=await readDetail(env,{waitUntil:p=>pending.push(p)},'research',id,async()=>new Response('',{status:503}))
     assert.equal(stale?.related,null)
     assert.ok(stale?.item,'stale catalogue must not block a valid detail')
     page.last_edited_time='2020-01-02T00:00:00Z'
+    await storePage(env,page,'research')
     html=await(await request(`/research/${id}`)).text()
     assert.doesNotMatch(html,/현재 공개 본문/);assert.match(html,/본문을 준비/)
     await Promise.all(pending)
     page.properties.공개.checkbox=false
+    page.last_edited_time='2020-01-03T00:00:00Z'
+    await storePage(env,page,'research')
     response=await request(`/research/${id}`)
     assert.equal(response.status,404);assert.doesNotMatch(await response.text(),/공개 검증 제목|현재 공개 본문/)
     const before=reads
