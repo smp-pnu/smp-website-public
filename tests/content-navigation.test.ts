@@ -1,7 +1,7 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import type { ContentItem, ContentKind } from "../lib/content-model"
-import { contentDetailHref, contentListHref, contentReturnHref, normalizeContentSearch } from "../lib/content-navigation"
+import { contentDetailHref, contentListHref, contentReturnHref, normalizeContentSearch, safeSiteHref } from "../lib/content-navigation"
 
 function item(kind: ContentKind): ContentItem {
   return { kind, id: "11111111111141118111111111111111", title: "리포트", summary: "", date: "2026-01-01", category: "기업분석", author: "R1", pinned: false, attachments: [], externalUrl: null }
@@ -43,4 +43,22 @@ test("only list filters are carried through, never an arbitrary redirect or PDF 
   const search = Object.fromEntries(new URLSearchParams("page=2&from=https://example.com&returnTo=javascript:alert(1)&source=external&download=1"))
   assert.equal(contentDetailHref(item("research"), search), "/research/11111111111141118111111111111111?page=2")
   assert.equal(contentListHref("research", search), "/research?page=2")
+})
+
+test("malformed content identifiers cannot add URL segments, queries or HTML", () => {
+  const content = { ...item("research"), id: 'a/b?source=external#<img src=x>' }
+  const url = new URL(contentDetailHref(content), "https://smp.test")
+  assert.equal(url.pathname, "/research/a%2Fb%3Fsource%3Dexternal%23%3Cimg%20src%3Dx%3E")
+  assert.equal(url.search, "")
+  assert.equal(url.hash, "")
+  assert.ok(contentReturnHref(content, { page: "2" }).endsWith("#content-a%2Fb%3Fsource%3Dexternal%23%3Cimg%20src%3Dx%3E"))
+})
+
+test("search links reject executable schemes and off-site navigation", () => {
+  for (const href of ["javascript:alert(1)", "data:text/html,test", "https://evil.test/", "//evil.test/", "/\\evil.test/", "/\nevil.test/"]) {
+    assert.equal(safeSiteHref(href), "/search")
+  }
+  for (const href of ["/research/abc?page=2", "/members?generation=40", "/search?q=%EB%B6%80%EC%82%B0#results"]) {
+    assert.equal(safeSiteHref(href), href)
+  }
 })

@@ -2,7 +2,9 @@ import "server-only"
 import { canonicalIndustry } from "./wics"
 
 export type CompanyRecord = { ticker: string; company: string; industry: string; aliases?: string[]; historical?: boolean }
-const decode = (value: string) => value.replace(/&amp;/g, "&").replace(/&nbsp;/g, " ").replace(/&#39;/g, "'").replace(/&quot;/g, '"').trim()
+const entities: Record<string, string> = { "&amp;": "&", "&nbsp;": " ", "&#39;": "'", "&quot;": '"' }
+// Decode one layer only: &amp;quot; represents literal &quot;, not a quote.
+const decode = (value: string) => value.replace(/&(?:amp|nbsp|#39|quot);/g, entity => entities[entity]).trim()
 
 // Only a validated six-digit code enters a fixed public endpoint. Never follow
 // provider redirects, accept arbitrary URLs, or log the returned HTML.

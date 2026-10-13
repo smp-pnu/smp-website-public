@@ -26,7 +26,7 @@ export function ResearchDetailHeader({ item }: { item: ContentItem }) {
         <div key={label}><dt className="text-xs text-site-muted">{label}</dt><dd className={`mt-2 text-lg font-medium tabular-nums ${label === "상승여력" && facts.upside ? "text-site-accent" : "text-white"}`}>{value}</dd></div>)}
     </dl> : item.summary && <p className="mt-6 leading-8 text-site-body">{item.summary}</p>}
     <div className="mt-6 flex flex-wrap items-center gap-3">
-      {pdf && <a href={`/api/content/research/${item.id}/pdf?${pdf.query}&download=1`} download className="inline-flex min-h-11 items-center gap-2 rounded-[2px] bg-sky-200 px-4 text-sm font-medium text-slate-950 hover:bg-sky-100"><ArrowDownToLine size={15} aria-hidden="true" />PDF 다운로드</a>}
+      {pdf && <a href={`/api/content/research/${encodeURIComponent(item.id)}/pdf?${pdf.query}&download=1`} download className="inline-flex min-h-11 items-center gap-2 rounded-[2px] bg-sky-200 px-4 text-sm font-medium text-slate-950 hover:bg-sky-100"><ArrowDownToLine size={15} aria-hidden="true" />PDF 다운로드</a>}
       <CopyReportLink href={contentHref(item)} />
     </div>
     <p className="mt-5 text-xs leading-6 text-site-muted">{RESEARCH_CONTEXT}</p>

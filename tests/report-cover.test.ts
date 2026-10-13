@@ -25,7 +25,7 @@ test("storage failure falls back to Drive without a duplicate publication query"
   t.mock.method(coverStore, "read", async () => { throw new Error("Storage unavailable") })
   let notionCalls = 0
   global.fetch = async input => {
-    if (String(input).includes("api.notion.com")) { notionCalls++; return notion() }
+    if (new URL(String(input)).origin === "https://api.notion.com") { notionCalls++; return notion() }
     return new Response(imageBytes)
   }
   assert.equal((await GET(request, { params })).status, 200)
@@ -97,7 +97,7 @@ test("cover reads have a bounded size", async () => {
 test("simultaneous thumbnail requests share only an in-flight publication lookup", async () => {
   let notionCalls = 0
   global.fetch = async input => {
-    if (String(input).includes("api.notion.com")) { notionCalls++; return notion() }
+    if (new URL(String(input)).origin === "https://api.notion.com") { notionCalls++; return notion() }
     return new Response(imageBytes)
   }
   const results = await Promise.all([GET(request, { params }), GET(request, { params })])
@@ -115,7 +115,7 @@ test("reader requests reuse the full-size saved preview while cards retain the s
   const saved = { version: 1, sourceKey: sourceKey(item), editedAt: "", ...image("a".repeat(64), 720), preview: image("b".repeat(64), 2048) }
   t.mock.method(coverStore, "read", async () => ({ bytes: new TextEncoder().encode(JSON.stringify(saved)), etag: "test" }))
   t.mock.method(coverStore, "write", async () => assert.fail("Existing previews must not be regenerated"))
-  global.fetch = async input => { assert.match(String(input), /^https:\/\/api.notion.com\//); return notion() }
+  global.fetch = async input => { assert.equal(new URL(String(input)).origin, "https://api.notion.com"); return notion() }
   assert.equal((await GET(request, { params })).headers.get("location"), saved.url)
   const reader = await GET(new Request(`${request.url}?size=reader`), { params })
   assert.equal(reader.status, 307)

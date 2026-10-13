@@ -33,7 +33,7 @@ function listQuery(search: ContentSearch = {}) {
 }
 
 export function contentListHref(kind: ContentKind, search: ContentSearch = {}) {
-  return `/${kind}${listQuery(search)}`
+  return `/${encodeURIComponent(kind)}${listQuery(search)}`
 }
 
 export function contentDetailHref(item: Pick<ContentItem, "kind" | "id">, search?: ContentSearch) {
@@ -43,5 +43,14 @@ export function contentDetailHref(item: Pick<ContentItem, "kind" | "id">, search
 export function contentReturnHref(item: ContentItem, search: ContentSearch = {}) {
   const query = listQuery(search)
   // Only list-origin links carry context. A direct/shared article starts at the list root.
-  return `/${item.kind}${query}${query ? `#content-${item.id}` : ""}`
+  return `/${encodeURIComponent(item.kind)}${query}${query ? `#content-${encodeURIComponent(item.id)}` : ""}`
+}
+
+/** Search data may navigate only within this site, even if an upstream value is malformed. */
+export function safeSiteHref(value: string) {
+  if (!value.startsWith("/") || value.startsWith("//") || /[\\\u0000-\u0020]/.test(value)) return "/search"
+  try {
+    const url = new URL(value, "https://pnusmp.com")
+    return url.origin === "https://pnusmp.com" ? `${url.pathname}${url.search}${url.hash}` : "/search"
+  } catch { return "/search" }
 }
