@@ -13,6 +13,7 @@ import { reconcileIfDue } from "./reconcile"
 import { syncReportMetadataUsing } from "../../lib/report-metadata-service"
 import { ensureReportCoverCache } from "./report-cover-cache"
 import { ensureSyncRuns } from "./sync-schema"
+import { ensurePublicationChecks } from "./publication-schema"
 import { repairRegionalImages } from "./regional-image-repair"
 import { publicationAssets, requiresAssetDeployment } from "./publication-assets"
 
@@ -38,6 +39,7 @@ async function main() {
   }}
   await ensureReportCoverCache(env.CMS_DB)
   await ensureSyncRuns(env.CMS_DB)
+  await ensurePublicationChecks(env.CMS_DB)
   // No overlapping publishing runs, even if a second runner/manual job starts.
   const now=Date.now()
   const lock=await env.CMS_DB.prepare(`INSERT INTO free_controls(name,until_at) VALUES ('publisher',?) ON CONFLICT(name) DO UPDATE SET until_at=excluded.until_at WHERE until_at<? RETURNING until_at`).bind(now+14*60_000,now).first()

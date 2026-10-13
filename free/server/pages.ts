@@ -4,7 +4,7 @@ import { detailHtml, listHtml, sitemapXml } from "../seo/content"
 import { injectPage, siteOrigin } from "../seo/metadata"
 import { publicBudget } from "./budget"
 import { enqueue } from "./catalog"
-import { published } from "./notion"
+import { visitorPublication } from "./publication"
 import { requestPublisher } from "./publisher"
 import type { Context, Env } from "./types"
 import { publicFeed } from "./feed"
@@ -13,7 +13,7 @@ import { relatedReports, type RelatedReports } from "../../lib/related-reports"
 import { withoutGeneratedPdfExcerpt } from "../../lib/report-content"
 
 export async function readDetail(env:Env,ctx:Context,kind:ContentKind,id:string,readDocument?:ReadDocument) {
-  const item=await published(env,kind,id)
+  const item=await visitorPublication(env,kind,id)
   if(!item) return null
   const record=await env.CMS_DB.prepare("SELECT blocks,body_revision,cover FROM free_content WHERE id=? AND kind=?").bind(id,kind).first<{blocks:string|null;body_revision:string|null;cover:string|null}>()
   const ready=!!record && record.body_revision===item.editedAt && !!record.blocks
