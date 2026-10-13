@@ -21,6 +21,7 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: '/smp-search-icon-light.png', type: 'image/png', sizes: '512x512' },
+      { url: '/icon.svg', type: 'image/svg+xml', sizes: 'any' },
     ],
     apple: { url: '/apple-icon.png', sizes: '180x180' },
   },
