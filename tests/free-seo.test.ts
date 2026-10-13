@@ -92,7 +92,7 @@ test('list HTML exposes crawlable pagination; sitemap includes only provided pub
 test('HTML details follow publication revisions, hide outdated bodies, and skip Notion for unknown IDs',async()=>{
   Object.assign(globalThis,{__SMP_FIXTURE__:false})
   const sqlite=new DatabaseSync(':memory:')
-  for(const name of ['0002_free_runtime','0003_free_guards','0004_document_versions','0006_report_cover_cache','0008_publication_checks']) sqlite.exec(readFileSync(new URL(`../cloudflare/migrations/${name}.sql`,import.meta.url),'utf8'))
+  for(const name of ['0002_free_runtime','0003_free_guards','0004_document_versions','0006_report_cover_cache','0008_publication_checks','0009_job_failures']) sqlite.exec(readFileSync(new URL(`../cloudflare/migrations/${name}.sql`,import.meta.url),'utf8'))
   const prepare=(sql:string,params:unknown[]=[]):Statement=>({
     bind:(...args)=>prepare(sql,args),
     async first<T>(){return(sqlite.prepare(sql).get(...params as any[])??null) as T|null},

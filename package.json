@@ -15,6 +15,7 @@
     "build:free:fixture": "node scripts/build-free.mjs --fixture",
     "build:free": "node scripts/build-free.mjs",
     "deploy:free": "node scripts/deploy-free.mjs",
+    "cms:manage": "node --import tsx --conditions=react-server free/jobs/manage.ts",
     "publish:free": "node --import tsx --conditions=react-server free/jobs/publish.ts",
     "seed:free:fixture": "node --import tsx --conditions=react-server free/jobs/seed-fixture.ts",
     "test:free:http": "node tests/free-http.mjs"

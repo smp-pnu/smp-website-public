@@ -19,7 +19,7 @@ import type { NotionPage } from "../lib/content-model"
 const source="33333333333343338333333333333333",id="a0000000000000000000000000000001"
 function setup() {
   const sqlite=new DatabaseSync(":memory:")
-  for(const name of ["0002_free_runtime","0003_free_guards","0004_document_versions","0006_report_cover_cache","0008_publication_checks"]) sqlite.exec(readFileSync(new URL(`../cloudflare/migrations/${name}.sql`,import.meta.url),"utf8"))
+  for(const name of ["0002_free_runtime","0003_free_guards","0004_document_versions","0006_report_cover_cache","0008_publication_checks","0009_job_failures"]) sqlite.exec(readFileSync(new URL(`../cloudflare/migrations/${name}.sql`,import.meta.url),"utf8"))
   const prepare=(sql:string,values:unknown[]=[]):Statement=>({bind:(...args)=>prepare(sql,args),async first<T>(){return(sqlite.prepare(sql).get(...values as any[])??null) as T|null},async all<T>(){return {results:sqlite.prepare(sql).all(...values as any[]) as T[]}},async run(){return sqlite.prepare(sql).run(...values as any[])}})
   const db:Database={prepare,async batch(statements){sqlite.exec("BEGIN");try{const results=[];for(const statement of statements)results.push(await statement.run());sqlite.exec("COMMIT");return results}catch(e){sqlite.exec("ROLLBACK");throw e}}}
   const env:Env={CMS_DB:db,ASSETS:{fetch},NOTION_TOKEN:"test-token",NOTION_REPORTS_DATA_SOURCE_ID:source}

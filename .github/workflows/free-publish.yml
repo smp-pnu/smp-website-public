@@ -1,6 +1,16 @@
 name: Publish CMS on the free architecture
 on:
   workflow_dispatch:
+    inputs:
+      operation:
+        description: 'publish: 게시 / status: 상태 / retry-failed: 중단 건 재시도 / refresh-report: PDF·표지 새로 확인'
+        type: choice
+        default: publish
+        options: [publish, status, retry-failed, refresh-report]
+      page_id:
+        description: 'retry-failed / refresh-report에서만 Notion 페이지 ID 입력'
+        type: string
+        required: false
   schedule:
     - cron: '7,22,37,52 * * * *'
   push:
@@ -24,6 +34,8 @@ jobs:
       SMP_FREE_ORIGIN: ${{ vars.SMP_FREE_ORIGIN }}
       SMP_FORCE_BUILD: ${{ github.event_name == 'push' && '1' || '0' }}
       NOTION_METADATA_WRITE_ENABLED: 'true'
+      SMP_CMS_OPERATION: ${{ github.event.inputs.operation || 'publish' }}
+      SMP_CMS_PAGE_ID: ${{ github.event.inputs.page_id || '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -40,7 +52,11 @@ jobs:
           path: .smp-cache/covers
           key: smp-free-public-assets-${{ github.run_id }}
           restore-keys: smp-free-public-assets-
+      - run: pnpm cms:manage
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       - run: pnpm publish:free
+        if: env.SMP_CMS_OPERATION != 'status'
         id: publisher
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

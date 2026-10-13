@@ -2,6 +2,7 @@ import { normalizeId, type NotionPage } from "../../lib/content-model"
 import { toMember } from "../../lib/member-model"
 import { limitedBody } from "../../lib/webhook-security"
 import { spend } from "./budget"
+import { safeJobError } from "./job-errors"
 import { published, notion, source } from "./notion"
 import { rebuildDocuments } from "./catalog"
 import type { Env } from "./types"
@@ -40,8 +41,8 @@ export async function internal(request: Request, env: Env) {
   const lease = await env.CMS_DB.prepare("SELECT revision FROM free_jobs WHERE id=? AND lease_token=? AND lease_until>?").bind(id,input.token,Date.now()).first<{ revision: string }>()
   if (!lease || lease.revision !== input.revision) return json({ error: "Job changed or expired" }, 409)
   if (match[2] === "fail") {
-    await env.CMS_DB.prepare("UPDATE free_jobs SET next_at=?,lease_until=0,lease_token=NULL WHERE id=? AND lease_token=?")
-      .bind(Date.now()+Math.max(900_000,Math.min(86_400_000,Number(input.retryAfterMs)||900_000)),id,input.token).run()
+    await env.CMS_DB.prepare("UPDATE free_jobs SET next_at=?,lease_until=0,lease_token=NULL,last_error=?,failed_at=? WHERE id=? AND lease_token=?")
+      .bind(Date.now()+Math.max(900_000,Math.min(86_400_000,Number(input.retryAfterMs)||900_000)),safeJobError(input.errorCode),Date.now(),id,input.token).run()
     return json({ ok: true })
   }
   const entry = await env.CMS_DB.prepare("SELECT kind FROM free_content WHERE id=?").bind(id).first<{ kind: "research" | "notice" | "members" }>()
