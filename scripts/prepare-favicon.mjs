@@ -1,4 +1,4 @@
-// Preserve the approved artwork; vary only the ink/background for each surface.
+// Preserve the approved artwork; every favicon has a transparent background.
 import { readFile, writeFile } from 'node:fs/promises'
 import sharp from 'sharp'
 
@@ -18,25 +18,36 @@ for (const name of ['icon.svg', 'smp-favicon.svg']) await writeFile(`public/${na
 for (const name of ['smp-favicon-32.png', 'icon-light-32x32.png', 'icon-dark-32x32.png']) {
   await sharp(Buffer.from(tabSvg), { density: 288 }).resize(32, 32).png({ palette: true, colours: 64, effort: 10 }).toFile(`public/${name}`)
 }
-// Keep the established raster URL stable for search crawlers. SVG is preferred
-// by modern browsers; the opaque PNG also works as an Organization logo.
+// Keep the established raster URL stable for search crawlers. Any browser may
+// choose this fallback instead of SVG, so it must also remain transparent.
+// Dark ink stays visible on the light chip used by Google Search. Do not add a
+// white-only raster candidate: crawlers can choose any advertised icon.
 // Render from the same alpha mask as the tab, discarding invisible RGB noise.
 // A small indexed PNG avoids sending a large true-colour image to favicon crawlers.
-await sharp(Buffer.from(tabSvg), { density: 288 }).resize(512, 512).flatten({ background: '#ffffff' })
+await sharp(Buffer.from(tabSvg), { density: 288 }).resize(512, 512)
   .png({ palette: true, colours: 64, effort: 10 }).toFile('public/smp-search-icon-light.png')
 await sharp('public/smp-search-icon-light.png').resize(192, 192).png({ palette: true, colours: 64, effort: 10 }).toFile('public/smp-search-icon.png')
-// Google may also select apple-touch-icon as its favicon. Never leave the old
-// white-on-transparent artwork here while advertising a contrasting PNG above.
+// Some browsers and Google also select apple-touch-icon. Keep its alpha and
+// artwork identical to the fallback, rather than introducing an opaque tile.
 await sharp('public/smp-search-icon-light.png').resize(180, 180).png({ palette: true, colours: 64, effort: 10 }).toFile('public/apple-icon.png')
-// Keep a square, opaque legacy icon available to clients requesting /favicon.ico.
-const png = await sharp('public/smp-search-icon-light.png').resize(48, 48).png().toBuffer()
-const header = Buffer.alloc(22)
+// Supply transparent frames for legacy tabs and crawlers requesting /favicon.ico.
+// Larger frames avoid limiting this fallback to a small browser-tab bitmap.
+const sizes = [16, 32, 48, 96, 256]
+const frames = await Promise.all(sizes.map(size =>
+  sharp('public/smp-search-icon-light.png').resize(size, size).png().toBuffer(),
+))
+const header = Buffer.alloc(6 + 16 * frames.length)
 header.writeUInt16LE(1, 2)
-header.writeUInt16LE(1, 4)
-header[6] = 48
-header[7] = 48
-header.writeUInt16LE(1, 10)
-header.writeUInt16LE(32, 12)
-header.writeUInt32LE(png.length, 14)
-header.writeUInt32LE(22, 18)
-await writeFile('public/favicon.ico', Buffer.concat([header, png]))
+header.writeUInt16LE(frames.length, 4)
+let offset = header.length
+for (const [index, frame] of frames.entries()) {
+  const entry = 6 + 16 * index
+  header[entry] = sizes[index] % 256
+  header[entry + 1] = sizes[index] % 256
+  header.writeUInt16LE(1, entry + 4)
+  header.writeUInt16LE(32, entry + 6)
+  header.writeUInt32LE(frame.length, entry + 8)
+  header.writeUInt32LE(offset, entry + 12)
+  offset += frame.length
+}
+await writeFile('public/favicon.ico', Buffer.concat([header, ...frames]))
