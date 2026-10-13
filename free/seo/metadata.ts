@@ -25,7 +25,7 @@ const organization={
   alternateName:SITE_ALTERNATE_NAMES,url:siteOrigin,foundingDate:"2006",
   description:SITE_INTRO,
   logo:`${siteOrigin}/smp-search-icon-light.png`,email:SITE_CHANNELS.email,
-  sameAs:[SITE_CHANNELS.cafe,SITE_CHANNELS.instagram],
+  sameAs:[SITE_CHANNELS.cafe,SITE_CHANNELS.instagram,SITE_CHANNELS.youtube],
 }
 type SeoItem=CoveredItem
 function articleTitle(item:SeoItem) {

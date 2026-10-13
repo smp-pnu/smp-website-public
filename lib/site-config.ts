@@ -44,6 +44,7 @@ export const SITE_CHANNELS = {
   email: "smppnu@gmail.com",
   instagram: "https://www.instagram.com/smp_pnu/",
   cafe: "https://cafe.naver.com/smppnu",
+  youtube: "https://www.youtube.com/channel/UCCj6Ivz5mw2LCqpmldfJyGg",
 } as const
 
 /**
