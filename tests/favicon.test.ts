@@ -9,13 +9,22 @@ async function readPixels(bytes: Buffer) {
   return sharp(bytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
 }
 
-async function assertSearchContrast(bytes: Buffer, label: string) {
+async function assertSearchContrast(bytes: Buffer, label: string, round = true) {
   const { data, info } = await readPixels(bytes)
   assert.equal(info.width, info.height, label)
-  for (let i = 3; i < data.length; i += 4) assert.equal(data[i], 255, `${label}: transparent pixel`)
-  for (const pixel of [0, info.width - 1, (info.height - 1) * info.width, info.width * info.height - 1]) {
-    assert.deepEqual([...data.subarray(pixel * 4, pixel * 4 + 4)], [0, 0, 0, 255], label)
+  // Only the corners outside the disc may be transparent. The white artwork
+  // and all of its negative spaces must still have an opaque black backdrop.
+  for (let y = 0; y < info.height; y++) for (let x = 0; x < info.width; x++) {
+    const radius = Math.hypot(x + 0.5 - info.width / 2, y + 0.5 - info.height / 2)
+    // Lanczos resizing can soften the outermost three pixels of a raster disc.
+    if (!round || radius < info.width / 2 - 3) assert.equal(data[(y * info.width + x) * 4 + 3], 255, `${label}: transparent interior`)
   }
+  for (const pixel of [0, info.width - 1, (info.height - 1) * info.width, info.width * info.height - 1]) {
+    assert.equal(data[pixel * 4 + 3], round ? 0 : 255, `${label}: corner opacity`)
+  }
+  let darkBackdrop = 0
+  for (let i = 0; i < data.length; i += 4) if (data[i] < 32 && data[i + 1] < 32 && data[i + 2] < 32 && data[i + 3] >= 240) darkBackdrop++
+  assert.ok(darkBackdrop > info.width * info.height / 10, `${label}: missing black backdrop`)
   assert.ok(data.some((value, i) => i % 4 === 0 && value > 240), `${label}: missing white mark`)
 }
 
@@ -38,7 +47,7 @@ test('inline tab icon retains white artwork and a transparent background', async
 
 test('all current and legacy fetchable favicon URLs keep search contrast', async () => {
   for (const name of ['icon.svg', 'smp-favicon.svg', 'smp-favicon-32.png', 'icon-light-32x32.png', 'icon-dark-32x32.png', 'smp-search-icon.png', 'smp-search-icon-light.png', 'apple-icon.png']) {
-    await assertSearchContrast(await readFile(new URL(`../public/${name}`, import.meta.url)), name)
+    await assertSearchContrast(await readFile(new URL(`../public/${name}`, import.meta.url)), name, name !== 'apple-icon.png')
   }
   const ico = await readFile(new URL('../public/favicon.ico', import.meta.url))
   for (let i = 0; i < ico.readUInt16LE(4); i++) {
