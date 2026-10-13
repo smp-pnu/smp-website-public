@@ -10,11 +10,13 @@ export type Env = {
   NOTION_WEBHOOK_VERIFICATION_TOKEN?: string;
   NOTION_WEBHOOK_SETUP?: string;
   DRIVE_CLEANUP_WEB_APP_URL?: string;
+  GITHUB_PUBLISH_TOKEN?: string;
   SMP_FIXTURE?: string;
   SMP_READ_ONLY?: string;
   SMP_SYNC_KIND?: "research" | "notice" | "members";
   // Injected only by the Node publisher; not a deployed binding.
   NOTION_FETCH?: typeof fetch;
+  PUBLISH_FETCH?: typeof fetch;
   NOTION_WORKLOAD?: "visitor" | "sync" | "publisher" | "webhook";
   NOTION_WAIT_UNTIL?: number;
 }

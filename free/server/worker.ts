@@ -5,6 +5,7 @@ import { limitedBody, validNotionSignature } from "../../lib/webhook-security"
 import { publicBudget, spend } from "./budget"
 import { rebuildDocuments, storePage, removePage } from "./catalog"
 import { runScheduledSync } from "./sync"
+import { requestPublisher } from "./publisher"
 import { notion, published, source } from "./notion"
 import { Busy, type Context, type Env } from "./types"
 import { memberPhoto } from "./member-photo"
@@ -32,7 +33,7 @@ async function document(request:Request,env: Env,ctx:Context,name: string) {
   if(cache)ctx.waitUntil(cache.put(key,response.clone()).catch(()=>{}))
   return response
 }
-async function webhook(request: Request, env: Env) {
+async function webhook(request: Request, env: Env, ctx: Context) {
   if (env.SMP_READ_ONLY === "1") return new Response("Not found", { status: 404 })
   const raw = await limitedBody(request)
   const verification = await captureWebhookVerification(raw, env)
@@ -61,6 +62,7 @@ async function webhook(request: Request, env: Env) {
   if(changed) await rebuildDocuments(env,kind?[kind]:known?[known.kind as ContentKind | "members"]:[])
   // Record only completed events: an upstream failure must remain retryable.
   if(eventId) await env.CMS_DB.prepare("INSERT INTO free_events(id,expires_at) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET expires_at=excluded.expires_at").bind(eventId,Date.now()+86_400_000).run()
+  ctx.waitUntil(requestPublisher(env))
   return reply({ received: true })
 }
 
@@ -69,7 +71,7 @@ async function handle(request: Request, env: Env, ctx: Context): Promise<Respons
   if (path === "/api/health") return reply({ ok: true, mode: __SMP_FIXTURE__ ? "fixture" : "free", readOnly: env.SMP_READ_ONLY === "1" })
   if (path.startsWith("/api/internal/")) return reply({ error: "Not found" },404)
 
-  if (path === "/api/notion/webhook" && request.method === "POST") return webhook(request, env)
+  if (path === "/api/notion/webhook" && request.method === "POST") return webhook(request, env, ctx)
   if (!path.startsWith("/api/")) return publicPage(request,env,ctx,name=>document(request,env,ctx,name))
   if(!/^\/api\/(search$|catalog\/(research|notice|members)$|member-photo\/[a-f0-9]{32}$|(detail|content)\/(research|notice)\/[a-f\d-]{32,36}(\/(pdf|file|block-file))?$)/.test(path)) return new Response("Not found",{status:404})
   const match = /^\/api\/(detail|content)\/(research|notice)\/([a-f\d-]{32,36})(?:\/(pdf|file|block-file))?$/.exec(path)
@@ -133,7 +135,13 @@ export default {
     // Three independent CMS sources use three scheduled Workers in the SAME
     // account. Request/API quotas remain shared. Each invocation handles only
     // one small source batch, rather than exceeding Free CPU with three.
-    await runScheduledSync(env,kind,event.scheduledTime)
+    try {
+      await runScheduledSync(env,kind,event.scheduledTime)
+    } finally {
+      // One existing cron is the fallback for missed webhooks/GitHub queue
+      // delays. No new Cron Trigger or high-frequency workflow is created.
+      if(kind==="research" && Math.floor((event.scheduledTime??Date.now())/60_000)%5===0) await requestPublisher(env)
+    }
     if(kind==="research" && Math.floor((event.scheduledTime??Date.now())/60_000)%60===0) {
       // Housekeeping has its own hourly admission: an idle sync may skip this
       // minute, and duplicate cron delivery must not repeat the deletes.

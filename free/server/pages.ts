@@ -5,6 +5,7 @@ import { injectPage, siteOrigin } from "../seo/metadata"
 import { publicBudget } from "./budget"
 import { enqueue } from "./catalog"
 import { published } from "./notion"
+import { requestPublisher } from "./publisher"
 import type { Context, Env } from "./types"
 import { publicFeed } from "./feed"
 import { publicCover } from "../../lib/public-cover"
@@ -16,7 +17,7 @@ export async function readDetail(env:Env,ctx:Context,kind:ContentKind,id:string,
   if(!item) return null
   const record=await env.CMS_DB.prepare("SELECT blocks,body_revision,cover FROM free_content WHERE id=? AND kind=?").bind(id,kind).first<{blocks:string|null;body_revision:string|null;cover:string|null}>()
   const ready=!!record && record.body_revision===item.editedAt && !!record.blocks
-  if(!ready && env.SMP_READ_ONLY!=="1") ctx.waitUntil(enqueue(env,id,item.editedAt??""))
+  if(!ready && env.SMP_READ_ONLY!=="1") ctx.waitUntil(enqueue(env,id,item.editedAt??"").then(()=>requestPublisher(env)))
   let related:RelatedReports=null
   if(kind==="research" && readDocument) {
     // Reuse the versioned, freshness-checked catalogue. No extra CMS call and
