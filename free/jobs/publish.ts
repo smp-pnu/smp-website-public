@@ -14,6 +14,8 @@ import { syncReportMetadataUsing } from "../../lib/report-metadata-service"
 import { ensureReportCoverCache } from "./report-cover-cache"
 import { ensureSyncRuns } from "./sync-schema"
 import { ensurePublicationChecks } from "./publication-schema"
+import { ensureJobFailures } from "./job-schema"
+import { jobErrorCode, type JobErrorCode } from "../server/job-errors"
 import { repairRegionalImages } from "./regional-image-repair"
 import { publicationAssets, requiresAssetDeployment } from "./publication-assets"
 
@@ -40,6 +42,7 @@ async function main() {
   await ensureReportCoverCache(env.CMS_DB)
   await ensureSyncRuns(env.CMS_DB)
   await ensurePublicationChecks(env.CMS_DB)
+  await ensureJobFailures(env.CMS_DB)
   // No overlapping publishing runs, even if a second runner/manual job starts.
   const now=Date.now()
   const lock=await env.CMS_DB.prepare(`INSERT INTO free_controls(name,until_at) VALUES ('publisher',?) ON CONFLICT(name) DO UPDATE SET until_at=excluded.until_at WHERE until_at<? RETURNING until_at`).bind(now+14*60_000,now).first()
@@ -73,7 +76,7 @@ async function main() {
         const cover=job.kind==="members"?await prepareMemberPhoto(item as Member):await prepareCover(item as ContentItem,job.cover)
         complete.push({job,blocks,cover})
       } catch(error) {
-        await fail(env,origin,job,error instanceof Busy?error.seconds*1000:900_000)
+        await fail(env,origin,job,error instanceof Busy?error.seconds*1000:900_000,jobErrorCode(error))
         console.error("One publication was deferred; original content remains in Notion/Drive")
         if(error instanceof Busy) throw error
       }
@@ -126,7 +129,7 @@ async function finishPublications(env:Env,origin:URL,complete:Completed[]) {
     if(!response.ok) console.error("Publication changed during preparation; it will be prepared again")
   }
 }
-async function fail(env:Env,origin:URL,job:Job,retryAfterMs=900_000) {
-  await internal(new Request(`${origin}api/internal/jobs/${job.id}/fail`,{method:"POST",body:JSON.stringify({token:job.token,revision:job.revision,retryAfterMs})}),env)
+async function fail(env:Env,origin:URL,job:Job,retryAfterMs=900_000,errorCode:JobErrorCode="publication_failed") {
+  await internal(new Request(`${origin}api/internal/jobs/${job.id}/fail`,{method:"POST",body:JSON.stringify({token:job.token,revision:job.revision,retryAfterMs,errorCode})}),env)
 }
 void main().catch(error=>{console.error(error instanceof Busy?`Publisher paused for at least ${error.seconds}s`:error instanceof Error?error.message:"Publisher failed");process.exitCode=1})
