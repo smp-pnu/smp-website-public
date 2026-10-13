@@ -31,8 +31,13 @@ export async function notion<T>(env: Env, path: string, body?: unknown, method?:
   })
   if (response.status === 404) { await response.body?.cancel(); return null }
   if (response.status === 429 || response.status >= 500) {
-    const seconds = Math.min(3600, Math.max(1, Number(response.headers.get("retry-after")) || 60))
-    backoffUntil = Date.now() + seconds * 1000
+    const now=Date.now(),raw=response.headers.get("retry-after")?.trim()??""
+    const delta=/^\d+$/.test(raw)?Number(raw):null
+    const retryAt=delta===null?Date.parse(raw):now+delta*1000
+    // Never shorten a provider's delay to an arbitrary one-hour maximum.
+    // HTTP-date and delta-seconds are both valid Retry-After forms.
+    backoffUntil=Number.isSafeInteger(retryAt)&&retryAt>now?retryAt:now+60_000
+    const seconds=Math.max(1,Math.ceil((backoffUntil-now)/1000))
     await response.body?.cancel()
     await env.CMS_DB.prepare("INSERT INTO free_controls(name,until_at) VALUES ('notion-backoff',?) ON CONFLICT(name) DO UPDATE SET until_at=MAX(until_at,excluded.until_at)").bind(backoffUntil).run()
     throw new Busy(seconds)

@@ -341,3 +341,20 @@ test("Notion throttling does not retry before the shared Retry-After expires",as
     assert.ok(Number(sqlite.prepare("SELECT until_at FROM free_controls WHERE name='notion-backoff'").get()!.until_at)>Date.now()+119_000)
   } finally {sqlite.close()}
 })
+
+
+test("long and date-based Notion Retry-After values are never shortened",async t=>{
+  const {sqlite,env}=setup();let now=Date.now()+86_400_000,calls=0
+  t.mock.method(Date,"now",()=>now)
+  try {
+    env.NOTION_FETCH=async()=>{calls++;return new Response("",{status:429,headers:{"Retry-After":"7200"}})}
+    await assert.rejects(notion(env,"pages/test"),(error:any)=>error.seconds===7200)
+    now+=3_600_000;await assert.rejects(notion(env,"pages/test"));assert.equal(calls,1)
+    now+=3_600_001
+    const due=Math.ceil((now+5_400_000)/1000)*1000
+    env.NOTION_FETCH=async()=>{calls++;return new Response("",{status:503,headers:{"Retry-After":new Date(due).toUTCString()}})}
+    await assert.rejects(notion(env,"pages/test"))
+    assert.equal(sqlite.prepare("SELECT until_at FROM free_controls WHERE name='notion-backoff'").get()!.until_at,due)
+    now=due-1;await assert.rejects(notion(env,"pages/test"));assert.equal(calls,2)
+  } finally {sqlite.close()}
+})
