@@ -143,5 +143,5 @@ export function formatDate(date: string) {
 }
 
 export function contentHref(item: Pick<ContentItem, "kind" | "id">) {
-  return `/${item.kind}/${item.id}`
+  return `/${encodeURIComponent(item.kind)}/${encodeURIComponent(item.id)}`
 }

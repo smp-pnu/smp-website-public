@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { safeSiteHref } from "@/lib/content-navigation"
 import { ArrowRight } from "lucide-react"
 import { siteSearchMatches, type SiteSearchEntry } from "@/lib/site-search-query"
 export function SiteSearchResults({query, index}: {query: string; index: {entries: SiteSearchEntry[]; partial: boolean}}) {
@@ -11,7 +12,7 @@ export function SiteSearchResults({query, index}: {query: string; index: {entrie
       <p className="mt-2 text-sm leading-7 text-site-muted">철자를 확인하거나 더 짧은 검색어로 다시 검색해보세요.</p>
     </div> : <ul className="mt-5 divide-y divide-site-line-soft border-y border-site-line bg-site-surface/50">
       {results.map((item, index) => <li key={`${item.href}-${index}`}>
-        <Link prefetch={false} href={item.href} className="group flex items-start gap-4 px-5 py-6 transition-colors hover:bg-white/[0.05] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-site-accent sm:gap-6 sm:px-7 sm:py-7">
+        <Link prefetch={false} href={safeSiteHref(item.href)} className="group flex items-start gap-4 px-5 py-6 transition-colors hover:bg-white/[0.05] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-site-accent sm:gap-6 sm:px-7 sm:py-7">
           <div className="min-w-0 flex-1 sm:flex sm:items-start sm:gap-6">
             <span className="inline-block min-w-12 shrink-0 rounded-[2px] border border-sky-200/15 bg-sky-200/[0.04] px-2 py-1 text-center text-[11px] leading-4 text-site-accent/80 sm:mt-0.5">{item.label}</span>
             <div className="mt-3 min-w-0 sm:mt-0">

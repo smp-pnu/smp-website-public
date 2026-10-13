@@ -21,7 +21,7 @@ import { NetworkLayout } from "@/components/network-layout"
 import type { RelatedReports } from "@/lib/related-reports"
 import { isNotionFileUrl } from "@/lib/pdf-source"
 import { contentReturnHref } from "@/lib/content-navigation"
-import { contentHref, formatDate, sortContent, type ContentKind } from "@/lib/content-model"
+import { contentHref, safeUrl, formatDate, sortContent, type ContentKind } from "@/lib/content-model"
 import { sortMembers, type MemberResult } from "@/lib/member-model"
 import { getPdfSources, isTrustedAttachmentUrl } from "@/lib/pdf-source"
 import type { ContentResult, ContentBlock } from "@/lib/notion-model"
@@ -68,9 +68,9 @@ function Related({related}:{related?:RelatedReports}) {
 function Attachments({ item }: { item: PreparedItem }) {
   const pdfs = getPdfSources(item)
   return <section aria-label="첨부 자료" className="mt-8">{pdfs.map((pdf, index) => {
-    const url = `/api/content/${item.kind}/${item.id}/pdf?${pdf.query}`
+    const url = `/api/content/${encodeURIComponent(item.kind)}/${encodeURIComponent(item.id)}/pdf?${pdf.query}`
     return <div key={pdf.query} className="mt-5"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h3 className="text-sm text-site-body">{pdf.name}</h3>{(item.kind !== "research" || index > 0) && <a href={`${url}&download=1`} download className="rounded-md bg-sky-300 px-4 py-2 text-sm text-slate-950">PDF 다운로드 ↓</a>}</div><PdfViewer url={url} preview={index === 0 && item.cover ? { url: item.cover.previewUrl, width: item.cover.width, height: item.cover.height, title: item.title } : undefined} /></div>
-  })}<ul className="mt-4 space-y-3">{item.attachments.map((file, index) => pdfs.some(pdf => pdf.query === `index=${index}`) ? null : <li key={index}><a href={isTrustedAttachmentUrl(file.url) ? `/api/content/${item.kind}/${item.id}/file?index=${index}` : file.url} target="_blank" rel="noopener noreferrer" className="text-site-accent underline">{file.name} ↗</a></li>)}{item.externalUrl && !pdfs.some(pdf => pdf.query === "source=external") && <li><a href={item.externalUrl} target="_blank" rel="noopener noreferrer" className="text-site-accent underline">관련 링크 열기 ↗</a></li>}</ul></section>
+  })}<ul className="mt-4 space-y-3">{item.attachments.map((file, index) => pdfs.some(pdf => pdf.query === `index=${index}`) ? null : <li key={index}><a href={isTrustedAttachmentUrl(file.url) ? `/api/content/${encodeURIComponent(item.kind)}/${encodeURIComponent(item.id)}/file?index=${index}` : safeUrl(file.url) ?? undefined} target="_blank" rel="noopener noreferrer" className="text-site-accent underline">{file.name} ↗</a></li>)}{item.externalUrl && !pdfs.some(pdf => pdf.query === "source=external") && <li><a href={safeUrl(item.externalUrl) ?? undefined} target="_blank" rel="noopener noreferrer" className="text-site-accent underline">관련 링크 열기 ↗</a></li>}</ul></section>
 }
 export function SearchPage() {
   const query = (useSearch().q ?? "").trim().slice(0, 100)
