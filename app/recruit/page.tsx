@@ -5,8 +5,12 @@ import { PageIntro } from "@/components/page-intro"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { RecruitSteps } from "@/components/recruit-steps"
+import { SITE_PAGE_METADATA, SITE_SHORT_NAME_KO } from "@/lib/site-config"
 
-export const metadata: Metadata = { title: "RECRUIT | SMP" }
+export const metadata: Metadata = {
+  title: `${SITE_PAGE_METADATA.recruit.title} | ${SITE_SHORT_NAME_KO}`,
+  description: SITE_PAGE_METADATA.recruit.description,
+}
 
 // Activate applications only after confirming both the schedule and the official form.
 const recruitment: { status: "upcoming" | "open" | "closed"; scheduleConfirmed: boolean; applicationUrl: string | null; period: string } = {
@@ -50,9 +54,9 @@ export default function RecruitPage() {
   return <>
     <SiteHeader />
     <main className="site-page max-w-6xl">
-      <PageIntro eyebrow="JOIN SMP" title="RECRUIT">기업을 깊이 읽고, 함께 성장하는 투자 공부.</PageIntro>
+      <PageIntro eyebrow="JOIN SMP" title="RECRUIT">부산대 투자 동아리 SMP에서 기업을 깊이 읽고, 함께 성장하는 투자 공부.</PageIntro>
       <nav aria-label="지원 전 학회 알아보기" className="mt-7 flex flex-wrap justify-center gap-x-6 gap-y-3 text-sm text-site-body">
-        {[["/about", "학회 소개"], ["/curriculum", "커리큘럼"], ["/research", "학회원 리포트"]].map(([href, label]) => <Link key={href} href={href} className="inline-flex min-h-11 items-center gap-2 underline-offset-4 hover:text-white hover:underline">{label}<ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" /></Link>)}
+        {[["/about", "SMP 학회 소개"], ["/curriculum", "금융투자 교육 과정"], ["/research", "기업·산업 분석 리포트"]].map(([href, label]) => <Link key={href} href={href} className="inline-flex min-h-11 items-center gap-2 underline-offset-4 hover:text-white hover:underline">{label}<ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" /></Link>)}
       </nav>
       <article aria-labelledby="recruit-notice-title" className="recruit-guide mt-9 sm:mt-12">
         <header className="recruit-opening">

@@ -16,13 +16,13 @@ export function WhoWeAreSection() {
           <div className="flex max-w-4xl flex-col items-center">
             <p className="text-base leading-relaxed text-site-body sm:text-lg">
               {SITE_INTRO}{" "}
-              증권·산업 리서치를 바탕으로 기업의 내재가치와 성장 가능성을 분석하고, 발표와 토론을 통해 투자 아이디어를 발전시킵니다.
+              투자 동아리 활동을 통해 기업의 내재가치와 성장 가능성을 분석하고, 팀 리포트 작성과 발표·토론으로 투자 아이디어를 발전시킵니다.
             </p>
             <Link
               href="/about"
               className="mt-6 inline-flex items-center gap-2 text-sm font-normal text-site-accent transition-colors hover:text-site-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
             >
-              SMP 학회 소개
+              부산대 SMP 활동 알아보기
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>

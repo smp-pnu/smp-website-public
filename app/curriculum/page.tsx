@@ -3,8 +3,12 @@ import { PageIntro } from "@/components/page-intro"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { CurriculumMotion } from "@/components/curriculum-motion"
+import { SITE_PAGE_METADATA, SITE_SHORT_NAME_KO } from "@/lib/site-config"
 
-export const metadata: Metadata = { title: "CURRICULUM | SMP" }
+export const metadata: Metadata = {
+  title: `${SITE_PAGE_METADATA.curriculum.title} | ${SITE_SHORT_NAME_KO}`,
+  description: SITE_PAGE_METADATA.curriculum.description,
+}
 
 const stages = [
   { id: "foundation", name: "신입교육", label: "RESEARCH FOUNDATION", summary: "리서치와 가치평가의 기초", description: "기업분석을 시작하기 위한 기초를 다집니다. 기업 선정부터 리포트의 구성과 흐름을 익히고, 기업의 적정가치를 산출하기 위한 Valuation 모델링을 배웁니다.", topics: ["기업 선정 및 리포트 구성 이해", "리서치 기초 교육", "재무 모델링과 기업가치 평가"] },
@@ -19,7 +23,7 @@ export default function CurriculumPage() {
     <CurriculumMotion>
       <div className="mx-auto max-w-6xl px-6">
         <section className="pt-14 pb-16 sm:pt-18 sm:pb-20">
-          <PageIntro eyebrow="CURRICULUM" title="금융리더를 향한 네 번의 도약">리서치의 기초를 배우고, 기업을 분석하고, 팀과 함께 투자합니다.<br />SMP의 정규 커리큘럼은 신입교육부터 Senior 정규세션까지 이어집니다.</PageIntro>
+          <PageIntro eyebrow="CURRICULUM" title="금융리더를 향한 네 번의 도약">주식과 기업분석의 기초를 배우고, 팀과 함께 가치투자를 공부합니다.<br />부산대 SMP의 금융투자 교육은 신입교육부터 Senior 정규세션까지 이어집니다.</PageIntro>
           <nav aria-label="커리큘럼 4단계" className="mt-12 sm:mt-14">
             <ol className="grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-4">
               {stages.map((stage, index) => <li key={stage.id} className="curriculum-step-item" style={{ animationDelay: `${index * 180}ms` }}>
