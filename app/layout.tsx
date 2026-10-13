@@ -5,6 +5,8 @@ import { ScrollReveal } from '@/components/scroll-reveal'
 import { HomeBackground } from '@/components/home-background'
 import { NetworkTransition } from '@/components/network-transition'
 import { SITE_DESCRIPTION, SITE_HOME_TITLE } from '@/lib/site-config'
+import tabIcon from '@/lib/tab-icon.json'
+import Script from 'next/script'
 import './globals.css'
 import './fonts/body-font'
 
@@ -25,7 +27,7 @@ export const metadata: Metadata = {
     icon: [
       { url: '/favicon.ico', type: 'image/vnd.microsoft.icon', sizes: '48x48' },
       { url: '/smp-search-icon.png', type: 'image/png', sizes: '192x192' },
-      { url: '/icon.svg?v=20261013-white', type: 'image/svg+xml', sizes: 'any' },
+      { url: tabIcon.src, type: 'image/png', sizes: `${tabIcon.size}x${tabIcon.size}` },
     ],
     apple: { url: '/apple-icon.png', sizes: '180x180' },
   },
@@ -44,6 +46,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className={`${heroFont.variable} antialiased`} style={{ fontFamily: 'var(--font-body), sans-serif' }}>
+        <Script src="/tab-icon-compat.js" strategy="beforeInteractive" />
         <NetworkTransition>
         <HomeBackground />
         <ScrollReveal />
