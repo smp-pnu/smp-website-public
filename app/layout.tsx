@@ -18,6 +18,9 @@ export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
   title: SITE_HOME_TITLE,
   description: SITE_DESCRIPTION,
+  verification: {
+    other: { 'msvalidate.01': '14894EBD9037873344DC49409D664B7C' },
+  },
   icons: {
     icon: [
       { url: '/smp-search-icon.png', type: 'image/png', sizes: '192x192' },
