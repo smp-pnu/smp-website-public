@@ -20,23 +20,29 @@ await writeFile('lib/tab-icon.json', JSON.stringify({ src: `data:image/png;base6
 // Safari does not support data-URL favicons (WebKit bug 236616).
 // Its early compatibility script loads this identical raster instead.
 await writeFile('public/smp-tab-mark.png', tabPng)
-const searchSvg = tabSvg.replace('<defs>', '<rect width="128" height="128" fill="#000"/><defs>')
+// Naver places our favicon in a 16px box inside its own 24px circular chip.
+// A circular backdrop avoids square corners in that chip. Fit the unchanged
+// artwork inside the disc, leaving 2px at its furthest point so no feather clips.
+const searchScale = 118 / 124
+const searchInset = 64 * (1 - searchScale)
+const searchSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><circle cx="64" cy="64" r="64" fill="#000"/><g transform="translate(${searchInset} ${searchInset}) scale(${searchScale})">${tabSvg}</g></svg>\n`
 for (const name of ['icon.svg', 'smp-favicon.svg']) await writeFile(`public/${name}`, searchSvg)
 // Preserve old URLs that search engines may already have stored.
 for (const name of ['smp-favicon-32.png', 'icon-light-32x32.png', 'icon-dark-32x32.png']) {
-  await sharp(tabPng).flatten({ background: '#000000' }).png({ palette: true, colours: 64, effort: 10 }).toFile(`public/${name}`)
+  await sharp(Buffer.from(searchSvg), { density: 288 }).resize(32, 32).png({ palette: true, colours: 64, effort: 10 }).toFile(`public/${name}`)
 }
 // Keep established search/touch raster URLs stable. These get a black backdrop
 // so the white S remains visible even on Google's white search-result chip.
 // Advertise real PNG/ICO files for search and the inline 32px PNG for tabs.
 // Render from the same alpha mask as the tab, discarding invisible RGB noise.
 // A small indexed PNG avoids sending a large true-colour image to favicon crawlers.
-await sharp(Buffer.from(tabSvg), { density: 288 }).resize(512, 512)
-  .flatten({ background: '#000000' })
+await sharp(Buffer.from(searchSvg), { density: 288 }).resize(512, 512)
   .png({ palette: true, colours: 64, effort: 10 }).toFile('public/smp-search-icon-light.png')
 await sharp('public/smp-search-icon-light.png').resize(192, 192).png({ palette: true, colours: 64, effort: 10 }).toFile('public/smp-search-icon.png')
-// The touch icon uses the same black tile as the standard raster favicon.
-await sharp('public/smp-search-icon-light.png').resize(180, 180).png({ palette: true, colours: 64, effort: 10 }).toFile('public/apple-icon.png')
+// Home-screen icons retain their opaque square tile; the OS supplies its mask.
+const touchTile = await sharp(Buffer.from(tabSvg), { density: 288 }).resize(512, 512)
+  .flatten({ background: '#000000' }).png({ palette: true, colours: 64, effort: 10 }).toBuffer()
+await sharp(touchTile).resize(180, 180).png({ palette: true, colours: 64, effort: 10 }).toFile('public/apple-icon.png')
 // Root favicon requests get a contrasting raster too, including search crawlers
 // and browsers that do not select the inline transparent tab image.
 const sizes = [16, 32, 48, 96, 256]
