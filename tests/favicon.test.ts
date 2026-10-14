@@ -56,16 +56,37 @@ test('all current and legacy fetchable favicon URLs keep search contrast', async
   }
 })
 
-test('Safari compatibility replaces unsupported inline icons without altering Chromium candidates', async () => {
+test('served HTML advertises one absolute, high-contrast icon and no transparent candidate', async () => {
+  const html = await readFile(new URL('../free/client/index.html', import.meta.url), 'utf8')
+  const icons = html.match(/<link\b[^>]*rel="icon"[^>]*>/g) || []
+  assert.equal(icons.length, 1)
+  assert.match(icons[0], /href="https:\/\/pnusmp\.com\/smp-search-icon\.png"/)
+  assert.match(icons[0], /sizes="192x192"/)
+  assert.doesNotMatch(html, /data:image|__SMP_TAB_ICON__|smp-tab-mark/)
+  assert.ok(html.indexOf('/tab-icon-compat.js') > html.indexOf(icons[0]))
+})
+
+test('browser tabs use white transparent artwork but rendering crawlers retain the search icon', async () => {
   const script = await readFile(new URL('../public/tab-icon-compat.js', import.meta.url), 'utf8')
-  for (const [vendor, userAgent, needsFallback] of [
-    ['Apple Computer, Inc.', 'Version/26.0 Safari/605.1.15', true],
-    ['Google Inc.', 'Chrome/140.0.0.0 Safari/537.36', false],
-    ['Google Inc.', 'Chrome/140.0.0.0 Safari/537.36 (compatible; Googlebot/2.1)', false],
+  for (const [userAgent, transparentTab] of [
+    ['Version/26.0 Safari/605.1.15', true],
+    ['Chrome/140.0.0.0 Safari/537.36', true],
+    ['Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', true],
+    ['Firefox/143.0', true],
+    ['Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 Chrome/140.0.0.0 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)', false],
+    ['Chrome/140.0.0.0 Safari/537.36 (compatible; Google-InspectionTool/1.0)', false],
+    ['Googlebot-Image/1.0', false],
+    ['Chrome/140.0.0.0 Safari/537.36 (compatible; bingbot/2.0)', false],
+    ['Mozilla/5.0 (compatible; Yeti/1.1; +http://naver.me/spd)', false],
+    ['Chrome/140.0.0.0 Safari/537.36 Chrome-Lighthouse', false],
+    ['', false],
   ] as const) {
-    const icons = ['/favicon.ico', '/smp-search-icon.png', tabIcon.src].map(href => ({ href, type: 'image/png', sizes: { value: '32x32' } }))
-    const before = icons.map(icon => icon.href)
-    runInNewContext(script, { navigator: { vendor, userAgent }, document: { querySelectorAll: () => icons } })
-    assert.deepEqual(icons.map(icon => icon.href), needsFallback ? icons.map(() => '/smp-tab-mark.png') : before)
+    const icon = { href: 'https://pnusmp.com/smp-search-icon.png', type: 'image/png', sizes: { value: '192x192' } }
+    const context = { navigator: { userAgent }, document: { querySelector: () => icon } }
+    runInNewContext(script, context)
+    runInNewContext(script, context)
+    assert.equal(icon.href, transparentTab ? '/smp-tab-mark.png' : 'https://pnusmp.com/smp-search-icon.png', userAgent)
+    assert.equal(icon.sizes.value, transparentTab ? '32x32' : '192x192', userAgent)
   }
+  assert.doesNotThrow(() => runInNewContext(script, { navigator: { userAgent: 'Safari/605.1.15' }, document: { querySelector: () => null } }))
 })
