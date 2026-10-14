@@ -7,8 +7,8 @@ import type { NotionPage } from "../lib/content-model"
 const source = "44444444444444448444444444444444"
 test("member photo links survive the Vercel migration", () => {
   const member = page()
-  member.properties["사진 링크"].url = "https://smp-pnu.vercel.app/kim-siyoung.png"
-  assert.equal(toMember(member, source)?.image, "https://pnusmp.com/kim-siyoung.png")
+  member.properties["사진 링크"].url = "https://smp-pnu.vercel.app/backgrounds/research-desk.webp"
+  assert.equal(toMember(member, source)?.image, "https://pnusmp.com/backgrounds/research-desk.webp")
 })
 const rich = (value: string) => [{ plain_text: value }]
 function page(index = 1): NotionPage {
