@@ -45,9 +45,14 @@ export function toMember(page: NotionPage, source: string): Member | null {
   }
 }
 
+function memberRoleRank(member: Member) {
+  const rank = memberRoles.findIndex(role => member.roles?.includes(role))
+  return rank < 0 ? memberRoles.length : rank
+}
+
 export function sortMembers(items: Member[]) {
   return [...items].sort((a, b) => b.generation - a.generation
-    || (a.order ?? Infinity) - (b.order ?? Infinity)
+    || memberRoleRank(a) - memberRoleRank(b)
     || a.name.localeCompare(b.name, "ko") || a.id.localeCompare(b.id))
 }
 
