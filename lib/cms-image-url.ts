@@ -1,6 +1,6 @@
 // Keep older CMS image links working after the move away from Vercel.
 // Only this site's known static images are mapped; other URLs stay unchanged.
-const paths = new Set(["/kim-siyoung.png", "/backgrounds/research-desk.webp", "/backgrounds/pnu-campus-upscaled.webp"])
+const paths = new Set(["/backgrounds/research-desk.webp", "/backgrounds/pnu-campus-upscaled.webp"])
 export function cmsImageUrl(value: string): string {
   let url: URL
   try { url = new URL(value) } catch { return value }
