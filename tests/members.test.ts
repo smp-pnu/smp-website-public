@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import test from "node:test"
-import { memberGenerations, memberSearchEntries, sortMembers, toMember } from "../lib/member-model"
+import { memberGenerations, memberSearchEntries, sortMembers, toMember, type Member } from "../lib/member-model"
 import { loadMembers } from "../lib/member-catalog"
 import type { NotionPage } from "../lib/content-model"
 
@@ -80,6 +80,24 @@ test("the category supports membership plus officer roles without losing existin
     p.properties["구분"].multi_select = names.map(name => ({ name }))
     assert.equal(toMember(p, source), null)
   }
+})
+
+test("each generation lists presidents, vice presidents, cohort leaders, then names regardless of legacy order", () => {
+  const base = toMember(page(), source)!
+  const items: Member[] = [
+    { ...base, id: "regular-late", name: "한회원", order: 1 },
+    { ...base, id: "leader", name: "가기장", roles: ["기장"] },
+    { ...base, id: "vice", name: "가부회장", roles: ["부회장"] },
+    { ...base, id: "president-late", name: "한회장", roles: ["기장", "회장"], order: 1 },
+    { ...base, id: "regular-early", name: "가회원", order: 999 },
+    { ...base, id: "president-early", name: "가회장", roles: ["회장", "부회장"], order: 999 },
+    { ...base, id: "older-president", generation: 40, name: "가회장", roles: ["회장"] },
+  ]
+  const original = items.map(member => member.id)
+  assert.deepEqual(sortMembers(items).map(member => member.id), [
+    "president-early", "president-late", "vice", "leader", "regular-early", "regular-late", "older-president",
+  ])
+  assert.deepEqual(items.map(member => member.id), original)
 })
 
 test("628 members paginate once for 100 overlapping reads; later reads reflect withdrawal, and failures expose no stale roster", async () => {
