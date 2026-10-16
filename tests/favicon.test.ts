@@ -88,6 +88,8 @@ test('browser tabs use white transparent artwork but rendering crawlers retain t
     ['Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 Chrome/140.0.0.0 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)', false],
     ['Chrome/140.0.0.0 Safari/537.36 (compatible; Google-InspectionTool/1.0)', false],
     ['Googlebot-Image/1.0', false],
+    ['Mozilla/5.0 Chrome/140.0.0.0 Safari/537.36 (compatible; GoogleOther)', false],
+    ['Mozilla/5.0 Chrome/49.0.2623.75 Safari/537.36 Google Favicon', false],
     ['Chrome/140.0.0.0 Safari/537.36 (compatible; bingbot/2.0)', false],
     ['Mozilla/5.0 (compatible; Yeti/1.1; +http://naver.me/spd)', false],
     ['Chrome/140.0.0.0 Safari/537.36 Chrome-Lighthouse', false],
@@ -103,4 +105,12 @@ test('browser tabs use white transparent artwork but rendering crawlers retain t
     assert.equal(icon.sizes.value, transparentTab ? '32x32' : searchSizes, userAgent)
   }
   assert.doesNotThrow(() => runInNewContext(script, { navigator: { userAgent: 'Safari/605.1.15' }, document: { querySelector: () => null } }))
+})
+
+test('automated browsers retain the contrasting search icon even with a regular browser UA', async () => {
+  const script = await readFile(new URL('../public/tab-icon-compat.js', import.meta.url), 'utf8')
+  const icon = { href: 'https://pnusmp.com/favicon.ico', type: 'image/vnd.microsoft.icon', sizes: { value: '16x16 32x32 48x48 96x96 256x256' } }
+  runInNewContext(script, { navigator: { userAgent: 'Chrome/140.0.0.0 Safari/537.36', webdriver: true }, document: { querySelector: () => icon } })
+  assert.equal(icon.href, 'https://pnusmp.com/favicon.ico')
+  assert.equal(icon.type, 'image/vnd.microsoft.icon')
 })
