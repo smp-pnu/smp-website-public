@@ -140,10 +140,6 @@
 .site-nav-link:hover { color: var(--site-heading); }
 .site-nav-link[aria-current="page"] { color: var(--site-accent); text-decoration: underline; text-underline-offset: .5rem; text-decoration-thickness: 1px; }
 .site-nav-link:focus-visible { outline: 2px solid var(--site-accent); outline-offset: 3px; }
-.site-desktop-nav { position: relative; }
-.site-nav-indicator { position: absolute; left: 0; bottom: 6px; width: 1px; height: 1px; background: var(--site-accent); pointer-events: none; opacity: 0; transform-origin: left center; }
-.site-desktop-nav[data-indicator-ready] .site-nav-indicator { transition: transform 240ms cubic-bezier(.22,1,.36,1), opacity 160ms ease; }
-.site-desktop-nav[data-indicator-ready] .site-nav-link[aria-current="page"] { text-decoration: none; }
 .hero-shortcut { position: relative; display: inline-flex; min-height: 44px; align-items: center; gap: 12px; padding: 8px 0 12px; color: rgb(255 255 255 / .88); line-height: 1.5; transition: color 180ms ease; }
 .hero-shortcut::before, .hero-shortcut::after { content: ""; position: absolute; inset-inline: 0; bottom: 4px; height: 1px; pointer-events: none; }
 .hero-shortcut::before { background: rgb(255 255 255 / .3); }
@@ -165,7 +161,7 @@
   .hero-spotlight[data-active] .hero-spotlight__light { opacity: 1; will-change: transform; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hero-shortcut, .hero-shortcut::after, .hero-shortcut__arrow, .site-desktop-nav[data-indicator-ready] .site-nav-indicator { transition: none; }
+  .hero-shortcut, .hero-shortcut::after, .hero-shortcut__arrow, .site-nav-link { transition: none; }
   .hero-shortcut:hover .hero-shortcut__arrow, .hero-shortcut:focus-visible .hero-shortcut__arrow { transform: none; }
 }
 .site-page { position: relative; z-index: 10; margin-inline: auto; padding: 3.5rem 1.5rem 5rem; }
