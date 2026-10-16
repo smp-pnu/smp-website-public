@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {readerPreview,preparedReader,readerPdfMaxBytes} from '../lib/report-reader'
 import {publicCover} from '../lib/public-cover'
 import {selectReaderAssets,readerAssetBudget} from '../free/jobs/reader-assets'
+import {readReaderAsset} from '../free/server/reader-asset'
 import {readerPdf} from '../free/server/reader-pdf'
 import {sourceKey} from '../lib/cover-metadata'
 import type {ContentItem} from '../lib/content-model'
@@ -29,12 +30,12 @@ function setup(){
   const value=metadata(),cover={reader:value,sourceKey:sourceKey(item),pdfHash:'c'.repeat(64)}
   let record:{body_revision:string;cover:string}|null={body_revision:item.editedAt!,cover:JSON.stringify(cover)},assetCalls=0,upstreamCalls=0
   const tasks:Promise<unknown>[]=[],proofs=new Map<string,Response>()
-  const env={CMS_DB:{prepare:()=>({bind:()=>({first:async()=>record})})},ASSETS:{fetch:async(request:Request)=>{assetCalls++;const range=request.headers.get('range');return new Response(range?'%PDF-':'%PDF-prepared',{status:range?206:200,headers:{'content-type':'application/pdf','content-length':range?'5':'13',...(range?{'content-range':'bytes 0-4/100'}:{})}})}}} as unknown as Env
+  const env={CMS_DB:{prepare:()=>({bind:()=>({first:async()=>record})})},ASSETS:{fetch:async(request:Request)=>{assetCalls++;const range=request.headers.get('range');return new Response('%PDF-'.padEnd(100,'x'),{status:200,headers:{'content-type':'application/pdf','content-length':'100'}})}}} as unknown as Env
   global.fetch=async()=>{upstreamCalls++;return new Response('%PDF-',{status:206,headers:{'content-type':'application/pdf','content-range':'bytes 0-4/123','content-length':'5','last-modified':modified}})}
   const ctx={waitUntil(p:Promise<unknown>){tasks.push(p)}}
-  const cache={async match(key:Request){return proofs.get(key.url)?.clone()},async put(key:Request,response:Response){proofs.set(key.url,response)}}
+  const cache={async match(key:Request){const value=proofs.get(key.url)?.clone();if(value && key.headers.has('range')){const bytes=await value.arrayBuffer();return new Response(bytes.slice(0,5),{status:206,headers:{'content-type':'application/pdf','content-length':'5','content-range':'bytes 0-4/100','accept-ranges':'bytes'}})}return value},async put(key:Request,response:Response){proofs.set(key.url,response)}}
   const read=(query='',headers?:HeadersInit,report=item)=>readerPdf(new Request(`https://fixture.test/api/content/research/${id}/pdf?source=external${query}`,{headers}),report,env,ctx,cache)
-  return {value,cover,env,tasks,read,update:()=>{record={body_revision:item.editedAt!,cover:JSON.stringify(cover)}},remove:()=>{record=null},counts:()=>({assetCalls,upstreamCalls})}
+  return {value,cover,env,tasks,read,clear:()=>proofs.clear(),update:()=>{record={body_revision:item.editedAt!,cover:JSON.stringify(cover)}},remove:()=>{record=null},counts:()=>({assetCalls,upstreamCalls})}
 }
 test('prepared copy streams ranges; downloads and missing, stale or different sources fall back',async()=>{
   const s=setup(),response=(await s.read('',{range:'bytes=0-4'}))!
@@ -44,17 +45,25 @@ test('prepared copy streams ranges; downloads and missing, stale or different so
   assert.equal(await s.read('',undefined,{...item,externalUrl:'https://drive.google.com/file/d/another-report-file/view'}),undefined)
   assert.equal((await s.read('&prepared='+'b'.repeat(64)))?.status,404)
   assert.equal((await s.read('',{range:'bytes=0-4,10-14'}))?.status,416)
-  s.env.ASSETS.fetch=async()=>new Response(null,{status:404});assert.equal(await s.read(),undefined)
+  s.clear();s.env.ASSETS.fetch=async()=>new Response(null,{status:404});assert.equal(await s.read(),undefined)
   s.remove();assert.equal(await s.read(),undefined)
 })
 test('expired source checks coalesce and reuse a five-minute proof; replacement is rejected',async()=>{
   const s=setup();s.value.pdf.checkedAt=1;s.update()
   const responses=await Promise.all([s.read(),s.read(),s.read()]);await Promise.all(responses.map(r=>r?.text()));await Promise.all(s.tasks)
-  assert.equal(s.counts().upstreamCalls,1)
-  await (await s.read())?.text();assert.equal(s.counts().upstreamCalls,1)
+  assert.equal(s.counts().upstreamCalls,1);assert.equal(s.counts().assetCalls,1)
+  await (await s.read())?.text();assert.equal(s.counts().upstreamCalls,1);assert.equal(s.counts().assetCalls,1)
   // An independent report hash cannot inherit a proof from a prior version.
   s.cover.pdfHash='d'.repeat(64);s.update()
   global.fetch=async()=>new Response('%PDF-',{status:206,headers:{'content-type':'application/pdf','content-range':'bytes 0-4/999','content-length':'5','last-modified':'Wed, 07 Oct 2026 04:50:46 GMT'}})
   assert.equal(await s.read(),undefined)
   assert.equal((await s.read('&prepared='+hash))?.status,404)
+})
+
+test('an asset binding that ignores Range never advertises false range support without a working cache',async()=>{
+ const s=setup(),req=new Request('https://fixture.test/api/report',{headers:{Range:'bytes=0-4'}})
+ for(const cache of [undefined,{match:async()=>{throw Error('Cache unavailable')},put:async()=>{}}]){
+  const response=(await readReaderAsset(req,s.value.pdf,s.env,cache))!
+  assert.equal(response.status,200);assert.equal(response.headers.get('accept-ranges'),'none');assert.equal((await response.arrayBuffer()).byteLength,100)
+ }
 })

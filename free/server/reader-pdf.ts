@@ -6,6 +6,7 @@ import { parsePdfRange, parsePdfContentRange } from "../../lib/pdf-range"
 import { pdfHeaders, streamPdf } from "../../lib/pdf-response"
 import { singleFlight } from "../../lib/single-flight"
 import type { Env, Context } from "./types"
+import { readReaderAsset } from "./reader-asset"
 
 const freshnessMs=300_000
 const verification=singleFlight<boolean>()
@@ -44,14 +45,11 @@ export async function readerPdf(request:Request,item:ContentItem,env:Env,ctx:Con
     } catch { return false }
   })
   if(!fresh) return missing()
-  let response:Response
-  try { response=await env.ASSETS.fetch(new Request(new URL(asset.url,url),{headers:range?{Range:range}:{}})) }
-  catch { return missing() }
-  if(![200,206,416].includes(response.status)) {await response.body?.cancel();return missing()}
-  if(response.status!==416 && response.headers.get("content-type")?.split(";")[0]!=="application/pdf") {await response.body?.cancel();return missing()}
+  const response=await readReaderAsset(request,asset,env,cache)
+  if(!response)return missing()
   const headers=new Headers(pdfHeaders)
   for(const name of ["content-length","content-range"])if(response.headers.has(name))headers.set(name,response.headers.get(name)!)
-  headers.set("Content-Type","application/pdf");headers.set("Accept-Ranges","bytes")
+  headers.set("Content-Type","application/pdf");headers.set("Accept-Ranges",response.headers.get("accept-ranges")??"bytes")
   headers.set("Content-Disposition","inline; filename=\"report.pdf\"")
   headers.set("Content-Security-Policy","sandbox")
   headers.set("Server-Timing",'pdf-source;desc="PREPARED"')
