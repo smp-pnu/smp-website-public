@@ -15,22 +15,29 @@ import { withoutGeneratedPdfExcerpt } from "../../lib/report-content"
 export async function readDetail(env:Env,ctx:Context,kind:ContentKind,id:string,readDocument?:ReadDocument) {
   const item=await visitorPublication(env,kind,id)
   if(!item) return null
-  const record=await env.CMS_DB.prepare("SELECT blocks,body_revision,cover FROM free_content WHERE id=? AND kind=?").bind(id,kind).first<{blocks:string|null;body_revision:string|null;cover:string|null}>()
+  // Only after the publication check, read independent stored content and
+  // related links together. This keeps the same query count and access checks.
+  const [record,related]=await Promise.all([
+    env.CMS_DB.prepare("SELECT blocks,body_revision,cover FROM free_content WHERE id=? AND kind=?").bind(id,kind).first<{blocks:string|null;body_revision:string|null;cover:string|null}>(),
+    readRelated(item,readDocument),
+  ])
   const ready=!!record && record.body_revision===item.editedAt && !!record.blocks
   if(!ready && env.SMP_READ_ONLY!=="1") ctx.waitUntil(enqueue(env,id,item.editedAt??"").then(()=>requestPublisher(env)))
-  let related:RelatedReports=null
-  if(kind==="research" && readDocument) {
-    // Reuse the versioned, freshness-checked catalogue. No extra CMS call and
-    // no separate browser request for the entire catalogue on a detail page.
-    try {
-      const response=await readDocument(kind)
-      if(response.ok) related=relatedReports(item,(await response.json() as {items:ContentItem[]}).items)
-    } catch { /* Related links must never prevent reading a published report. */ }
-  }
   const savedCover=record?.cover ? JSON.parse(record.cover) : null
   const cover=savedCover && publicCover({...item,cover:savedCover})
   const blocks:ContentBlock[]=ready?JSON.parse(record!.blocks!):[]
   return {item:{...item,...(cover?{cover}:{})},blocks:kind==="research"?withoutGeneratedPdfExcerpt(blocks,id):blocks,bodyPending:!ready,related}
+}
+async function readRelated(item:ContentItem,readDocument?:ReadDocument):Promise<RelatedReports> {
+  if(item.kind==="research" && readDocument) {
+    // Reuse the versioned, freshness-checked catalogue. No extra CMS call and
+    // no separate browser request for the entire catalogue on a detail page.
+    try {
+      const response=await readDocument(item.kind)
+      if(response.ok) return relatedReports(item,(await response.json() as {items:ContentItem[]}).items)
+    } catch { /* Related links must never prevent reading a published report. */ }
+  }
+  return null
 }
 type ReadDocument=(kind:ContentKind)=>Promise<Response>
 export async function publicPage(request:Request,env:Env,ctx:Context,readDocument:ReadDocument) {

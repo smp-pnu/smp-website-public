@@ -31,6 +31,16 @@ test("unfiltered first-page links retain their card anchor while direct article 
   assert.equal(contentReturnHref(content), "/research")
 })
 
+test("an opening or failed article can return to its filtered list using only the route identity", () => {
+  const route = { kind: "research" as const, id: item("research").id }
+  const back = new URL(contentReturnHref(route, { page: "3", industry: "금융", view: "list" }), "https://smp.test")
+  assert.equal(back.pathname, "/research")
+  assert.equal(back.searchParams.get("page"), "3")
+  assert.equal(back.searchParams.get("industry"), "금융")
+  assert.equal(back.searchParams.get("view"), "list")
+  assert.equal(back.hash, `#content-${route.id}`)
+})
+
 test("invalid and duplicate query parameters cannot create an invalid return page", () => {
   for (const page of ["0", "-1", "Infinity", "NaN", "1.5", "9007199254740992", ["2", "3"]]) {
     assert.equal(contentListHref("notice", { page }), "/notice")

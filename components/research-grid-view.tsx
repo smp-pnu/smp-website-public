@@ -1,23 +1,17 @@
-import type { ComponentType, ReactNode } from "react"
+import type { ReactNode } from "react"
 import Link from "next/link"
 import { ArrowUpRight } from "lucide-react"
 import { formatDate, type ContentItem } from "@/lib/content-model"
 import { contentDetailHref, type ContentSearch } from "@/lib/content-navigation"
-import { ResearchGridReveal } from "./research-grid-reveal"
 import { CategoryTag } from "./category-tag"
 import { publicReportAuthor } from "@/lib/research-metadata"
 import "./research-grid.css"
 
-type CardLinkProps = { href: string; children: ReactNode }
-function CardLinkDefault({ href, children }: CardLinkProps) {
-  return <Link prefetch={false} href={href} className="research-card">{children}</Link>
-}
-
-export function ResearchGridView({ items, listSearch, renderCover, CardLink = CardLinkDefault }: { items: ContentItem[]; listSearch?: ContentSearch; renderCover: (item: ContentItem, eager: boolean) => ReactNode; CardLink?: ComponentType<CardLinkProps> }) {
-  return <ResearchGridReveal key={items.map(item => item.id).join(",")}>
+export function ResearchGridView({ items, listSearch, renderCover }: { items: ContentItem[]; listSearch?: ContentSearch; renderCover: (item: ContentItem, eager: boolean) => ReactNode }) {
+  return <ul data-card-grid aria-label="리포트 목록" className="grid grid-cols-1 gap-x-7 sm:grid-cols-2 lg:grid-cols-3">
     {items.map((item, index) => {
       return <li key={item.id} id={`content-${item.id}`} className="research-grid-item scroll-mt-28">
-        <CardLink href={contentDetailHref(item, listSearch)}>
+        <Link prefetch={false} href={contentDetailHref(item, listSearch)} className="research-card">
           <div className="research-card-frame">
             <div className="research-card-cover">
               {renderCover(item, index < 3)}
@@ -41,8 +35,8 @@ export function ResearchGridView({ items, listSearch, renderCover, CardLink = Ca
               </span>
             </div>
           </div>
-        </CardLink>
+        </Link>
       </li>
     })}
-  </ResearchGridReveal>
+  </ul>
 }
