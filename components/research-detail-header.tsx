@@ -8,7 +8,7 @@ import { CategoryTag } from "./category-tag"
 import { CopyReportLink } from "./copy-report-link"
 import { RESEARCH_CONTEXT } from "@/lib/site-config"
 
-export function ResearchDetailHeader({ item }: { item: ContentItem }) {
+export function ResearchDetailHeader({ item, pending = false }: { item: ContentItem; pending?: boolean }) {
   const facts = researchFacts(item.summary)
   const company = reportCompany(item)
   const pdf = getPdfSources(item)[0]
@@ -28,7 +28,7 @@ export function ResearchDetailHeader({ item }: { item: ContentItem }) {
         <div key={label}><dt className="text-xs text-site-muted">{label}</dt><dd className={`mt-2 text-lg font-medium tabular-nums ${label === "상승여력" && facts.upside ? "text-site-accent" : "text-white"}`}>{value}</dd></div>)}
     </dl> : item.summary && <p className="mt-6 leading-8 text-site-body">{item.summary}</p>}
     <div className="mt-6 flex flex-wrap items-center gap-3">
-      {pdf && <a href={`/api/content/research/${encodeURIComponent(item.id)}/pdf?${pdf.query}&download=1`} download className="inline-flex min-h-11 items-center gap-2 rounded-[2px] bg-sky-200 px-4 text-sm font-medium text-slate-950 hover:bg-sky-100"><ArrowDownToLine size={15} aria-hidden="true" />PDF 다운로드</a>}
+      {pending ? <button disabled className="inline-flex min-h-11 items-center gap-2 rounded-[2px] bg-sky-200/40 px-4 text-sm font-medium text-slate-950"><ArrowDownToLine size={15} aria-hidden="true" />PDF 준비 중</button> : pdf && <a href={`/api/content/research/${encodeURIComponent(item.id)}/pdf?${pdf.query}&download=1`} download className="inline-flex min-h-11 items-center gap-2 rounded-[2px] bg-sky-200 px-4 text-sm font-medium text-slate-950 hover:bg-sky-100"><ArrowDownToLine size={15} aria-hidden="true" />PDF 다운로드</a>}
       <CopyReportLink href={contentHref(item)} />
       {company && <Link href={contentListHref("research", { company })} prefetch={false} className="inline-flex min-h-11 items-center px-2 text-sm text-site-accent hover:text-white">같은 기업 리포트 →</Link>}
     </div>
