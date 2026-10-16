@@ -12,8 +12,8 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><svg 
 // The alpha mask preserves the S, bird and wing cuts. Tab ink is always white,
 // regardless of browser theme; the rect is masked, not an opaque background.
 const tabSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs><mask id="mark" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="128" height="128">${svg}</mask></defs><rect fill="#fff" width="128" height="128" mask="url(#mark)"/></svg>\n`
-// Embed the tiny transparent tab image in HTML. Keep the declared file icons
-// and their legacy aliases contrasting for crawlers.
+// Keep the tiny transparent tab image separate from the initial HTML. The
+// browser-only compatibility script selects it; crawlers retain the search icon.
 const tabPng = await sharp(Buffer.from(tabSvg), { density: 288 }).resize(32, 32)
   .png({ palette: true, colours: 64, effort: 10 }).toBuffer()
 await writeFile('lib/tab-icon.json', JSON.stringify({ src: `data:image/png;base64,${tabPng.toString('base64')}`, size: 32 }, null, 2) + '\n')
@@ -33,7 +33,7 @@ for (const name of ['smp-favicon-32.png', 'icon-light-32x32.png', 'icon-dark-32x
 }
 // Keep established search/touch raster URLs stable. These get a black backdrop
 // so the white S remains visible even on Google's white search-result chip.
-// Advertise real PNG/ICO files for search and the inline 32px PNG for tabs.
+// Advertise the root ICO for search and retain PNG aliases at stable URLs.
 // Render from the same alpha mask as the tab, discarding invisible RGB noise.
 // A small indexed PNG avoids sending a large true-colour image to favicon crawlers.
 await sharp(Buffer.from(searchSvg), { density: 288 }).resize(512, 512)
@@ -44,7 +44,7 @@ const touchTile = await sharp(Buffer.from(tabSvg), { density: 288 }).resize(512,
   .flatten({ background: '#000000' }).png({ palette: true, colours: 64, effort: 10 }).toBuffer()
 await sharp(touchTile).resize(180, 180).png({ palette: true, colours: 64, effort: 10 }).toFile('public/apple-icon.png')
 // Root favicon requests get a contrasting raster too, including search crawlers
-// and browsers that do not select the inline transparent tab image.
+// and browsers that do not run the transparent-tab compatibility script.
 const sizes = [16, 32, 48, 96, 256]
 const frames = await Promise.all(sizes.map(size =>
   sharp('public/smp-search-icon-light.png').resize(size, size).png().toBuffer(),

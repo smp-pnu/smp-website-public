@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     other: { 'msvalidate.01': '14894EBD9037873344DC49409D664B7C' },
   },
   icons: {
-    icon: { url: 'https://pnusmp.com/smp-search-icon.png', type: 'image/png', sizes: '192x192' },
+    icon: { url: 'https://pnusmp.com/favicon.ico', type: 'image/vnd.microsoft.icon', sizes: '16x16 32x32 48x48 96x96 256x256' },
     apple: { url: '/apple-icon.png', sizes: '180x180' },
   },
 }
