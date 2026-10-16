@@ -16,7 +16,7 @@ export async function ContentDetail({ kind, id, search }: { kind: ContentKind; i
   const item = await getContentItem(kind, id)
   if (!item) notFound()
   const returnHref = contentReturnHref(item, search)
-  return <><SiteHeader /><main className={`relative z-10 mx-auto min-h-[75svh] max-w-4xl px-6 py-16 sm:py-20 ${kind === "notice" ? "notice-content notice-detail" : ""}`}>
+  return <><SiteHeader /><main data-report-page={kind === "research" ? "detail" : undefined} className={`relative z-10 mx-auto min-h-[75svh] max-w-4xl px-6 py-16 sm:py-20 ${kind === "notice" ? "notice-content notice-detail" : ""}`}>
     <Link prefetch={false} href={returnHref} className="text-sm tracking-widest text-site-accent">← {kind === "notice" ? "NOTICE" : "RESEARCH"}</Link>
     <article className={kind === "notice" ? "notice-article mt-8" : "mt-10"}>
       {kind === "research" ? <ResearchDetailHeader item={item} /> : <NoticeDetailHeader item={item} />}

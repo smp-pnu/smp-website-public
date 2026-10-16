@@ -7,7 +7,7 @@ import { readApi } from "./api"
 export type DetailData = { item: PreparedItem; blocks: ContentBlock[]; bodyPending?: boolean; related?: RelatedReports }
 export type DetailResult = { value?: DetailData; error?: Error }
 
-// Wait for the ordinary publication check before taking the destination snapshot.
+// Keep the current page usable until the ordinary publication check finishes.
 // No hover prefetch, cached detail, PDF fetch or image generation is added here.
 export async function loadResearchDetail({ params }: Pick<LoaderFunctionArgs, "params">): Promise<DetailResult> {
   try { return { value: await readApi<DetailData>(`/api/detail/research/${encodeURIComponent(params.id ?? "")}`, 0) } }

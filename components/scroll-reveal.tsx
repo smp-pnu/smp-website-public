@@ -8,7 +8,7 @@ export function ScrollReveal() {
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
     const elements = Array.from(document.querySelectorAll<HTMLElement>("main h1:not([data-hero-title]), main h2, main h3, main p, main a, main section span.text-xs"))
-      .filter(element => !element.closest("[data-card-grid], .recruit-guide, .channel-directory, .notice-content, .network-page"))
+      .filter(element => !element.closest('[data-card-grid], [data-report-page="detail"], .recruit-guide, .channel-directory, .notice-content, .network-page'))
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => entry.target.classList.toggle("is-visible", entry.isIntersecting))
     }, { threshold: 0, rootMargin: "0px 0px -24px 0px" })
