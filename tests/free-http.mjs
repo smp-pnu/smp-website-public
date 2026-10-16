@@ -15,7 +15,14 @@ async function get(kind,phase='single',range=false){
   else {assert.match(res.headers.get('cache-control'),/no-store/);assert.equal(res.headers.get('x-content-type-options'),'nosniff')}
   if(kind==='catalog'){const value=JSON.parse(new TextDecoder().decode(body));assert.equal(value.items.length,600);assert.ok(value.items[0].cover.url);return value}
   if(kind==='detail')assert.ok(JSON.parse(new TextDecoder().decode(body)).blocks.length)
-  if(kind==='pdf'){assert.equal(new TextDecoder().decode(body.slice(0,5)),'%PDF-');if(range)assert.equal(body.byteLength,100)}
+  if(kind==='pdf'){
+    assert.equal(new TextDecoder().decode(body.slice(0,5)),'%PDF-')
+    // Node's Response preserves arbitrary length headers; workerd does not.
+    // Check the actual HTTP response after signature validation/stream piping.
+    assert.equal(res.headers.get('content-length'),String(body.byteLength))
+    assert.equal(res.headers.get('accept-ranges'),'bytes')
+    if(range){assert.equal(body.byteLength,100);assert.match(res.headers.get('content-range'),/^bytes 0-99\/\d+$/)}
+  }
 }
 assert.equal((await(await fetch(`${base}/api/health`)).json()).mode,'fixture')
 const catalog=await get('catalog')

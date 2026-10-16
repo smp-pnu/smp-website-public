@@ -81,12 +81,17 @@ export async function streamPdf(url: string, name: string, download: boolean, si
   if (prefix.length) {
     // Validate only the prefix in JavaScript. Native stream piping forwards
     // the remaining bytes without a JS callback for every PDF chunk.
-    // Workers' IdentityTransformStream keeps large passthrough responses in
-    // native code. A standards-based TransformStream can execute JS per chunk.
-    const NativeIdentity = (globalThis as unknown as {
+    // Workers ignores a manually set Content-Length on an unknown-length
+    // stream. Preserve the known size so PDF.js can request missing ranges
+    // instead of waiting for the complete file. Both native streams avoid JS
+    // callbacks for every chunk; neither buffers the complete PDF.
+    const native = globalThis as unknown as {
+      FixedLengthStream?: new (length: number) => {readable:ReadableStream<Uint8Array<ArrayBuffer>>;writable:WritableStream<Uint8Array<ArrayBuffer>>}
       IdentityTransformStream?: new () => {readable:ReadableStream<Uint8Array<ArrayBuffer>>;writable:WritableStream<Uint8Array<ArrayBuffer>>}
-    }).IdentityTransformStream
-    const stream = NativeIdentity ? new NativeIdentity() : new TransformStream<Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>>()
+    }
+    const stream = contentLength !== undefined && native.FixedLengthStream ? new native.FixedLengthStream(contentLength)
+      : native.IdentityTransformStream ? new native.IdentityTransformStream()
+      : new TransformStream<Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>>()
     const writer = stream.writable.getWriter()
     const source = upstream.body
     const forward = async () => {
