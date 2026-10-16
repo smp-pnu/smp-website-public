@@ -36,6 +36,10 @@ Google 검색결과의 작은 사이트 아이콘(favicon)과 조직 로고는 �
 
 2026-10-16에는 [루트 ICO 지정 후 해결됐다는 운영자 후기](https://www.reddit.com/r/SEO/comments/1to2ar2/google_search_is_not_updating_my_website_favicon/)를 참고해 기존 루트 ICO를 대표 참조로 통일했다. 기존 192px PNG도 공식 규격을 충족했으므로 PNG 오류가 입증된 것은 아니며, 이 변경은 호환성 보완이다. Apple 홈 화면의 PNG와 기존 공개 이미지 주소는 유지한다. 후기의 모든 설정을 그대로 복제하거나 검색 반영 시간을 보장하지 않는다.
 
+같은 날 추가 점검에서 브라우저 형식의 `GoogleOther` 및 과거 `Google Favicon` UA가 투명 탭으로 전환되는 경우를 재현해 수정했다. `navigator.webdriver`가 활성화된 자동 렌더러도 검색 아이콘을 유지한다. 일반 Chrome·Safari·Firefox·Edge의 투명 탭 표시와 검색 이미지 파일·주소는 그대로다. 이는 선택 로직의 방어적 보완이며, 해당 식별자가 실제 검색결과 문제의 원인이라는 증거는 없다. Google은 2023년에 `Google Favicon` UA를 더 이상 사용하지 않는다고 [명시했다](https://developers.google.com/search/updates).
+
+흰 원만 나왔던 BBB.org는 ICO와 SVG의 `sizes`를 정확히 선언한 후 며칠 뒤 해결됐다는 [담당 개발자의 사례](https://www.frankensteinke.com/blog/the-case-of-the-white-favicon/)가 있다. 이 사이트는 이미 실제 ICO 프레임과 `sizes`가 일치하며 초기 HTML에 SVG 후보가 없으므로, 해당 사례를 이유로 파일 형식이나 주소를 또 바꾸지 않는다. 수집 허용·200 응답·이미지 대비·아이콘 선택을 검증한 뒤에도 검색결과가 오래된 상태라면 Google 처리 지연과 서버 오류를 구분해 기록한다.
+
 ## 검색 의도별 페이지 운영
 
 관련 검색어는 아래 대표 페이지의 실제 내용으로 다룬다. 모든 조합을 제목에 나열하거나, 같은 내용의 검색어별 페이지를 복제하지 않는다. 맞춤법·띄어쓰기 변형과 동의어마다 별도 페이지를 만들 필요도 없다.
