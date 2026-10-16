@@ -18,7 +18,7 @@ const eligibility = [
 ]
 const activity = [
   ["활동 일정", recruitment.schedule], ["활동 장소", recruitment.location],
-  ["활동 기간", recruitment.requirement], ["회비 및 투자금", recruitment.fees],
+  ["활동 기간", recruitment.duration], ["회비 및 투자금", recruitment.fees],
 ]
 const steps = ["서류 제출", "서류 합격자 발표", "면접", "최종 합격자 발표"]
 
