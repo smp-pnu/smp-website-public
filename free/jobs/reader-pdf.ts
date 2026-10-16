@@ -4,7 +4,7 @@ import { mkdtemp, readFile, writeFile, mkdir, rm, stat } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { createHash } from "node:crypto"
-import { readerPdfMaxBytes } from "../../lib/report-reader"
+import { readerPdfChunkBytes, readerPdfChunkedMaxBytes, readerPdfParts } from "../../lib/report-reader"
 
 const execute = promisify(execFile)
 let pythonReady: Promise<string> | undefined
@@ -29,11 +29,13 @@ export async function optimizeReaderPdf(id: string, bytes: Uint8Array) {
     const {stdout}=await execute(binary,[resolve("scripts/optimize-report-pdf.py"),input,output],{timeout:45000,maxBuffer:65536})
     const result=JSON.parse(stdout)
     if (result.skipped) return undefined
-    if (result.linearized !== true) throw new Error("PDF optimization failed")
-    if ((await stat(output)).size > readerPdfMaxBytes) return undefined
+    if (result.optimized !== true) throw new Error("PDF optimization failed")
+    if ((await stat(output)).size > readerPdfChunkedMaxBytes) return undefined
     const data=await readFile(output), hash=createHash("sha256").update(data).digest("hex")
     const target=`.smp-cache/reader-pdfs/${id}`
-    await mkdir(target,{recursive:true}); await writeFile(`${target}/${hash}.pdf`,data)
-    return {url:`/_reader-pdfs/${id}/${hash}.pdf`,bytes:data.length}
+    await mkdir(target,{recursive:true})
+    const asset={url:`/_reader-pdfs/${id}/${hash}.pdf`,bytes:data.length,chunkSize:readerPdfChunkBytes}
+    for(const part of readerPdfParts(asset)) await writeFile(`.smp-cache/reader-pdfs/${part.url.slice('/_reader-pdfs/'.length)}`,data.subarray(part.start,part.start+part.bytes))
+    return asset
   } finally { await rm(dir,{recursive:true,force:true}) }
 }

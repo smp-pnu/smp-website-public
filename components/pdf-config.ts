@@ -19,3 +19,7 @@ export const pdfOptions = {
   disableAutoFetch: true,
   rangeChunkSize: pdfRangeChunkSize,
 }
+
+// Prepared copies with compact page indexes can read only the current page. Legacy Drive PDFs
+// keep streaming because scattered page trees can need many serial requests.
+export const preparedPdfOptions = { ...pdfOptions, disableStream: true, rangeChunkSize: 1024 * 1024 }

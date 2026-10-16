@@ -42,7 +42,10 @@ test('cached catalog is rejected after withdrawal or stale publication verificat
     sqlite.prepare('UPDATE free_content SET cover=?,body_revision=? WHERE id=?').run(JSON.stringify(prepared),page.last_edited_time??'',page.id)
     env.ASSETS.fetch=async()=>new Response(pdfBytes,{headers:{'content-type':'application/pdf','content-length':String(pdfBytes.length)}})
     const accelerated=await pdfRequest();assert.match(accelerated.headers.get('server-timing')!,/PREPARED/);await accelerated.arrayBuffer()
-    for(const raw of [asset,asset.replace('/_','/%5f'),asset.replace('/_reader-pdfs/','/_reader-pdfs%2F')])assert.equal((await worker.fetch(new Request('https://fixture.invalid'+raw),env,{waitUntil(){}})).status,404,'raw prepared asset cannot bypass publication checks')
+    prepared.reader.pdf=Object.assign(prepared.reader.pdf,{chunkSize:1024*1024})
+    sqlite.prepare('UPDATE free_content SET cover=? WHERE id=?').run(JSON.stringify(prepared),page.id)
+    const chunked=await pdfRequest();assert.match(chunked.headers.get('server-timing')!,/CHUNKED/);await chunked.arrayBuffer()
+    for(const raw of [asset,asset.replace('.pdf','.0000.bin'),asset.replace('/_','/%5f'),asset.replace('/_reader-pdfs/','/_reader-pdfs%2F')])assert.equal((await worker.fetch(new Request('https://fixture.invalid'+raw),env,{waitUntil(){}})).status,404,'raw prepared asset cannot bypass publication checks')
     page.properties.공개.checkbox=false;page.last_edited_time='2020-01-02T00:00:00Z'
     await storePage(env,page,'research');await rebuildDocuments(env)
     assert.equal((await pdfRequest()).status,404,'a warm PDF cache must not survive withdrawal')

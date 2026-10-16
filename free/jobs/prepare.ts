@@ -91,8 +91,16 @@ export async function prepareCover(item:ContentItem,previous?:Cover|null,depende
   const pdfHash=createHash("sha256").update(data).digest("hex")
   const saved=preparedReader(item.id,previous?.reader)
   const reusable=previous?.pdfHash===pdfHash && path.test(previous.url) && path.test(previous.previewUrl) && saved
-  if(reusable) return {url:previous.url,previewUrl:previous.previewUrl,width:previous.width,height:previous.height,sourceKey:key,pdfHash,
-    reader:{...saved,...(saved.pdf?{pdf:{...saved.pdf,sourceBytes:data.length,...(snapshot.lastModified && Number.isFinite(Date.parse(snapshot.lastModified))?{checkedAt:Date.now(),sourceModified:snapshot.lastModified}:{checkedAt:1})}}:{})}}
+  if(reusable) {
+    // Existing images are reusable while legacy PDFs gain chunked transport.
+    const upgraded=!saved.pdf?.chunkSize && snapshot.lastModified
+      ? await dependencies.optimize(item.id,data).catch(()=>undefined) : undefined
+    const prepared=upgraded??saved.pdf
+    return {url:previous.url,previewUrl:previous.previewUrl,width:previous.width,height:previous.height,sourceKey:key,pdfHash,
+      reader:{...saved,...(prepared?{pdf:{...prepared,sourceBytes:data.length,
+        sourceModified:snapshot.lastModified??saved.pdf?.sourceModified??'',
+        checkedAt:snapshot.lastModified && Number.isFinite(Date.parse(snapshot.lastModified))?Date.now():1}}:{})}}
+  }
   const rendered=await dependencies.render(data)
   const pages=[]
   for(const image of rendered.pages) {

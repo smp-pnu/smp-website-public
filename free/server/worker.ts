@@ -81,6 +81,7 @@ async function handle(request: Request, env: Env, ctx: Context): Promise<Respons
   if(!/^\/api\/(search$|catalog\/(research|notice|members)$|member-photo\/[a-f0-9]{32}$|(detail|content)\/(research|notice)\/[a-f\d-]{32,36}(\/(pdf|file|block-file))?$)/.test(path)) return new Response("Not found",{status:404})
   const match = /^\/api\/(detail|content)\/(research|notice)\/([a-f\d-]{32,36})(?:\/(pdf|file|block-file))?$/.exec(path)
   const reference=match && normalizeId(match[3])
+  const admittedAt=Date.now()
   const denied = await publicBudget(request, env,reference?{id:reference,kind:match![2]}:undefined)
   if (denied) return denied
   const photo=/^\/api\/member-photo\/([a-f0-9]{32})$/.exec(path)
@@ -95,11 +96,16 @@ async function handle(request: Request, env: Env, ctx: Context): Promise<Respons
     const value=await readDetail(env,ctx,kind,id,name=>document(request,env,ctx,name))
     return value?reply(value):new Response("Not found",{status:404})
   }
+  const publicationAt=Date.now()
   const item = await visitorPublication(env, kind, id)
   if (!item) return new Response("Not found", { status: 404 })
   if (match[4] === "pdf") {
+    const pdfAt=Date.now()
     const prepared=await readerPdf(request,item,env,ctx)
-    if(prepared) return prepared
+    if(prepared) {
+      prepared.headers.append("Server-Timing",`pdf-admission;dur=${publicationAt-admittedAt}, pdf-publication;dur=${pdfAt-publicationAt}`)
+      return prepared
+    }
     if(url.searchParams.has("prepared")) return new Response("Not found",{status:404})
     return publishedPdf(request, item, ctx)
   }
