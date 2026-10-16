@@ -1,5 +1,4 @@
 import Link from "next/link"
-import type { ReactNode } from "react"
 import { contentListHref } from "@/lib/content-navigation"
 import { ArrowDownToLine } from "lucide-react"
 import { contentHref, formatDate, type ContentItem } from "@/lib/content-model"
@@ -9,13 +8,12 @@ import { CategoryTag } from "./category-tag"
 import { CopyReportLink } from "./copy-report-link"
 import { RESEARCH_CONTEXT } from "@/lib/site-config"
 
-export function ResearchDetailHeader({ item, cover }: { item: ContentItem; cover?: ReactNode }) {
+export function ResearchDetailHeader({ item }: { item: ContentItem }) {
   const facts = researchFacts(item.summary)
   const company = reportCompany(item)
   const pdf = getPdfSources(item)[0]
   const structured = facts.notRated || facts.targetYear || facts.targetPrice || facts.upside
   return <header className="border-b border-site-line pb-8">
-    <div className={cover ? "report-detail-intro" : undefined}><div className="min-w-0">
     <div className="flex flex-wrap items-center gap-3"><CategoryTag name={item.category} color={item.categoryColor} />
       {item.industry && <span className="text-sm text-site-muted">{item.industry}</span>}
       {item.semester && <span className="text-xs text-site-muted">{item.semester}</span>}
@@ -25,7 +23,6 @@ export function ResearchDetailHeader({ item, cover }: { item: ContentItem; cover
       {company && <span className="text-site-body">{company}{item.ticker && <span className="ml-2 font-mono text-xs text-site-muted">{item.ticker}</span>}</span>}
       <time dateTime={item.date}>{formatDate(item.date)}</time><span>{publicReportAuthor(item.author)}</span>
     </div>
-    </div>{cover}</div>
     {structured ? <dl className="mt-7 grid grid-cols-2 gap-y-5 border-y border-site-line-soft py-5 sm:grid-cols-3">
       {[["타겟년도", facts.targetYear || "미제시"], ["목표주가", facts.notRated ? "Not Rated" : facts.targetPrice || "미제시"], ["상승여력", facts.notRated ? "—" : facts.upside || "미제시"]].map(([label, value]) =>
         <div key={label}><dt className="text-xs text-site-muted">{label}</dt><dd className={`mt-2 text-lg font-medium tabular-nums ${label === "상승여력" && facts.upside ? "text-site-accent" : "text-white"}`}>{value}</dd></div>)}

@@ -1,9 +1,8 @@
 @import '../../app/globals.css';
-@import './report-transition.css';
 @font-face { font-family: 'SMP Hero'; src: url('../../app/fonts/cormorant-garamond-latin-300.woff2') format('woff2'); font-weight: 300; font-display: swap; }
 :root { --font-body: 'Noto Sans KR Variable'; --font-hero: 'SMP Hero'; }
 body { margin: 0; background: var(--site-background); font-family: var(--font-body), sans-serif; }
-[data-prerender] .hero-title, [data-prerender] .hero-shadow, [data-prerender] .curriculum-step-item { opacity: 1; transform: none; }
+[data-prerender] .curriculum-step-item { opacity: 1; transform: none; }
 .seo-prose { color: var(--site-body); line-height: 2; overflow-wrap: anywhere; }
 .seo-prose > * + * { margin-top: 1.25rem; }
 .seo-prose p { white-space: pre-line; }

@@ -1,12 +1,3 @@
-.research-grid-item[data-reveal="ready"] {
-  opacity: 0;
-  transition: opacity 360ms ease-out;
-  transition-delay: var(--card-delay, 0ms);
-}
-.research-grid-item[data-visible="true"],
-.research-grid-item:focus-within {
-  opacity: 1;
-}
 .research-card {
   display: block;
   position: relative;
@@ -42,9 +33,9 @@
   contain: paint;
   transform: translate3d(0, 0, 0);
   will-change: transform;
-  transition: transform 600ms cubic-bezier(.4, 0, .2, 1);
+  transition: transform 220ms ease-out;
 }
-.research-card-arrow { transition: transform 350ms ease; }
+.research-card-arrow { transition: transform 160ms ease-out; }
 /* Reserve the same two lines even for short or missing CMS text. */
 .research-card-title { height: 3.5rem; }
 .research-card-summary { height: 3rem; }
@@ -63,10 +54,6 @@
   .research-card:hover .research-card-arrow { transform: translate(2px, -2px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .research-grid-item[data-reveal="ready"] {
-    opacity: 1;
-    transition: none;
-  }
   .research-card-frame, .research-card-info,
   .research-card-action, .research-card-arrow { transition: none; }
   .research-card-arrow { transform: none; }

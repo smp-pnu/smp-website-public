@@ -41,7 +41,7 @@ export function contentDetailHref(item: Pick<ContentItem, "kind" | "id">, search
   return `${contentHref(item)}${listQuery(search)}`
 }
 
-export function contentReturnHref(item: ContentItem, search: ContentSearch = {}) {
+export function contentReturnHref(item: Pick<ContentItem, "kind" | "id">, search: ContentSearch = {}) {
   const query = listQuery(search)
   // Only list-origin links carry context. A direct/shared article starts at the list root.
   return `/${encodeURIComponent(item.kind)}${query}${query ? `#content-${encodeURIComponent(item.id)}` : ""}`
