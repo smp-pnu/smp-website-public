@@ -9,6 +9,7 @@ import worker from '../free/server/worker'
 import type {NotionPage} from '../lib/content-model'
 
 test('cached catalog is rejected after withdrawal or stale publication verification',async()=>{
+  const originalFetch=global.fetch
   Object.assign(globalThis,{__SMP_FIXTURE__:false})
   const cache=new Map<string,Response>(),pending:Promise<unknown>[]=[]
   Object.assign(globalThis,{caches:{default:{async match(key:Request){return cache.get(key.url)?.clone()},async put(key:Request,value:Response){cache.set(key.url,value.clone())}}}})
@@ -25,13 +26,24 @@ test('cached catalog is rejected after withdrawal or stale publication verificat
     sqlite.prepare('UPDATE free_sync SET checked_at=?').run(Date.now())
     let response=await request();assert.equal(response.status,200);assert.match(response.headers.get('cache-control')!,/no-store/)
     assert.equal((await response.json() as any).items.length,1);await Promise.all(pending);assert.equal(cache.size,1)
+    page.properties['외부 링크']={type:'url',url:'https://drive.google.com/file/d/fixture-published-report/view'}
+    env.NOTION_FETCH=async()=>Response.json(page)
+    const pdfBytes=new TextEncoder().encode('%PDF-1.7\nfixture')
+    global.fetch=async()=>new Response(pdfBytes,{headers:{'content-length':String(pdfBytes.length)}})
+    const pdfRequest=()=>worker.fetch(new Request(`https://fixture.invalid/api/content/research/${page.id}/pdf?source=external`),env,{waitUntil:p=>pending.push(p)})
+    const pdf=await pdfRequest();assert.equal(pdf.status,200);await pdf.arrayBuffer();await Promise.all(pending)
+    const warm=await pdfRequest();assert.match(warm.headers.get('server-timing')!,/HIT/);await warm.arrayBuffer()
+    const pdfKey=[...cache.keys()].find(key=>key.includes('/api/cache/pdf/'))!
+    assert.ok(pdfKey)
+    assert.equal((await worker.fetch(new Request(pdfKey),env,{waitUntil(){}})).status,404,'internal cache URL cannot bypass publication checks')
     page.properties.공개.checkbox=false;page.last_edited_time='2020-01-02T00:00:00Z'
     await storePage(env,page,'research');await rebuildDocuments(env)
+    assert.equal((await pdfRequest()).status,404,'a warm PDF cache must not survive withdrawal')
     response=await request();assert.equal((await response.json() as any).items.length,0)
     sqlite.prepare('UPDATE free_sync SET checked_at=?').run(Date.now()-180_000)
     assert.equal((await request()).status,200)
     sqlite.prepare('UPDATE free_sync SET checked_at=?').run(Date.now()-301_000)
     assert.equal((await request()).status,503)
     assert.equal((await worker.fetch(new Request('https://fixture.invalid/api/internal/status'),env,{waitUntil(){}})).status,404)
-  }finally{await Promise.all(pending);sqlite.close();delete (globalThis as any).caches}
+  }finally{global.fetch=originalFetch;await Promise.all(pending);sqlite.close();delete (globalThis as any).caches}
 })

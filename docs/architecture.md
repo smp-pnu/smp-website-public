@@ -12,6 +12,7 @@
 | D1 공개 목록·수정 버전·삭제 방어 | `free/server/catalog.ts` |
 | Notion 요청·공통 예산·단건 검증 공유 | `free/server/notion.ts`, `budget.ts`, `publication.ts` |
 | HTML/상세·검색엔진 메타데이터 | `free/server/pages.ts`, `free/seo/` |
+| 공개 검증 후 PDF 임시 재사용 | `free/server/pdf.ts` |
 | 작업 임대·실패 상태·완료 검증 | `free/server/jobs.ts`, `job-errors.ts` |
 | 자동 게시 실행 요청 | `free/server/publisher.ts` |
 | PDF·이미지 준비와 배포 | `free/jobs/prepare.ts`, `publish.ts`, `publication-assets.ts` |
@@ -25,6 +26,7 @@
 - Worker는 요청/공개 확인/가벼운 동기화만 담당합니다. Sharp·Canvas·PDF 렌더러는 Node 게시 작업에만 둡니다. 방문자 조회가 이미지 생성이나 전체 CMS 조회를 유발하지 않도록 합니다.
 - D1 변경 저장·목록 재작성·실제 게시 완료를 구분합니다. 원본 수정 버전이 바뀌면 오래된 본문은 숨깁니다. 웹훅 원문은 서명을 검증하고 이벤트 안의 과거 데이터 대신 현재 Notion을 읽습니다.
 - 상세·PDF의 성공한 단건 검증은 최대 60초 재사용하고 매번 현재 DB 소속/버전을 확인합니다. 비공개/삭제 알림이 반영되면 캐시를 즉시 무효화하고 만료 후 장애 시 닫힌 상태로 실패합니다. 게시 완료 검사는 캐시를 쓰지 않습니다.
+- PDF는 위 검증 뒤에만 내부 Cache API를 조회합니다. 요청된 32 MiB 이하의 전체 PDF만 네이티브 스트림으로 5분 보관하며, 현재 소속·수정 버전·원본 주소·파일명이 캐시 키에 포함됩니다. 범위 요청은 저장된 전체 파일에서 읽고, 캐시가 없으면 요청한 구간만 Drive로 전달합니다. 브라우저 응답은 계속 `private, no-store`입니다. 캐시 장애 때는 검증된 원본 스트리밍으로 복귀하며 새 저장소·예약 작업은 만들지 않습니다.
 - D1 마이그레이션은 Worker 배포 전에 Node 게시 작업에서 보장합니다. 새 열/테이블은 기존 운영 데이터에 적용 가능한 방식으로 추가하고, 변경된 쿼리는 SQLite 기반 실제 SQL 테스트로 검증합니다.
 - 관리자 작업은 보호된 GitHub 워크플로에서 실행합니다. 공개 `/api/internal/*` 경로는 404를 유지하고 임의 명령·브랜치·파일 주소를 입력받는 관리 API는 만들지 않습니다.
 - 공개 상태·커버 재사용·삭제는 별개입니다. 삭제 자동화의 소유자·폴더·다른 글 참조 검사와 10건 안전 정지는 유지합니다. [운영 안내](operations.md), [표지](report-covers.md), [Drive 삭제](drive-cleanup.md)를 함께 갱신하세요.
