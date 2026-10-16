@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react"
-import { Navigate, useLocation, useParams } from "react-router"
+import { Navigate, useLoaderData, useLocation, useParams } from "react-router"
 import Link from "next/link"
 import Form from "next/form"
 import { useApi } from "./api"
@@ -24,9 +24,10 @@ import { contentReturnHref } from "@/lib/content-navigation"
 import { contentHref, safeUrl, formatDate, sortContent, type ContentKind } from "@/lib/content-model"
 import { sortMembers, type MemberResult } from "@/lib/member-model"
 import { getPdfSources, isTrustedAttachmentUrl } from "@/lib/pdf-source"
-import type { ContentResult, ContentBlock } from "@/lib/notion-model"
+import type { ContentResult } from "@/lib/notion-model"
 import type { SiteSearchEntry } from "@/lib/site-search-query"
 import type { PreparedItem } from "./grid"
+import type { DetailData, DetailResult } from "./research-detail-data"
 
 function useSearch() { return Object.fromEntries(new URLSearchParams(useLocation().search)) }
 export function Status({ error }: { error?: Error }) { return <p role={error ? "alert" : "status"} className="py-20 text-center leading-8 text-site-body">{error?.message ?? "자료를 불러오는 중입니다."}</p> }
@@ -35,24 +36,31 @@ export function ListPage({ kind }: { kind: ContentKind }) {
   const search = useSearch()
   const result = useMemo(() => value && ({ ...value, items: sortContent(value.items) }), [value])
   const content = result ? <ContentList result={result} kind={kind} search={search} /> : <Status error={error} />
-  return <><SiteHeader />{kind === "notice" ? <NoticeListing>{content}</NoticeListing> : <main className="site-page min-h-[75svh] max-w-6xl">
+  return <><SiteHeader />{kind === "notice" ? <NoticeListing>{content}</NoticeListing> : <main data-report-page="list" className="site-page min-h-[75svh] max-w-6xl">
     <PageIntro eyebrow="SMP PUBLICATIONS" title="RESEARCH">부산대학교 금융투자학회 SMP의 기업·산업 분석 리포트입니다. 기업명·종목코드·산업·발표 학기로 찾고, PDF 원문을 읽어보세요.</PageIntro>
     {content}
   </main>}<SiteFooter /></>
 }
 
+export function ResearchDetailPage() {
+  const result = useLoaderData() as DetailResult
+  return <DetailContent kind="research" {...result} />
+}
 export function DetailPage({ kind }: { kind: ContentKind }) {
   const { id } = useParams()
+  const result = useApi<DetailData>(`/api/detail/${kind}/${id}`, 0)
+  return <DetailContent kind={kind} {...result} />
+}
+function DetailContent({ kind, value, error }: DetailResult & { kind: ContentKind }) {
   const location=useLocation()
   const search = useSearch()
-  const { value, error } = useApi<{ item: PreparedItem; blocks: ContentBlock[]; bodyPending?: boolean; related?:RelatedReports }>(`/api/detail/${kind}/${id}`, 0)
   const item = value?.item
   useEffect(() => { if(item||error) updatePageMetadata(location.pathname+location.search,item) }, [item,error,location.pathname,location.search])
   const back = item ? contentReturnHref(item, search) : `/${kind}`
-  return <><SiteHeader /><main className={`relative z-10 mx-auto min-h-[75svh] max-w-4xl px-6 py-16 sm:py-20 ${kind === "notice" ? "notice-content notice-detail" : ""}`}>
+  return <><SiteHeader /><main data-report-page={kind === "research" ? "detail" : undefined} className={`relative z-10 mx-auto min-h-[75svh] max-w-4xl px-6 py-16 sm:py-20 ${kind === "notice" ? "notice-content notice-detail" : ""}`}>
     <Link href={back} className="text-sm tracking-widest text-site-accent">← {kind.toUpperCase()}</Link>
     {item ? <article className={kind === "notice" ? "notice-article mt-8" : "mt-10"}>
-      {kind === "research" ? <ResearchDetailHeader item={item} /> : <NoticeDetailHeader item={item} />}
+      {kind === "research" ? <ResearchDetailHeader item={item} cover={item.cover && <div className="report-detail-cover"><img src={item.cover.url} width={item.cover.width} height={item.cover.height} alt={`${item.title} 표지`} decoding="async" /></div>} /> : <NoticeDetailHeader item={item} />}
       {kind === "research" && <Attachments item={item} />}
       <div className="py-8">{value.bodyPending ? <p role="status" className="text-site-muted">본문을 준비하고 있습니다. 잠시 후 다시 방문해주세요.</p> : <NotionContent blocks={value.blocks} />}</div>
       {kind === "notice" && <Attachments item={item} />}

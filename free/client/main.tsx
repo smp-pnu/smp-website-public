@@ -22,7 +22,7 @@ const router = createBrowserRouter([{ Component: Layout, errorElement:<main clas
   { path:"recruit",lazy:async()=>({Component:(await import("@/app/recruit/page")).default}) },
   { path:"contact",lazy:async()=>({Component:(await import("@/app/contact/page")).default}) },
   { path:"research",lazy:contentRoute("Research") }, { path:"notice",lazy:contentRoute("Notices") },
-  { path:"research/:id",lazy:contentRoute("ResearchDetail") }, { path:"notice/:id",lazy:contentRoute("NoticeDetail") },
+  { path:"research/:id",lazy:async()=>({Component:(await import("./content-routes")).ResearchDetail,loader:(await import("./research-detail-data")).loadResearchDetail}) }, { path:"notice/:id",lazy:contentRoute("NoticeDetail") },
   { path:"search",lazy:contentRoute("Search") }, { path:"network",lazy:contentRoute("Network") }, { path:"alumni",lazy:contentRoute("Network") },
   { path:"members",lazy:contentRoute("Members") }, { path:"*",lazy:async()=>({Component:(await import("@/app/not-found")).default}) },
 ] }])
