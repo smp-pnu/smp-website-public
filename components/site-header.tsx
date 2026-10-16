@@ -5,6 +5,7 @@ import { useState } from "react"
 import { usePathname } from "next/navigation"
 import { Menu, X, Search } from "lucide-react"
 import { SiteSearchForm } from "@/components/site-search-form"
+import { DesktopNavigation, isNavItemActive } from "@/components/desktop-navigation"
 import { LogoSymbol } from "@/components/logo"
 import { NAV_ITEMS } from "@/lib/site-config"
 import { cn } from "@/lib/utils"
@@ -31,24 +32,7 @@ export function SiteHeader() {
           <LogoSymbol variant="white" className="h-8 w-auto sm:h-9" />
         </Link>
 
-        <nav aria-label="주요 메뉴" className="hidden lg:block">
-          <ul className="flex items-center gap-4 xl:gap-6">
-            {NAV_ITEMS.map((item) => {
-              const active = pathname === item.href || (item.href === "/network" && ["/alumni", "/members"].includes(pathname))
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    className="site-nav-link inline-flex min-h-11 items-center text-xs tracking-[0.14em]"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              )
-            })}
-          </ul>
-        </nav>
+        <DesktopNavigation pathname={pathname} />
 
         <div className="flex items-center gap-1">
         <button
@@ -84,7 +68,7 @@ export function SiteHeader() {
         >
           <ul className="mx-auto flex max-w-6xl flex-col px-6 py-2">
             {NAV_ITEMS.map((item) => {
-              const active = pathname === item.href || (item.href === "/network" && ["/alumni", "/members"].includes(pathname))
+              const active = isNavItemActive(pathname, item.href)
               return (
                 <li key={item.href}>
                   <Link
