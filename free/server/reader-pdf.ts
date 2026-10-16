@@ -7,6 +7,7 @@ import { pdfHeaders, streamPdf } from "../../lib/pdf-response"
 import { singleFlight } from "../../lib/single-flight"
 import type { Env, Context } from "./types"
 import { readReaderAsset } from "./reader-asset"
+import { readReaderChunks } from "./reader-chunks"
 
 const freshnessMs=300_000
 const verification=singleFlight<boolean>()
@@ -20,6 +21,7 @@ export async function readerPdf(request:Request,item:ContentItem,env:Env,ctx:Con
   const pdf=getPdfSources(item)[0]
   if(!pdf || (!wanted && (url.searchParams.get("source")==="external"?"source=external":`index=${url.searchParams.get("index")??"0"}`)!==pdf.query)) return
   const missing=()=>wanted?new Response("Not found",{status:404,headers:pdfHeaders}):undefined
+  const began=Date.now()
   const row=await env.CMS_DB.prepare("SELECT body_revision,cover FROM free_content WHERE id=? AND kind='research'").bind(item.id).first<{body_revision:string;cover:string|null}>()
   if(!row || row.body_revision!==item.editedAt || !row.cover) return missing()
   const cover=JSON.parse(row.cover),reader=preparedReader(item.id,cover.reader),asset=reader?.pdf
@@ -29,6 +31,7 @@ export async function readerPdf(request:Request,item:ContentItem,env:Env,ctx:Con
   // Never mix old prepared bytes with a replaced Drive file at the same URL.
   // Compare source mtime + length at most once per 5 minutes per cached copy.
   // This matches the existing short-lived PDF cache freshness bound.
+  const metadataAt=Date.now()
   const now=Date.now(),proofKey=new Request(new URL(`/api/cache/reader-proof/${item.id}/${cover.pdfHash}`,url))
   let fresh=now>=asset.checkedAt && now-asset.checkedAt<freshnessMs
   if(!fresh) fresh=await verification(proofKey.url,async()=>{
@@ -45,13 +48,14 @@ export async function readerPdf(request:Request,item:ContentItem,env:Env,ctx:Con
     } catch { return false }
   })
   if(!fresh) return missing()
-  const response=await readReaderAsset(request,asset,env,cache)
+  const verifiedAt=Date.now()
+  const response=asset.chunkSize?await readReaderChunks(request,asset,env):await readReaderAsset(request,asset,env,cache)
   if(!response)return missing()
   const headers=new Headers(pdfHeaders)
   for(const name of ["content-length","content-range"])if(response.headers.has(name))headers.set(name,response.headers.get(name)!)
   headers.set("Content-Type","application/pdf");headers.set("Accept-Ranges",response.headers.get("accept-ranges")??"bytes")
   headers.set("Content-Disposition","inline; filename=\"report.pdf\"")
   headers.set("Content-Security-Policy","sandbox")
-  headers.set("Server-Timing",'pdf-source;desc="PREPARED"')
+  headers.set("Server-Timing",`pdf-source;desc="${asset.chunkSize?'CHUNKED':'PREPARED'}", pdf-metadata;dur=${metadataAt-began}, pdf-proof;dur=${verifiedAt-metadataAt}, pdf-bytes;dur=${Date.now()-verifiedAt}`)
   return new Response(response.body,{status:response.status,headers})
 }

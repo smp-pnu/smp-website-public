@@ -1,5 +1,4 @@
 """Lossless web-view copy. Original bytes and digital signatures are untouched."""
-import io
 import json
 import sys
 import pikepdf
@@ -12,12 +11,15 @@ with pikepdf.open(source) as pdf:
         print(json.dumps({'skipped': 'encrypted-or-signed'}))
         sys.exit(0)
     pages = len(pdf.pages)
-    # Reorder/compress streams without downsampling, rasterizing or changing text.
-    pdf.save(destination, linearize=True, compress_streams=True,
-             recompress_flate=True, deterministic_id=True)
+    # Group page dictionaries in compact object streams. A linearized flat
+    # page tree makes PDF.js checkLastPage fetch nearly every page dictionary
+    # before showing page 1. Compact objects keep that index together.
+    # Images, vectors, text, annotations and accessibility tags are preserved.
+    pdf.save(destination, object_stream_mode=pikepdf.ObjectStreamMode.generate,
+             compress_streams=True, recompress_flate=True, deterministic_id=True)
 with pikepdf.open(destination) as result:
-    if len(result.pages) != pages or not result.check_linearization(io.StringIO()):
+    if len(result.pages) != pages:
         raise RuntimeError('Invalid optimized document')
     if result.check_pdf_syntax():
         raise RuntimeError('Optimized document failed syntax validation')
-print(json.dumps({'pages': pages, 'linearized': True}))
+print(json.dumps({'pages': pages, 'optimized': True}))

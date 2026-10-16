@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Document, Page } from "react-pdf"
-import { pdfOptions } from "./pdf-config"
+import { pdfOptions, preparedPdfOptions } from "./pdf-config"
 import "react-pdf/dist/Page/TextLayer.css"
 import "react-pdf/dist/Page/AnnotationLayer.css"
 
 const buttonClass = "rounded border border-white/25 px-3 py-2 text-sm text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-2 focus-visible:outline-sky-300"
 
-export default function PdfCanvas({ url, page, onPageChange, onReady, onRetry }: { url?: string; page:number; onPageChange:(page:number)=>void; onReady: (page:number) => void; onRetry: () => void }) {
+export default function PdfCanvas({ url, rangeOnly, page, onPageChange, onReady, onRetry }: { url?: string; rangeOnly?:boolean; page:number; onPageChange:(page:number)=>void; onReady: (page:number) => void; onRetry: () => void }) {
   const reader = useRef<HTMLDivElement>(null)
   const viewport = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
@@ -81,7 +81,7 @@ export default function PdfCanvas({ url, page, onPageChange, onReady, onRetry }:
       <button type="button" className="min-h-9 px-2 text-slate-400" onClick={() => setResumePage(null)}>닫기</button>
     </div>}
     <div ref={viewport} tabIndex={0} aria-label="PDF 문서" className={`overflow-x-auto bg-slate-800 ${fullscreen ? "min-h-0 flex-1 overflow-y-auto" : ""}`}>
-      {failed ? error : url && width > 0 && <Document key={attempt} file={url} options={pdfOptions} suspense={false}
+      {failed ? error : url && width > 0 && <Document key={attempt} file={url} options={rangeOnly ? preparedPdfOptions : pdfOptions} suspense={false}
         loading={<p role="status" className="p-6 text-sm text-slate-200">PDF를 불러오고 있습니다…</p>}
         error={error} onLoadError={fail} onSourceError={fail} onLoadSuccess={pdf => {
           setPages(pdf.numPages)
