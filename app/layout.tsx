@@ -1,7 +1,6 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import localFont from 'next/font/local'
-import { ScrollReveal } from '@/components/scroll-reveal'
 import { HomeBackground } from '@/components/home-background'
 import { NetworkTransition } from '@/components/network-transition'
 import { SITE_DESCRIPTION, SITE_HOME_TITLE } from '@/lib/site-config'
@@ -44,7 +43,6 @@ export default function RootLayout({
         <Script src="/tab-icon-compat.js" strategy="beforeInteractive" />
         <NetworkTransition>
         <HomeBackground />
-        <ScrollReveal />
         {children}
         </NetworkTransition>
         {process.env.VERCEL === '1' && <Analytics />}

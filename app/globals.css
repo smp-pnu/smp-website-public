@@ -3,32 +3,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@keyframes hero-panel-enter {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
-}
-@keyframes hero-title-enter {
-  from { transform: translateX(-16px); }
-  to { transform: translateX(0); }
-}
-.hero-shadow { transform: translateX(-100%); }
-.hero-title { opacity: 1; transform: none; }
-.hero-shadow.is-visible { animation: hero-panel-enter 700ms cubic-bezier(.22,1,.36,1) both; }
-.hero-title.is-visible { animation: hero-title-enter 600ms cubic-bezier(.22,1,.36,1) both; }
-@media (prefers-reduced-motion: reduce) {
-  .hero-shadow, .hero-title { animation: none; opacity: 1; transform: none; }
-}
-
-.reveal-text {
-  opacity: 0;
-  transform: translateX(-28px);
-  transition: opacity 800ms ease, transform 800ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-.reveal-text.is-visible { opacity: 1; transform: translateX(0); }
-@media (prefers-reduced-motion: reduce) {
-  .reveal-text { opacity: 1; transform: none; transition: none; }
-}
-
 .home-background-photo { object-position: var(--photo-mobile); }
 @media (min-width: 640px) {
   .home-background-photo { object-position: var(--photo-desktop); }

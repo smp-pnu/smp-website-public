@@ -3,7 +3,6 @@ import { useEffect } from "react"
 import { createBrowserRouter, RouterProvider, Outlet, ScrollRestoration, useLocation } from "react-router"
 import { HomeBackground } from "@/components/home-background"
 import { NetworkTransition } from "@/components/network-transition"
-import { ScrollReveal } from "@/components/scroll-reveal"
 import "./style.css"
 import "@/app/fonts/body-font"
 import { updatePageMetadata } from "./seo"
@@ -12,7 +11,7 @@ const contentRoute=(name:keyof typeof import("./content-routes"))=>async()=>({Co
 function Layout() {
   const { pathname,search } = useLocation()
   useEffect(() => { document.getElementById("root")?.removeAttribute("data-prerender");if(!/^\/(research|notice)\/[a-f\d-]+$/.test(pathname)) updatePageMetadata(pathname+search) }, [pathname,search])
-  return <NetworkTransition><HomeBackground /><ScrollReveal /><Outlet /><ScrollRestoration /></NetworkTransition>
+  return <NetworkTransition><HomeBackground /><Outlet /><ScrollRestoration /></NetworkTransition>
 }
 const router = createBrowserRouter([{ Component: Layout, errorElement:<main className="min-h-screen p-12 text-white"><h1>화면을 불러오지 못했습니다.</h1><a href="/" className="mt-6 inline-block text-sky-300">홈으로 돌아가기</a></main>, children: [
   { index:true,lazy:async()=>({Component:(await import("@/app/page")).default}) },
