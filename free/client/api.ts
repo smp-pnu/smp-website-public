@@ -22,7 +22,7 @@ export async function readApi<T>(path: string, ttl = 300_000): Promise<T> {
   const pause=paused.get(path)
   if(pause && pause.until>Date.now()) throw pause.error
   paused.delete(path)
-  const previous = cache.get(path)
+  const previous = ttl ? cache.get(path) : undefined
   if (previous && previous.until > Date.now()) return previous.value as T
   const active = pending.get(path)
   if (active) return active as Promise<T>
@@ -45,7 +45,12 @@ export async function readApi<T>(path: string, ttl = 300_000): Promise<T> {
 }
 
 export function useApi<T>(path: string, ttl = 300_000) {
-  const [state, setState] = useState<{ path: string; value?: T; error?: Error }>(()=>({ path,...(initial?.path===path&&initial.until>Date.now()?{value:initial.value as T}:{}) }))
+  // Render a warm list immediately so ScrollRestoration sees its full height
+  // and card anchors on the first commit after Back / 목록으로 돌아가기.
+  const [state, setState] = useState<{ path: string; value?: T; error?: Error }>(()=>{
+    const saved = initial?.path === path ? initial : ttl ? cache.get(path) : undefined
+    return { path, ...(saved && saved.until > Date.now() ? { value: saved.value as T } : {}) }
+  })
   useEffect(() => {
     let active = true
     const load = () => { void readApi<T>(path, ttl).then(value => { if (active) setState({ path, value }) }, error => { if (active) setState({ path, error }) }) }

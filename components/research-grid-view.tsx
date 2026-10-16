@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import type { ComponentType, ReactNode } from "react"
 import Link from "next/link"
 import { ArrowUpRight } from "lucide-react"
 import { formatDate, type ContentItem } from "@/lib/content-model"
@@ -8,11 +8,16 @@ import { CategoryTag } from "./category-tag"
 import { publicReportAuthor } from "@/lib/research-metadata"
 import "./research-grid.css"
 
-export function ResearchGridView({ items, listSearch, renderCover }: { items: ContentItem[]; listSearch?: ContentSearch; renderCover: (item: ContentItem, eager: boolean) => ReactNode }) {
+type CardLinkProps = { href: string; children: ReactNode }
+function CardLinkDefault({ href, children }: CardLinkProps) {
+  return <Link prefetch={false} href={href} className="research-card">{children}</Link>
+}
+
+export function ResearchGridView({ items, listSearch, renderCover, CardLink = CardLinkDefault }: { items: ContentItem[]; listSearch?: ContentSearch; renderCover: (item: ContentItem, eager: boolean) => ReactNode; CardLink?: ComponentType<CardLinkProps> }) {
   return <ResearchGridReveal key={items.map(item => item.id).join(",")}>
     {items.map((item, index) => {
       return <li key={item.id} id={`content-${item.id}`} className="research-grid-item scroll-mt-28">
-        <Link prefetch={false} href={contentDetailHref(item, listSearch)} className="research-card">
+        <CardLink href={contentDetailHref(item, listSearch)}>
           <div className="research-card-frame">
             <div className="research-card-cover">
               {renderCover(item, index < 3)}
@@ -36,7 +41,7 @@ export function ResearchGridView({ items, listSearch, renderCover }: { items: Co
               </span>
             </div>
           </div>
-        </Link>
+        </CardLink>
       </li>
     })}
   </ResearchGridReveal>
