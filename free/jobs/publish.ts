@@ -62,7 +62,7 @@ async function main() {
     const forceBuild=process.env.SMP_FORCE_BUILD==="1" || recruitment.changed
     await reconcileIfDue(env)
     await repairRegionalImages(env.CMS_DB)
-    await queueReaderBackfill(env)
+    if(!forceBuild) await queueReaderBackfill(env)
     const complete:Completed[]=[]
     for(let count=0;count<4 && Date.now()<deadline;count++) {
       const claim=await internal(new Request(`${origin}api/internal/jobs/claim`,{method:"POST"}),env)
