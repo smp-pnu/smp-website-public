@@ -8,12 +8,11 @@ import "react-pdf/dist/Page/AnnotationLayer.css"
 
 const buttonClass = "rounded border border-white/25 px-3 py-2 text-sm text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-2 focus-visible:outline-sky-300"
 
-export default function PdfCanvas({ url, onReady, onRetry }: { url: string; onReady: () => void; onRetry: () => void }) {
+export default function PdfCanvas({ url, page, onPageChange, onReady, onRetry }: { url?: string; page:number; onPageChange:(page:number)=>void; onReady: (page:number) => void; onRetry: () => void }) {
   const reader = useRef<HTMLDivElement>(null)
   const viewport = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
   const [pages, setPages] = useState(0)
-  const [page, setPage] = useState(1)
   const [zoom, setZoom] = useState(1)
   const [attempt, setAttempt] = useState(0)
   const [failed, setFailed] = useState(false)
@@ -21,7 +20,7 @@ export default function PdfCanvas({ url, onReady, onRetry }: { url: string; onRe
   const [fullscreenAvailable, setFullscreenAvailable] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
   const [fullscreenError, setFullscreenError] = useState(false)
-  const fail = useCallback(() => { setFailed(true); onReady() }, [onReady])
+  const fail = useCallback(() => { setFailed(true); onReady(page) }, [onReady,page])
   useEffect(() => {
     setFullscreenAvailable(Boolean(document.fullscreenEnabled))
     const update = () => setFullscreen(document.fullscreenElement === reader.current)
@@ -38,7 +37,7 @@ export default function PdfCanvas({ url, onReady, onRetry }: { url: string; onRe
 
   function navigate(value: number) {
     const nextPage = Math.max(1, Math.min(pages, value))
-    setPage(nextPage)
+    onPageChange(nextPage)
     setResumePage(null)
     try { localStorage.setItem(`smp:pdf-page:v1:${url}`, String(nextPage)) } catch { /* Reading also works with storage disabled. */ }
     viewport.current?.scrollTo({ top: 0, left: 0 })
@@ -47,7 +46,7 @@ export default function PdfCanvas({ url, onReady, onRetry }: { url: string; onRe
   const error = <div role="alert" className="p-6 text-sm leading-7 text-slate-200">
     <p>PDF를 표시하지 못했습니다. 잠시 후 다시 시도하거나 위의 PDF 다운로드를 이용해주세요.</p>
     <p>계속 열리지 않으면 학회에 문의해주세요.</p>
-    <button className={`${buttonClass} mt-3`} onClick={() => { onRetry(); setFailed(false); setPages(0); setPage(1); setAttempt(value => value + 1) }}>다시 시도</button>
+    <button className={`${buttonClass} mt-3`} onClick={() => { onRetry(); setFailed(false); setPages(0); onPageChange(1); setAttempt(value => value + 1) }}>다시 시도</button>
   </div>
 
   return <div ref={reader} className={`overflow-hidden rounded-lg border border-white/20 bg-slate-950 ${fullscreen ? "flex h-screen flex-col" : ""}`}>
@@ -82,10 +81,11 @@ export default function PdfCanvas({ url, onReady, onRetry }: { url: string; onRe
       <button type="button" className="min-h-9 px-2 text-slate-400" onClick={() => setResumePage(null)}>닫기</button>
     </div>}
     <div ref={viewport} tabIndex={0} aria-label="PDF 문서" className={`overflow-x-auto bg-slate-800 ${fullscreen ? "min-h-0 flex-1 overflow-y-auto" : ""}`}>
-      {failed ? error : width > 0 && <Document key={attempt} file={url} options={pdfOptions} suspense={false}
+      {failed ? error : url && width > 0 && <Document key={attempt} file={url} options={pdfOptions} suspense={false}
         loading={<p role="status" className="p-6 text-sm text-slate-200">PDF를 불러오고 있습니다…</p>}
         error={error} onLoadError={fail} onSourceError={fail} onLoadSuccess={pdf => {
           setPages(pdf.numPages)
+          if(page>pdf.numPages)onPageChange(pdf.numPages)
           try {
             const saved = Number(localStorage.getItem(`smp:pdf-page:v1:${url}`))
             if (Number.isInteger(saved) && saved > 1 && saved <= pdf.numPages) setResumePage(saved)
@@ -93,7 +93,7 @@ export default function PdfCanvas({ url, onReady, onRetry }: { url: string; onRe
         }}
         onPassword={fail} externalLinkTarget="_blank" onItemClick={({ pageNumber }) => { if (pageNumber) navigate(pageNumber) }}>
         <Page pageNumber={page} width={width} scale={zoom} devicePixelRatio={Math.min(window.devicePixelRatio || 1, 2)}
-          onRenderSuccess={onReady} onLoadError={fail} onRenderError={fail}
+          onRenderSuccess={rendered=>onReady(rendered.pageNumber)} onLoadError={fail} onRenderError={fail}
           loading={<p role="status" className="p-6 text-slate-200">페이지를 표시하고 있습니다…</p>} error={error} />
       </Document>}
     </div>

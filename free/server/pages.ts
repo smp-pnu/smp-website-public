@@ -11,6 +11,7 @@ import { publicFeed } from "./feed"
 import { publicCover } from "../../lib/public-cover"
 import { relatedReports, type RelatedReports } from "../../lib/related-reports"
 import { withoutGeneratedPdfExcerpt } from "../../lib/report-content"
+import { sourceKey } from "../../lib/cover-metadata"
 
 export async function readDetail(env:Env,ctx:Context,kind:ContentKind,id:string,readDocument?:ReadDocument) {
   const item=await visitorPublication(env,kind,id)
@@ -25,6 +26,7 @@ export async function readDetail(env:Env,ctx:Context,kind:ContentKind,id:string,
   if(!ready && env.SMP_READ_ONLY!=="1") ctx.waitUntil(enqueue(env,id,item.editedAt??"").then(()=>requestPublisher(env)))
   const savedCover=record?.cover ? JSON.parse(record.cover) : null
   const cover=savedCover && publicCover({...item,cover:savedCover})
+  if(cover && (!ready || savedCover.sourceKey!==sourceKey(item))) delete cover.reader
   const blocks:ContentBlock[]=ready?JSON.parse(record!.blocks!):[]
   return {item:{...item,...(cover?{cover}:{})},blocks:kind==="research"?withoutGeneratedPdfExcerpt(blocks,id):blocks,bodyPending:!ready,related}
 }

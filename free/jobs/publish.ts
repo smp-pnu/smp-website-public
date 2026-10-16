@@ -18,6 +18,8 @@ import { ensureJobFailures } from "./job-schema"
 import { jobErrorCode, type JobErrorCode } from "../server/job-errors"
 import { repairRegionalImages } from "./regional-image-repair"
 import { publicationAssets, requiresAssetDeployment } from "./publication-assets"
+import { prepareReaderAssets } from "./reader-assets"
+import { queueReaderBackfill } from "./reader-backfill"
 
 import {ensureAdminSchema,setAdminConfig} from "./admin-schema"
 import {syncAdminStatus} from "./admin-status"
@@ -60,6 +62,7 @@ async function main() {
     const forceBuild=process.env.SMP_FORCE_BUILD==="1" || recruitment.changed
     await reconcileIfDue(env)
     await repairRegionalImages(env.CMS_DB)
+    await queueReaderBackfill(env)
     const complete:Completed[]=[]
     for(let count=0;count<4 && Date.now()<deadline;count++) {
       const claim=await internal(new Request(`${origin}api/internal/jobs/claim`,{method:"POST"}),env)
@@ -96,7 +99,8 @@ async function main() {
     const records=await env.CMS_DB.prepare("SELECT cover,blocks FROM free_content UNION ALL SELECT cover,NULL AS blocks FROM free_report_covers").all<{cover:string|null;blocks:string|null}>()
     const existing=publicationAssets(records.results.flatMap(row=>[row.cover?JSON.parse(row.cover):null,row.blocks?JSON.parse(row.blocks):null]),origin.origin)
     const incoming=publicationAssets(complete.flatMap(result=>[result.blocks,result.cover]),origin.origin)
-    if(!requiresAssetDeployment(existing,incoming,forceBuild)) {
+    const readerChanged=complete.some(result=>JSON.stringify(result.cover?.reader?.pdf?.url)!==JSON.stringify(result.job.cover?.reader?.pdf?.url))
+    if(!requiresAssetDeployment(existing,incoming,forceBuild||readerChanged)) {
       await finishPublications(env,origin,complete)
       console.log(JSON.stringify({prepared:complete.length,notionRequests:requestCount,assetDeployment:false}))
       return
@@ -119,6 +123,10 @@ async function main() {
         if(/^[a-f0-9]{64}\.webp$/.test(name) && !assets.has(`/report-covers/${dir.name}/${name}`)) await rm(`.smp-cache/covers/${dir.name}/${name}`)
       }
     }
+    const readerRecords=await env.CMS_DB.prepare("SELECT id,json_extract(item,'$.date') AS date,cover FROM free_content WHERE kind='research' AND cover IS NOT NULL").all<{id:string;date:string;cover:string}>()
+    const updated=new Map(readerRecords.results.map(row=>[row.id,{id:row.id,date:row.date||"",cover:JSON.parse(row.cover)}]))
+    for(const result of complete) if(result.job.kind==='research') updated.set(result.job.id,{id:result.job.id,date:(result.job.item as ContentItem).date||"",cover:result.cover})
+    await prepareReaderAssets([...updated.values()],origin,Math.min(Date.now()+90_000,deadline-120_000))
     command("scripts/build-free.mjs")
     command("scripts/deploy-free.mjs")
     await setAdminConfig(env.CMS_DB,"recruitment_deployed",recruitment.fingerprint)

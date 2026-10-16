@@ -1,9 +1,10 @@
-import { normalizeId, type ContentItem } from "../../lib/content-model"
+import { normalizeId } from "../../lib/content-model"
 import type { ContentResult } from "../../lib/notion-model"
 import { peekApi } from "./api-cache"
+import { publicCover,type CoveredItem } from "../../lib/public-cover"
 
 /** Reuse only metadata already delivered in the public list, never a document. */
-export function cachedReportPreview(rawId: string): ContentItem | undefined {
+export function cachedReportPreview(rawId: string): CoveredItem | undefined {
   const id = normalizeId(rawId)
   if (!id) return
   const catalog = peekApi<ContentResult>("/api/catalog/research")
@@ -11,8 +12,10 @@ export function cachedReportPreview(rawId: string): ContentItem | undefined {
   const item = catalog.items.find(item => item.id === id && item.kind === "research")
   if (!item) return
   const { title, summary, date, category, categoryColor, author, pinned, semester, industry, company, ticker } = item
-  // Do not pass attachment URLs, covers, body blocks or investment points to
-  // the pending screen, even if a future catalog happens to include them.
+  // Only reuse the exact public card image already delivered by this fresh list.
+  // High-resolution pages and PDF URLs still require the detail publication check.
+  const cover=publicCover(item as CoveredItem)
   return { id, kind: "research", title, summary, date, category, categoryColor, author, pinned,
-    semester, industry, company, ticker, attachments: [], externalUrl: null }
+    semester, industry, company, ticker, attachments: [], externalUrl: null,
+    ...(cover?{cover:{url:cover.url,width:cover.width,height:cover.height}}:{}) }
 }

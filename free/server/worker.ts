@@ -8,6 +8,7 @@ import { runScheduledSync } from "./sync"
 import { requestPublisher } from "./publisher"
 import { notion, source } from "./notion"
 import { visitorPublication } from "./publication"
+import { readerPdf } from "./reader-pdf"
 import { Busy, type Context, type Env } from "./types"
 import { memberPhoto } from "./member-photo"
 import { queueDriveCleanup } from "../../lib/drive-cleanup-relay"
@@ -73,6 +74,9 @@ async function handle(request: Request, env: Env, ctx: Context): Promise<Respons
   if (path.startsWith("/api/internal/")) return reply({ error: "Not found" },404)
 
   if (path === "/api/notion/webhook" && request.method === "POST") return webhook(request, env, ctx)
+  let decodedPath=path
+  try { decodedPath=decodeURIComponent(path) } catch { return new Response("Not found",{status:404}) }
+  if (decodedPath.startsWith("/_reader-pdfs")) return new Response("Not found",{status:404})
   if (!path.startsWith("/api/")) return publicPage(request,env,ctx,name=>document(request,env,ctx,name))
   if(!/^\/api\/(search$|catalog\/(research|notice|members)$|member-photo\/[a-f0-9]{32}$|(detail|content)\/(research|notice)\/[a-f\d-]{32,36}(\/(pdf|file|block-file))?$)/.test(path)) return new Response("Not found",{status:404})
   const match = /^\/api\/(detail|content)\/(research|notice)\/([a-f\d-]{32,36})(?:\/(pdf|file|block-file))?$/.exec(path)
@@ -94,6 +98,9 @@ async function handle(request: Request, env: Env, ctx: Context): Promise<Respons
   const item = await visitorPublication(env, kind, id)
   if (!item) return new Response("Not found", { status: 404 })
   if (match[4] === "pdf") {
+    const prepared=await readerPdf(request,item,env,ctx)
+    if(prepared) return prepared
+    if(url.searchParams.has("prepared")) return new Response("Not found",{status:404})
     return publishedPdf(request, item, ctx)
   }
   if(match[4]==="block-file") {
