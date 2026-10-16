@@ -1,6 +1,6 @@
 import { fileUrl, normalizeId, type ContentKind, type NotionPage } from "../../lib/content-model"
-import { getPdfSources, isTrustedAttachmentUrl } from "../../lib/pdf-source"
-import { streamPdf } from "../../lib/pdf-response"
+import { isTrustedAttachmentUrl } from "../../lib/pdf-source"
+import { publishedPdf } from "./pdf"
 import { limitedBody, validNotionSignature } from "../../lib/webhook-security"
 import { publicBudget, spend } from "./budget"
 import { rebuildDocuments, storePage, removePage } from "./catalog"
@@ -94,10 +94,7 @@ async function handle(request: Request, env: Env, ctx: Context): Promise<Respons
   const item = await visitorPublication(env, kind, id)
   if (!item) return new Response("Not found", { status: 404 })
   if (match[4] === "pdf") {
-    const query = url.searchParams.get("source") === "external" ? "source=external" : `index=${url.searchParams.get("index") ?? "0"}`
-    const pdf = getPdfSources(item).find(file => file.query === query)
-    if (!pdf) return new Response("Not found", { status: 404 })
-    return streamPdf(pdf.url, pdf.name, url.searchParams.get("download") === "1", AbortSignal.any([request.signal, AbortSignal.timeout(180_000)]), request.headers.get("range"))
+    return publishedPdf(request, item, ctx)
   }
   if(match[4]==="block-file") {
     const block=normalizeId(url.searchParams.get("block")??"")

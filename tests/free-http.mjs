@@ -21,6 +21,7 @@ async function get(kind,phase='single',range=false){
     // Check the actual HTTP response after signature validation/stream piping.
     assert.equal(res.headers.get('content-length'),String(body.byteLength))
     assert.equal(res.headers.get('accept-ranges'),'bytes')
+    if(phase==='warm')assert.match(res.headers.get('server-timing'),/pdf-cache;desc="HIT"/)
     if(range){assert.equal(body.byteLength,100);assert.match(res.headers.get('content-range'),/^bytes 0-99\/\d+$/)}
   }
 }
@@ -34,6 +35,8 @@ assert.equal((await fetch(base+'/api/catalog/research',{headers:{'Sec-Fetch-Site
 for(let i=0;i<5;i++)await get('catalog','serial')
 const results=await Promise.allSettled(Array.from({length:100},(_,i)=>get(i<50?'catalog':i<80?'detail':'pdf','burst')))
 const failures=results.filter(r=>r.status==='rejected').map(r=>String(r.reason))
+// A full response from the burst can serve both a later reader and byte ranges.
+await get('pdf','warm');await get('pdf','warm',true)
 const summary=['catalog','detail','pdf'].map(kind=>{const values=measurements.filter(r=>r.kind===kind&&r.phase==='burst').map(r=>r.ms).sort((a,b)=>a-b);return {kind,count:values.length,p50ms:values[Math.ceil(values.length*.5)-1],p95ms:values[Math.ceil(values.length*.95)-1]}})
 await mkdir('test-results',{recursive:true})
 await writeFile(`test-results/free-${remote?'remote':'local'}.json`,JSON.stringify({run,date:new Date().toISOString(),summary,failures,measurements},null,2))
