@@ -1,6 +1,8 @@
 # SMP 운영 안내
 
-2026-10-13 기준. 실제 운영은 Cloudflare Free, Notion, Google Drive, GitHub Actions입니다. 이전 Vercel 코드는 호환성 검증용으로 남아 있으며 [과거 기록](legacy-vercel-operations.md)은 현재 설정 지침이 아닙니다. 공개 README에는 사이트 소개만 유지합니다.
+2026-10-16 기준. 실제 운영은 Cloudflare Free, Notion, Google Drive, GitHub Actions입니다. 이전 Vercel 코드는 호환성 검증용으로 남아 있으며 [과거 기록](legacy-vercel-operations.md)은 현재 설정 지침이 아닙니다. 공개 README에는 사이트 소개만 유지합니다.
+
+일상적인 노션 편집·게시 현황·모집 안내·비공개 백업은 [관리 안내](content-management.md)를, 코드 변경은 [개발 안내](development.md)를 따릅니다.
 
 ## 평상시 게시
 

@@ -19,6 +19,10 @@ import { jobErrorCode, type JobErrorCode } from "../server/job-errors"
 import { repairRegionalImages } from "./regional-image-repair"
 import { publicationAssets, requiresAssetDeployment } from "./publication-assets"
 
+import {ensureAdminSchema,setAdminConfig} from "./admin-schema"
+import {syncAdminStatus} from "./admin-status"
+import {prepareRecruitment} from "./recruitment"
+
 type Job={id:string;kind:"research"|"notice"|"members";revision:string;token:string;item:ContentItem|Member;cover:Cover|null}
 type Completed={job:Job;blocks:Awaited<ReturnType<typeof prepareBody>>;cover:Cover|null}
 const required=(name:string)=>{const value=process.env[name];if(!value) throw new Error(`Missing ${name}`);return value}
@@ -43,6 +47,7 @@ async function main() {
   await ensureSyncRuns(env.CMS_DB)
   await ensurePublicationChecks(env.CMS_DB)
   await ensureJobFailures(env.CMS_DB)
+  await ensureAdminSchema(env.CMS_DB)
   // No overlapping publishing runs, even if a second runner/manual job starts.
   const now=Date.now()
   const lock=await env.CMS_DB.prepare(`INSERT INTO free_controls(name,until_at) VALUES ('publisher',?) ON CONFLICT(name) DO UPDATE SET until_at=excluded.until_at WHERE until_at<? RETURNING until_at`).bind(now+14*60_000,now).first()
@@ -51,6 +56,8 @@ async function main() {
   const deadline=Date.now()+11*60_000
   env.NOTION_WAIT_UNTIL=deadline
   try {
+    const recruitment=await prepareRecruitment(env)
+    const forceBuild=process.env.SMP_FORCE_BUILD==="1" || recruitment.changed
     await reconcileIfDue(env)
     await repairRegionalImages(env.CMS_DB)
     const complete:Completed[]=[]
@@ -81,7 +88,7 @@ async function main() {
         if(error instanceof Busy) throw error
       }
     }
-    if(!complete.length && process.env.SMP_FORCE_BUILD!=="1") { console.log("No asset deployment needed");return }
+    if(!complete.length && !forceBuild) { console.log("No asset deployment needed");return }
     // A cache eviction must never remove covers from the next deployment.
     // Recover every currently referenced asset from this site's last deployment;
     // if even one recovery fails, leave that deployment in place.
@@ -89,7 +96,7 @@ async function main() {
     const records=await env.CMS_DB.prepare("SELECT cover,blocks FROM free_content UNION ALL SELECT cover,NULL AS blocks FROM free_report_covers").all<{cover:string|null;blocks:string|null}>()
     const existing=publicationAssets(records.results.flatMap(row=>[row.cover?JSON.parse(row.cover):null,row.blocks?JSON.parse(row.blocks):null]),origin.origin)
     const incoming=publicationAssets(complete.flatMap(result=>[result.blocks,result.cover]),origin.origin)
-    if(!requiresAssetDeployment(existing,incoming,process.env.SMP_FORCE_BUILD==="1")) {
+    if(!requiresAssetDeployment(existing,incoming,forceBuild)) {
       await finishPublications(env,origin,complete)
       console.log(JSON.stringify({prepared:complete.length,notionRequests:requestCount,assetDeployment:false}))
       return
@@ -114,12 +121,14 @@ async function main() {
     }
     command("scripts/build-free.mjs")
     command("scripts/deploy-free.mjs")
+    await setAdminConfig(env.CMS_DB,"recruitment_deployed",recruitment.fingerprint)
     // Code releases can change catalogue projections without changing Notion.
     if(process.env.SMP_FORCE_BUILD==="1") await rebuildDocuments(env,["research","notice"])
     if(process.env.GITHUB_OUTPUT) await writeFile(process.env.GITHUB_OUTPUT,"assets_changed=true\n",{flag:"a"})
     await finishPublications(env,origin,complete)
     console.log(JSON.stringify({prepared:complete.length,notionRequests:requestCount}))
   } finally {
+    try { await syncAdminStatus(env) } catch { console.warn("Operations status update deferred") }
     await env.CMS_DB.prepare("DELETE FROM free_controls WHERE name='publisher' AND until_at=?").bind(acquiredUntil).run()
   }
 }

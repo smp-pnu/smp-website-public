@@ -8,6 +8,7 @@ export type ContentSearch = {
   industry?: string | string[]
   reportType?: string | string[]
   activity?: string | string[]
+  company?: string | string[]
   view?: string | string[]
 }
 
@@ -16,9 +17,9 @@ export function normalizeContentSearch(search: ContentSearch) {
   const category = typeof search.category === "string" ? search.category.trim().slice(0, 100) : ""
   const number = typeof search.page === "string" ? Number(search.page) : NaN
   const page = Number.isSafeInteger(number) && number > 0 ? String(number) : undefined
-  const filters: { semester?: string; industry?: string; reportType?: string; activity?: string; view?: "list" } = {}
+  const filters: { semester?: string; industry?: string; reportType?: string; activity?: string; company?: string; view?: "list" } = {}
   if (typeof search.semester === "string" && /^\d{4}-[12]$/.test(search.semester)) filters.semester = search.semester
-  for (const key of ["industry", "reportType", "activity"] as const) {
+  for (const key of ["industry", "reportType", "activity", "company"] as const) {
     if (typeof search[key] === "string" && search[key].trim()) filters[key] = search[key].trim().slice(0, 100)
   }
   if (search.view === "list") filters.view = "list"

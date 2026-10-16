@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import Link from "next/link"
 import { SITE_NAME_KO } from "@/lib/site-config"
 
 export function HeroSection() {
@@ -38,6 +39,10 @@ export function HeroSection() {
           STOCK<br /><span className="whitespace-nowrap">MASTERS OF</span><br />PNU
         </h1>
         <p className="mt-7 font-[family-name:var(--font-body)] text-sm font-normal leading-relaxed text-white/85 sm:text-base">{SITE_NAME_KO}</p>
+        <nav aria-label="주요 활동 바로가기" className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-white">
+          <Link href="/research" prefetch={false} className="inline-flex min-h-11 items-center gap-3 border-b border-white/40 hover:border-white focus-visible:outline-2 focus-visible:outline-sky-200">리포트 보기 <span aria-hidden="true">↗</span></Link>
+          <Link href="/recruit" prefetch={false} className="inline-flex min-h-11 items-center gap-3 text-white/85 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-200">모집 안내 <span aria-hidden="true">→</span></Link>
+        </nav>
         </div>
 
 

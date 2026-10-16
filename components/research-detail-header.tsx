@@ -1,3 +1,5 @@
+import Link from "next/link"
+import { contentListHref } from "@/lib/content-navigation"
 import { ArrowDownToLine } from "lucide-react"
 import { contentHref, formatDate, type ContentItem } from "@/lib/content-model"
 import { getPdfSources } from "@/lib/pdf-source"
@@ -28,6 +30,7 @@ export function ResearchDetailHeader({ item }: { item: ContentItem }) {
     <div className="mt-6 flex flex-wrap items-center gap-3">
       {pdf && <a href={`/api/content/research/${encodeURIComponent(item.id)}/pdf?${pdf.query}&download=1`} download className="inline-flex min-h-11 items-center gap-2 rounded-[2px] bg-sky-200 px-4 text-sm font-medium text-slate-950 hover:bg-sky-100"><ArrowDownToLine size={15} aria-hidden="true" />PDF 다운로드</a>}
       <CopyReportLink href={contentHref(item)} />
+      {company && <Link href={contentListHref("research", { company })} prefetch={false} className="inline-flex min-h-11 items-center px-2 text-sm text-site-accent hover:text-white">같은 기업 리포트 →</Link>}
     </div>
     <p className="mt-5 text-xs leading-6 text-site-muted">{RESEARCH_CONTEXT}</p>
     {!!item.investmentPoints?.length && <details className="mt-6 border-t border-site-line-soft pt-5">

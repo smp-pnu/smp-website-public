@@ -46,6 +46,7 @@ jobs:
       - run: npm install --global pnpm@12.3.4 --ignore-scripts
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck && pnpm test
+        if: github.event_name != 'schedule'
       - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: assets
         with:

@@ -1,8 +1,10 @@
 import { build } from "esbuild"
 import { mkdir,readFile,writeFile } from "node:fs/promises"
 import path from "node:path"
+import {existsSync} from "node:fs"
 const root=path.resolve(import.meta.dirname,".."),out=path.join(root,"dist/free")
 await build({entryPoints:["free/seo/prerender.tsx"],outfile:path.join(out,"prerender.mjs"),bundle:true,platform:"node",format:"esm",packages:"external",alias:{
+  "@/data/recruitment.json":path.join(root,!process.argv.includes("--fixture")&&existsSync(path.join(root,".smp-cache/recruitment.json"))?".smp-cache/recruitment.json":"data/recruitment.json"),
   ...Object.fromEntries(["link","navigation","image","dynamic","form"].map(name=>[`next/${name}`,path.join(root,`free/client/adapters/${name}`)])),
   "@/components/sections/latest-research-section":path.join(root,"free/client/latest.tsx"),
   "@/components/research-grid":path.join(root,"free/client/grid.tsx"),

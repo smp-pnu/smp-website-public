@@ -1,11 +1,13 @@
 import { defineConfig } from "vite"
 import react from "@vitejs/plugin-react"
 import path from "node:path"
+import {existsSync} from "node:fs"
 const root = path.resolve(import.meta.dirname, "..")
 export default defineConfig({
   root: path.join(root, "free/client"), publicDir: false,
   plugins: [react(), { name: "forbid-server-in-browser", resolveId(id) { if (id === "server-only" || id.startsWith("node:")) throw new Error(`Server dependency in browser: ${id}`) } }],
   resolve: { alias: [
+    {find:"@/data/recruitment.json",replacement:path.join(root,process.env.SMP_FIXTURE_BUILD!=="1"&&existsSync(path.join(root,".smp-cache/recruitment.json"))?".smp-cache/recruitment.json":"data/recruitment.json")},
     ...["link", "navigation", "image", "dynamic", "form"].map(name => ({ find: `next/${name}`, replacement: path.join(root, `free/client/adapters/${name}`) })),
     { find: "@/components/research-grid", replacement: path.join(root, "free/client/grid.tsx") },
     { find: "@/components/sections/latest-research-section", replacement: path.join(root, "free/client/latest.tsx") },

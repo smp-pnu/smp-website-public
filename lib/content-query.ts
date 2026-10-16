@@ -5,11 +5,13 @@ import { reportActivity, reportCompany, reportType } from "./research-metadata"
 
 export type SearchFields = Pick<ContentItem, "title" | "summary" | "author" | "category">
   & Partial<Pick<ContentItem, "company" | "ticker" | "industry" | "semester" | "reportType" | "activity">>
-export type ResearchFilters = Pick<ReturnType<typeof normalizeContentSearch>, "semester" | "industry" | "reportType" | "activity">
+export type ResearchFilters = Pick<ReturnType<typeof normalizeContentSearch>, "semester" | "industry" | "reportType" | "activity" | "company">
+
+import { normalizeSearchText, matchesSearchTerms } from "./search-text"
 
 export function createContentSearchIndex<T extends SearchFields>(items: T[]) {
-  return items.map(item => ({ item, text: [item.title, item.summary, item.author, item.category,
-    reportCompany(item), item.ticker, item.industry, industrySector(item.industry), item.semester, item.reportType, item.activity].filter(Boolean).join(" ").toLocaleLowerCase() }))
+  return items.map(item => ({ item, text: normalizeSearchText([item.title, item.summary, item.author, item.category,
+    reportCompany(item), item.ticker, item.industry, industrySector(item.industry), item.semester, item.reportType, item.activity].filter(Boolean).join(" ")) }))
 }
 
 // The list and autocomplete use the same matching rules. Build the index once,
@@ -18,7 +20,7 @@ export function findContentMatches<T extends SearchFields>(
   index: { item: T; text: string }[], query: string, category = "", limit = Infinity,
   filters: ResearchFilters = {},
 ) {
-  const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean)
+  const terms = normalizeSearchText(query).trim().split(/\s+/).filter(Boolean)
   const matches: T[] = []
   if (limit <= 0) return matches
   for (const entry of index) {
@@ -27,7 +29,8 @@ export function findContentMatches<T extends SearchFields>(
     if (filters.industry && !matchesIndustry(entry.item.industry, filters.industry)) continue
     if (filters.reportType && reportType(entry.item) !== filters.reportType) continue
     if (filters.activity && reportActivity(entry.item) !== filters.activity) continue
-    if (!terms.every(term => entry.text.includes(term))) continue
+    if (filters.company && normalizeSearchText(reportCompany(entry.item) || "") !== normalizeSearchText(filters.company)) continue
+    if (!matchesSearchTerms(entry.text, terms)) continue
     matches.push(entry.item)
     if (matches.length >= limit) break
   }
@@ -38,6 +41,7 @@ export function selectContentPage(items: ContentItem[], kind: ContentKind, searc
   const { q: query, category, page: requestedPage, ...extra } = normalizeContentSearch(search)
   const filters = kind === "research" ? extra : {}
   const filtered = findContentMatches(createContentSearchIndex(items), query, category, Infinity, filters)
+  if (filters.company) filtered.sort((a, b) => b.date.localeCompare(a.date) || a.title.localeCompare(b.title, "ko"))
   const pageSize = kind === "research" ? 12 : 10
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const page = Math.min(totalPages, Number(requestedPage ?? 1))

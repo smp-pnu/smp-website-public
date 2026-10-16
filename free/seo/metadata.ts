@@ -43,7 +43,7 @@ export function pageMetadata(path:string,item?:SeoItem) {
   const paginated=!!base && ["/research","/notice"].includes(pathname) && /^[1-9]\d{0,3}$/.test(page??"") && Number(page)>1
   const canonicalPath=pathname==="/alumni"?"/network":pathname
   const canonical=siteOrigin+canonicalPath+(paginated?`?page=${page}`:"")
-  const filtered=["q","category","semester","industry","activity","reportType"].some(key=>url.searchParams.has(key)&&url.searchParams.get(key))
+  const filtered=["q","category","semester","industry","activity","reportType","company"].some(key=>url.searchParams.has(key)&&url.searchParams.get(key))
   const noindex=(!base&&!article)||!!base?.noindex||filtered
   const title=article?articleTitle(article):pathname==="/"?base.title:`${base?.title??"페이지를 찾을 수 없습니다"}${paginated?` · ${page}페이지`:""} | ${SITE_SHORT_NAME_KO}`
   const description=(article?[article.company,article.ticker,article.industry,article.summary||`${article.author||"SMP"}의 ${article.category||"리포트"}`].filter(Boolean).join(" · "):base?.description??"요청한 페이지를 찾을 수 없습니다.").replace(/\s+/g," ").slice(0,200)
