@@ -1,3 +1,4 @@
+import Link from "next/link"
 import type { ContentKind } from "@/lib/content-model"
 import { contentDetailHref, contentListHref, type ContentSearch } from "@/lib/content-navigation"
 import type { ContentResult } from "@/lib/notion"
@@ -31,7 +32,7 @@ export function ContentList({ result, kind, search }: { result: ContentResult; k
   }))
   let content
   if (result.state !== "ready" || !result.items.length) content = <ContentState state={result.state} kind={kind} />
-  else if (!total) content = <p className="border-y border-site-line py-20 text-center text-site-body">검색 결과가 없습니다. 다른 검색어로 검색해보세요.</p>
+  else if (!total) content = <div className="border-y border-site-line py-16 text-center text-site-body"><p>현재 조건에 맞는 자료가 없습니다.</p><p className="mt-2 text-sm text-site-muted">기업명이나 종목코드로 검색하거나 검색 조건을 해제해보세요.</p><Link href={contentListHref(kind, { view: listSearch.view })} prefetch={false} className="mt-5 inline-flex min-h-11 items-center text-sm text-site-accent hover:underline">검색 조건 해제 →</Link></div>
   else content = !isResearch ? <NoticeRows items={visibleItems} listSearch={listSearch} /> : !listView ? <ResearchGrid items={visibleItems} listSearch={listSearch} /> : <ContentRows items={visibleItems} listSearch={listSearch} />
 
   return <>

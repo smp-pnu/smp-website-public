@@ -5,7 +5,7 @@ const pages = [
   { title: "RESEARCH", text: "리서치 보고서", href: "/research" },
   { title: "ACCOLADES", text: "수상 경력 성과", href: "/achievements" },
   { title: "NETWORK", text: "ALUMNI MEMBERS 선배 회원 멤버 동문 기수", href: "/network" },
-  { title: "RECRUIT", text: "모집 지원 RECRUITMENT 41기 지원 자격 일정 회비", href: "/recruit" },
+  { title: "RECRUIT", text: "모집 지원 RECRUITMENT 신입회원 지원 자격 일정 회비", href: "/recruit" },
   { title: "NOTICE", text: "공지 공지사항", href: "/notice" },
   { title: "CONTACT", text: "문의 이메일 smppnu@gmail.com 인스타그램 네이버 카페 연락", href: "/contact" },
 ]

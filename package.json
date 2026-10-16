@@ -4,8 +4,7 @@
   "private": true,
   "packageManager": "pnpm@12.3.4",
   "scripts": {
-    "predev": "node scripts/prepare-pdf.mjs && node scripts/prepare-backgrounds.mjs",
-    "dev": "next dev",
+    "dev": "node scripts/dev-free.mjs",
     "prebuild": "node scripts/prepare-pdf.mjs && node scripts/prepare-backgrounds.mjs",
     "build": "next build",
     "start": "next start",
@@ -18,7 +17,9 @@
     "cms:manage": "node --import tsx --conditions=react-server free/jobs/manage.ts",
     "publish:free": "node --import tsx --conditions=react-server free/jobs/publish.ts",
     "seed:free:fixture": "node --import tsx --conditions=react-server free/jobs/seed-fixture.ts",
-    "test:free:http": "node tests/free-http.mjs"
+    "test:free:http": "node tests/free-http.mjs",
+    "dev:next": "next dev",
+    "build:next": "next build"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

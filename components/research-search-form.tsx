@@ -38,7 +38,7 @@ export function ResearchSearchForm({ search, semesters, industries, categories, 
   // Old bookmarked type/activity filters remain visible until a new category
   // replaces them. The unified menu follows the same Notion field as the cards.
   const classification = current.category || [current.reportType, current.activity].filter(Boolean).join(" · ")
-  const activeFilters = (["q", "category", "semester", "industry", "reportType", "activity"] as const)
+  const activeFilters = (["q", "category", "semester", "industry", "reportType", "activity", "company"] as const)
     .flatMap(key => current[key] ? [{ key, value: current[key] as string }] : [])
 
   function navigate(href: string) {
@@ -114,7 +114,7 @@ export function ResearchSearchForm({ search, semesters, industries, categories, 
     </div>
     {activeFilters.length > 0 && <div aria-label="적용한 검색 조건" className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1">
       {activeFilters.map(({ key, value }) => <Link key={key} prefetch={false} scroll={false} href={contentListHref("research", { ...current, [key]: undefined, page: undefined })} aria-label={`${value} 조건 해제`}
-        className="inline-flex min-h-9 max-w-full items-center gap-2 text-xs text-site-body transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-site-accent"><span className="truncate">{key === "q" ? `검색: ${value}` : key === "semester" ? semesterLabel(value) : value}</span><X size={12} aria-hidden="true" className="shrink-0 text-site-muted" /></Link>)}
+        className="inline-flex min-h-9 max-w-full items-center gap-2 text-xs text-site-body transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-site-accent"><span className="truncate">{key === "company" ? `기업: ${value}` : key === "q" ? `검색: ${value}` : key === "semester" ? semesterLabel(value) : value}</span><X size={12} aria-hidden="true" className="shrink-0 text-site-muted" /></Link>)}
       <Link prefetch={false} scroll={false} href={contentListHref("research", { view: current.view })} className="ml-auto inline-flex min-h-9 shrink-0 items-center gap-1.5 text-xs text-site-muted transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-site-accent"><RotateCcw size={12} aria-hidden="true" />초기화</Link>
       </div>
     }

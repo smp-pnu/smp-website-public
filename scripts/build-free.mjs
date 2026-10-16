@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process"
 import path from "node:path"
 const root = path.resolve(import.meta.dirname, "..")
 const fixture = process.argv.includes("--fixture")
+process.env.SMP_FIXTURE_BUILD = fixture ? "1" : "0"
 if (process.argv.some(arg => arg.startsWith("--") && arg !== "--fixture")) throw new Error("Unsupported build option")
 function run(file, args = []) { const result = spawnSync(process.execPath, [file, ...args], { cwd: root, stdio: "inherit" }); if (result.status !== 0) throw new Error(`Build failed: ${file}`) }
 run("scripts/prepare-pdf.mjs"); run("scripts/prepare-backgrounds.mjs")
