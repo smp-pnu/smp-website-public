@@ -60,8 +60,20 @@ test('served HTML advertises one absolute, high-contrast icon and no transparent
   const html = await readFile(new URL('../free/client/index.html', import.meta.url), 'utf8')
   const icons = html.match(/<link\b[^>]*rel="icon"[^>]*>/g) || []
   assert.equal(icons.length, 1)
-  assert.match(icons[0], /href="https:\/\/pnusmp\.com\/smp-search-icon\.png"/)
-  assert.match(icons[0], /sizes="192x192"/)
+  assert.match(icons[0], /href="https:\/\/pnusmp\.com\/favicon\.ico"/)
+  assert.match(icons[0], /type="image\/vnd\.microsoft\.icon"/)
+  const ico = await readFile(new URL('../public/favicon.ico', import.meta.url))
+  assert.equal(ico.readUInt16LE(0), 0)
+  assert.equal(ico.readUInt16LE(2), 1, 'the root icon must be an ICO, not a renamed PNG')
+  const sizes = []
+  for (let i = 0; i < ico.readUInt16LE(4); i++) {
+    const entry = 6 + 16 * i, start = ico.readUInt32LE(entry + 12), length = ico.readUInt32LE(entry + 8)
+    const { width, height } = await sharp(ico.subarray(start, start + length)).metadata()
+    assert.equal(width, ico[entry] || 256)
+    assert.equal(height, ico[entry + 1] || 256)
+    sizes.push(`${width}x${height}`)
+  }
+  assert.equal(icons[0].match(/sizes="([^"]+)"/)?.[1], sizes.join(' '))
   assert.doesNotMatch(html, /data:image|__SMP_TAB_ICON__|smp-tab-mark/)
   assert.ok(html.indexOf('/tab-icon-compat.js') > html.indexOf(icons[0]))
 })
@@ -81,12 +93,14 @@ test('browser tabs use white transparent artwork but rendering crawlers retain t
     ['Chrome/140.0.0.0 Safari/537.36 Chrome-Lighthouse', false],
     ['', false],
   ] as const) {
-    const icon = { href: 'https://pnusmp.com/smp-search-icon.png', type: 'image/png', sizes: { value: '192x192' } }
+    const searchSizes = '16x16 32x32 48x48 96x96 256x256'
+    const icon = { href: 'https://pnusmp.com/favicon.ico', type: 'image/vnd.microsoft.icon', sizes: { value: searchSizes } }
     const context = { navigator: { userAgent }, document: { querySelector: () => icon } }
     runInNewContext(script, context)
     runInNewContext(script, context)
-    assert.equal(icon.href, transparentTab ? '/smp-tab-mark.png' : 'https://pnusmp.com/smp-search-icon.png', userAgent)
-    assert.equal(icon.sizes.value, transparentTab ? '32x32' : '192x192', userAgent)
+    assert.equal(icon.href, transparentTab ? '/smp-tab-mark.png' : 'https://pnusmp.com/favicon.ico', userAgent)
+    assert.equal(icon.type, transparentTab ? 'image/png' : 'image/vnd.microsoft.icon', userAgent)
+    assert.equal(icon.sizes.value, transparentTab ? '32x32' : searchSizes, userAgent)
   }
   assert.doesNotThrow(() => runInNewContext(script, { navigator: { userAgent: 'Safari/605.1.15' }, document: { querySelector: () => null } }))
 })

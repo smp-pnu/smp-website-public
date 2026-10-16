@@ -28,9 +28,13 @@
 
 ## 검색결과 아이콘과 조직 로고
 
-Google 검색결과의 작은 사이트 아이콘(favicon)과 조직 로고는 별도 설정이다. 홈페이지는 Google이 크롤링할 수 있는 새 512×512 정사각 PNG `/smp-search-icon-light.png`(흰 바탕·검은 SMP 심볼)를 favicon으로 연결한다. `Organization.logo`도 같은 고대비 PNG를 가리키며, 어두운 헤더용 흰 로고 SVG를 지정하지 않는다. Apple 기기 아이콘과 `/favicon.ico`도 공개 정적 파일로 제공한다.
+Google 검색결과의 작은 사이트 아이콘(favicon)과 조직 로고는 별도 설정이다. 초기 HTML은 `https://pnusmp.com/favicon.ico`를 하나의 `rel="icon"`으로 지정한다. 이 파일은 검은 원형 배경·흰 S 심볼을 담은 실제 ICO이며 16·32·48·96·256px 프레임을 포함한다. `/smp-search-icon.png`와 512px `/smp-search-icon-light.png`도 같은 원형 그림으로 유지해 이미 수집된 주소를 깨뜨리지 않는다. `Organization.logo`는 512px PNG, Apple 홈 화면은 불투명 검은 배경의 `/apple-icon.png`를 사용한다.
 
-로고 변경 시 `node scripts/prepare-favicon.mjs`로 파일을 다시 만들고 배포한다. Google은 정사각형 48px 이상 아이콘을 권장하지만 표시를 보장하지 않는다. 배포 뒤 PNG의 HTTP 200·이미지 형식·정사각형 크기, 홈페이지 크롤링 허용과 `Organization.logo` 주소를 확인하고 Search Console에서 홈페이지 재수집을 요청한다. favicon은 Google이 별도로 다시 수집할 수 있어 며칠에서 몇 주가 걸릴 수 있다. [Google favicon 기준](https://developers.google.com/search/docs/appearance/favicon-in-search)과 [Organization 로고 기준](https://developers.google.com/search/docs/appearance/structured-data/organization)을 따른다.
+로고 변경 시 `node scripts/prepare-favicon.mjs`로 파일을 다시 만들고 배포한다. Google은 정사각형 48px보다 큰 아이콘을 권장하지만 표시를 보장하지 않는다. 배포 뒤 아이콘의 HTTP 200·실제 파일 형식·선언한 크기와 실제 크기의 일치, Googlebot 및 Googlebot-Image 크롤링 허용을 확인한다. 필요하면 Search Console에서 홈페이지 재수집을 요청하되 같은 URL을 반복 제출하지 않는다. 갱신에는 며칠~몇 주가 걸릴 수 있다. [Google favicon 기준](https://developers.google.com/search/docs/appearance/favicon-in-search)과 [Organization 로고 기준](https://developers.google.com/search/docs/appearance/structured-data/organization)을 따른다.
+
+일반 브라우저는 `/tab-icon-compat.js`가 `/smp-tab-mark.png`로 전환해 흰 S·투명 배경의 탭을 유지한다. Googlebot·Google Inspection Tool·Bingbot·Yeti 등 수집 로봇에는 검색 아이콘을 유지하며 초기 HTML에는 투명 아이콘 후보를 넣지 않는다. 파일을 자주 바꾸지 말고, Search Console의 실제 수집 HTML과 검색결과 화면을 따로 확인한다. 홈페이지 재수집 성공만으로 아이콘 갱신이 완료됐다고 판단하지 않는다.
+
+2026-10-16에는 [루트 ICO 지정 후 해결됐다는 운영자 후기](https://www.reddit.com/r/SEO/comments/1to2ar2/google_search_is_not_updating_my_website_favicon/)를 참고해 기존 루트 ICO를 대표 참조로 통일했다. 기존 192px PNG도 공식 규격을 충족했으므로 PNG 오류가 입증된 것은 아니며, 이 변경은 호환성 보완이다. Apple 홈 화면의 PNG와 기존 공개 이미지 주소는 유지한다. 후기의 모든 설정을 그대로 복제하거나 검색 반영 시간을 보장하지 않는다.
 
 ## 검색 의도별 페이지 운영
 
