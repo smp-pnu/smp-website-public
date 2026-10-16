@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
-import { HeroSpotlight } from "@/components/hero-spotlight"
 import { SITE_NAME_KO } from "@/lib/site-config"
 
 export function HeroSection() {
@@ -13,7 +12,6 @@ export function HeroSection() {
       id="site-hero"
       className="relative flex min-h-[100svh] w-full items-center overflow-hidden"
     >
-      <HeroSpotlight inset={panelWidth} />
       <div className="absolute inset-y-0 left-0 bg-black/55" style={{ width: panelWidth }} aria-hidden="true" />
       <div className="relative z-10 flex min-h-[100svh] items-center px-[clamp(20px,3vw,64px)] py-28" style={{ width: panelWidth }}>
 

@@ -127,13 +127,6 @@
   .hero-shortcut:hover::after { transform: scaleX(1); transform-origin: left; }
   .hero-shortcut:hover .hero-shortcut__arrow { transform: translateX(3px); }
 }
-/* The photo's right side gets one soft, bounded light; copy contrast stays fixed. */
-.hero-spotlight { display: none; position: absolute; inset-block: 0; right: 0; overflow: hidden; pointer-events: none; contain: paint; }
-.hero-spotlight__light { position: absolute; top: 0; left: 0; width: clamp(320px, 40vw, 600px); aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, rgb(213 235 248 / .12), rgb(198 223 242 / .055) 35%, transparent 70%); opacity: 0; transition: opacity 400ms ease; }
-@media (min-width: 1024px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .hero-spotlight { display: block; }
-  .hero-spotlight[data-active] .hero-spotlight__light { opacity: 1; will-change: transform; }
-}
 @media (prefers-reduced-motion: reduce) {
   .hero-shortcut, .hero-shortcut::after, .hero-shortcut__arrow, .site-nav-link { transition: none; }
   .hero-shortcut:hover .hero-shortcut__arrow, .hero-shortcut:focus-visible .hero-shortcut__arrow { transform: none; }
