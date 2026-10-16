@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
+import { ArrowRight } from "lucide-react"
+import { HeroSpotlight } from "@/components/hero-spotlight"
 import { SITE_NAME_KO } from "@/lib/site-config"
 
 export function HeroSection() {
@@ -31,6 +33,7 @@ export function HeroSection() {
       id="site-hero"
       className="relative flex min-h-[100svh] w-full items-center overflow-hidden"
     >
+      <HeroSpotlight inset={panelWidth} />
       <div className={`hero-shadow absolute inset-y-0 left-0 bg-black/55 ${isVisible ? "is-visible" : ""}`} style={{ width: panelWidth }} aria-hidden="true" />
       <div className="relative z-10 flex min-h-[100svh] items-center px-[clamp(20px,3vw,64px)] py-28" style={{ width: panelWidth }}>
 
@@ -40,8 +43,8 @@ export function HeroSection() {
         </h1>
         <p className="mt-7 font-[family-name:var(--font-body)] text-sm font-normal leading-relaxed text-white/85 sm:text-base">{SITE_NAME_KO}</p>
         <nav aria-label="주요 활동 바로가기" className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-white">
-          <Link href="/research" prefetch={false} className="inline-flex min-h-11 items-center gap-3 border-b border-white/40 hover:border-white focus-visible:outline-2 focus-visible:outline-sky-200">리포트 보기 <span aria-hidden="true">↗</span></Link>
-          <Link href="/recruit" prefetch={false} className="inline-flex min-h-11 items-center gap-3 text-white/85 hover:text-white focus-visible:outline-2 focus-visible:outline-sky-200">모집 안내 <span aria-hidden="true">→</span></Link>
+          <Link href="/research" prefetch={false} className="hero-shortcut">리포트 보기 <ArrowRight className="hero-shortcut__arrow" size={18} strokeWidth={1.5} aria-hidden="true" /></Link>
+          <Link href="/recruit" prefetch={false} className="hero-shortcut">모집 안내 <ArrowRight className="hero-shortcut__arrow" size={18} strokeWidth={1.5} aria-hidden="true" /></Link>
         </nav>
         </div>
 
