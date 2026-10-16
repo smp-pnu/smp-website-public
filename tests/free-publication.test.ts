@@ -6,7 +6,8 @@ import type {Database,Statement} from '../cloudflare/bindings'
 import type {Env} from '../free/server/types'
 import {storePage,rebuildDocuments} from '../free/server/catalog'
 import worker from '../free/server/worker'
-import type {NotionPage} from '../lib/content-model'
+import {toContentItem,type NotionPage} from '../lib/content-model'
+import {sourceKey} from '../lib/cover-metadata'
 
 test('cached catalog is rejected after withdrawal or stale publication verification',async()=>{
   const originalFetch=global.fetch
@@ -36,6 +37,12 @@ test('cached catalog is rejected after withdrawal or stale publication verificat
     const pdfKey=[...cache.keys()].find(key=>key.includes('/api/cache/pdf/'))!
     assert.ok(pdfKey)
     assert.equal((await worker.fetch(new Request(pdfKey),env,{waitUntil(){}})).status,404,'internal cache URL cannot bypass publication checks')
+    const asset=`/_reader-pdfs/${page.id}/${'a'.repeat(64)}.pdf`
+    const prepared={sourceKey:sourceKey(toContentItem(page,'research')!),pdfHash:'b'.repeat(64),reader:{version:1,pageCount:1,pages:[{page:1,url:`/report-covers/${page.id}/${'c'.repeat(64)}.webp`,width:2048,height:2899}],pdf:{url:asset,bytes:pdfBytes.length,sourceBytes:pdfBytes.length,sourceModified:'Tue, 06 Oct 2026 04:50:46 GMT',checkedAt:Date.now()}}}
+    sqlite.prepare('UPDATE free_content SET cover=?,body_revision=? WHERE id=?').run(JSON.stringify(prepared),page.last_edited_time??'',page.id)
+    env.ASSETS.fetch=async()=>new Response(pdfBytes,{headers:{'content-type':'application/pdf','content-length':String(pdfBytes.length)}})
+    const accelerated=await pdfRequest();assert.match(accelerated.headers.get('server-timing')!,/PREPARED/);await accelerated.arrayBuffer()
+    for(const raw of [asset,asset.replace('/_','/%5f'),asset.replace('/_reader-pdfs/','/_reader-pdfs%2F')])assert.equal((await worker.fetch(new Request('https://fixture.invalid'+raw),env,{waitUntil(){}})).status,404,'raw prepared asset cannot bypass publication checks')
     page.properties.공개.checkbox=false;page.last_edited_time='2020-01-02T00:00:00Z'
     await storePage(env,page,'research');await rebuildDocuments(env)
     assert.equal((await pdfRequest()).status,404,'a warm PDF cache must not survive withdrawal')

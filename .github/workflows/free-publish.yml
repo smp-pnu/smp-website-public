@@ -34,6 +34,7 @@ jobs:
       SMP_FREE_ORIGIN: ${{ vars.SMP_FREE_ORIGIN }}
       SMP_FORCE_BUILD: ${{ github.event_name == 'push' && '1' || '0' }}
       NOTION_METADATA_WRITE_ENABLED: 'true'
+      SMP_ALLOW_PDF_TOOL_INSTALL: '1'
       SMP_CMS_OPERATION: ${{ github.event.inputs.operation || 'publish' }}
       SMP_CMS_PAGE_ID: ${{ github.event.inputs.page_id || '' }}
     steps:
@@ -53,6 +54,11 @@ jobs:
           path: .smp-cache/covers
           key: smp-free-public-assets-${{ github.run_id }}
           restore-keys: smp-free-public-assets-
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .smp-cache/reader-pdfs
+          key: smp-free-reader-pdfs-${{ github.run_id }}
+          restore-keys: smp-free-reader-pdfs-
       - run: pnpm cms:manage
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -70,3 +76,8 @@ jobs:
         with:
           path: .smp-cache/covers
           key: smp-free-public-assets-${{ github.run_id }}
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        if: success() && steps.publisher.outputs.assets_changed == 'true'
+        with:
+          path: .smp-cache/reader-pdfs
+          key: smp-free-reader-pdfs-${{ github.run_id }}

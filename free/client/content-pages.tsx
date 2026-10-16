@@ -68,19 +68,16 @@ function DetailContent({ kind, value, error }: DetailResult & { kind: ContentKin
         <div className="py-8">{value.bodyPending ? <p role="status" className="text-site-muted">본문을 준비하고 있습니다. 잠시 후 다시 방문해주세요.</p> : <NotionContent blocks={value.blocks} />}</div>
         {kind === "notice" && <Attachments item={value.item} />}
         {kind === "research" && <Related related={value.related} />}
-      </> : <PendingReport />}
+      </> : <PendingReport item={item as PreparedItem} />}
     </article> : <Status error={error} />}
     <div className="mt-14 border-t border-site-line pt-7"><Link href={back} className="text-sm text-site-accent">목록으로 돌아가기</Link></div>
   </main><SiteFooter /></>
 }
-function PendingReport() {
+function PendingReport({item}:{item:PreparedItem}) {
   return <section aria-label="첨부 자료" aria-busy="true" className="mt-8">
     <div className="mt-5">
       <h3 className="mb-4 text-sm text-site-muted">PDF 원문</h3>
-      <div className="overflow-hidden rounded-lg border border-white/20 bg-slate-950/80">
-        <p role="status" className="flex min-h-16 items-center border-b border-white/15 px-4 py-3 text-sm text-slate-300">PDF를 준비하고 있습니다. 리포트 정보는 먼저 확인하실 수 있습니다.</p>
-        <div className="bg-slate-800" style={{ aspectRatio: "595 / 842" }} aria-hidden="true" />
-      </div>
+      <PdfViewer preview={item.cover?{url:item.cover.url,width:item.cover.width??595,height:item.cover.height??842,title:item.title}:undefined} />
     </div>
   </section>
 }
@@ -92,7 +89,7 @@ function Attachments({ item }: { item: PreparedItem }) {
   const pdfs = getPdfSources(item)
   return <section aria-label="첨부 자료" className="mt-8">{pdfs.map((pdf, index) => {
     const url = `/api/content/${encodeURIComponent(item.kind)}/${encodeURIComponent(item.id)}/pdf?${pdf.query}`
-    return <div key={pdf.query} className="mt-5"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h3 className="text-sm text-site-body">{pdf.name}</h3>{(item.kind !== "research" || index > 0) && <a href={`${url}&download=1`} download className="rounded-md bg-sky-300 px-4 py-2 text-sm text-slate-950">PDF 다운로드 ↓</a>}</div><PdfViewer url={url} preview={index === 0 && item.cover ? { url: item.cover.previewUrl, width: item.cover.width, height: item.cover.height, title: item.title } : undefined} /></div>
+    return <div key={pdf.query} className="mt-5"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h3 className="text-sm text-site-body">{pdf.name}</h3>{(item.kind !== "research" || index > 0) && <a href={`${url}&download=1`} download className="rounded-md bg-sky-300 px-4 py-2 text-sm text-slate-950">PDF 다운로드 ↓</a>}</div><PdfViewer url={url} preview={index === 0 && item.cover ? { url: item.cover.previewUrl, fallbackUrl:item.cover.url, width: item.cover.width, height: item.cover.height, title: item.title, reader:item.cover.reader } : undefined} /></div>
   })}<ul className="mt-4 space-y-3">{item.attachments.map((file, index) => pdfs.some(pdf => pdf.query === `index=${index}`) ? null : <li key={index}><a href={isTrustedAttachmentUrl(file.url) ? `/api/content/${encodeURIComponent(item.kind)}/${encodeURIComponent(item.id)}/file?index=${index}` : safeUrl(file.url) ?? undefined} target="_blank" rel="noopener noreferrer" className="text-site-accent underline">{file.name} ↗</a></li>)}{item.externalUrl && !pdfs.some(pdf => pdf.query === "source=external") && <li><a href={safeUrl(item.externalUrl) ?? undefined} target="_blank" rel="noopener noreferrer" className="text-site-accent underline">관련 링크 열기 ↗</a></li>}</ul></section>
 }
 export function SearchPage() {

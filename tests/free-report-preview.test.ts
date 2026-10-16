@@ -15,7 +15,8 @@ test("cached list metadata can render first without caching document access", as
     date: "2026-10-01", category: "기업분석", author: "R1", pinned: false,
     company: "기업", ticker: "123456", attachments: [{ name: "report.pdf", url: "https://example.com/report.pdf" }],
     externalUrl: "https://drive.google.com/file/d/report/view", investmentPoints: ["본문에만 있는 내용"] }
-  const catalog = { state: "ready", items: [{ ...item, cover: { url: "/cover.webp" }, blocks: ["본문"] }] }
+  const cover={url:`/report-covers/${id}/${'a'.repeat(64)}.webp`,previewUrl:`/report-covers/${id}/${'b'.repeat(64)}.webp`,width:2048,height:2899,reader:{version:1,pageCount:1,pages:[{page:1,url:`/report-covers/${id}/${'b'.repeat(64)}.webp`,width:2048,height:2899}]}}
+  const catalog = { state: "ready", items: [{ ...item, cover, blocks: ["본문"] }] }
   let respond: (path: string) => Promise<Response> = async () => Response.json(catalog)
   globalThis.fetch = (async input => { requests++; return respond(String(input)) }) as typeof fetch
   try {
@@ -28,7 +29,8 @@ test("cached list metadata can render first without caching document access", as
       assert.equal(preview.summary, item.summary)
       assert.equal(preview.ticker, item.ticker)
       assert.deepEqual(getPdfSources(preview), [])
-      for (const key of ["cover", "blocks", "investmentPoints"]) assert.equal(key in preview, false)
+      assert.deepEqual(preview.cover,{url:cover.url,width:2048,height:2899})
+      for (const key of ["blocks", "investmentPoints"]) assert.equal(key in preview, false)
       assert.equal(preview.externalUrl, null)
       assert.deepEqual(preview.attachments, [])
       assert.equal(cachedReportPreview("b".repeat(32)), undefined)

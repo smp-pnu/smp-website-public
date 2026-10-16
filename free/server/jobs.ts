@@ -5,6 +5,7 @@ import { spend } from "./budget"
 import { safeJobError } from "./job-errors"
 import { published, notion, source } from "./notion"
 import { rebuildDocuments } from "./catalog"
+import { preparedReader } from "../../lib/report-reader"
 import type { Env } from "./types"
 const json = (body: unknown, status = 200) => Response.json(body, { status })
 export async function internal(request: Request, env: Env) {
@@ -57,8 +58,10 @@ export async function internal(request: Request, env: Env) {
     || !new RegExp(`^/report-covers/${id}/[a-f0-9]{64}\\.webp$`).test(input.cover.previewUrl)
     || ![input.cover.width,input.cover.height].every(n=>Number.isSafeInteger(n)&&n>0&&n<=4096)
     || (entry?.kind==='research' && (!/^[a-f0-9]{64}$/.test(input.cover.sourceKey??'') || !/^[a-f0-9]{64}$/.test(input.cover.pdfHash??''))))) return json({error:"Invalid cover"},400)
+  const reader=entry?.kind==='research'?preparedReader(id,input.cover?.reader):undefined
+  if(input.cover?.reader && !reader) return json({error:"Invalid reader"},400)
   const cover=input.cover?{url:input.cover.url,previewUrl:input.cover.previewUrl,width:input.cover.width,height:input.cover.height,
-    ...(entry?.kind==='research'?{sourceKey:input.cover.sourceKey,pdfHash:input.cover.pdfHash}:{})}:null
+    ...(entry?.kind==='research'?{sourceKey:input.cover.sourceKey,pdfHash:input.cover.pdfHash,...(reader?{reader}:{})}:{})}:null
   const media:string[]=[]
   function collect(blocks: {id:string;type:string;children?:unknown[]}[]) {
     for(const block of blocks) {

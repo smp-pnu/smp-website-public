@@ -18,6 +18,10 @@ export async function renderPdfPreview(url: string) {
 }
 
 export async function downloadPdfForPreview(url: string) {
+  return (await downloadPdfSnapshot(url)).data
+}
+
+export async function downloadPdfSnapshot(url: string) {
   const signal = AbortSignal.timeout(80_000)
   const response = await streamPdf(url, "preview.pdf", false, signal)
   if (Number(response.headers.get("content-length")) > maxPdfBytes) {
@@ -41,12 +45,17 @@ export async function downloadPdfForPreview(url: string) {
   for (const chunk of chunks) { data.set(chunk, offset); offset += chunk.length }
   chunks.length = 0
   signal.throwIfAborted()
-  return data
+  return {data, lastModified:response.headers.get("last-modified")}
 }
 
 export async function renderFirstPage(data: Uint8Array, signal = AbortSignal.timeout(30_000)) {
+  return (await renderReaderPages(data, 1, signal)).pages[0].png
+}
+
+export async function renderReaderPages(data: Uint8Array, count = 3, signal = AbortSignal.timeout(60_000)) {
   signal.throwIfAborted()
-  const task = getDocument({ data, useSystemFonts: false,
+  if (!Number.isInteger(count) || count < 1 || count > 3) throw new Error("Invalid preview page count")
+  const task = getDocument({ data: new Uint8Array(data), useSystemFonts: false,
     cMapUrl: `${assetPath}/cmaps/`, cMapPacked: true,
     standardFontDataUrl: `${assetPath}/standard_fonts/`, wasmUrl: `${assetPath}/wasm/`,
   })
@@ -55,15 +64,20 @@ export async function renderFirstPage(data: Uint8Array, signal = AbortSignal.tim
   let canvas: Canvas | undefined
   try {
     const doc = await task.promise
-    const page = await doc.getPage(1)
-    const base = page.getViewport({ scale: 1 })
-    const scale = Math.min(2048 / base.width, Math.sqrt(8_000_000 / (base.width * base.height)))
-    const viewport = page.getViewport({ scale })
-    canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height))
-    const context = canvas.getContext("2d") as unknown as CanvasRenderingContext2D
-    await page.render({ canvas: null, canvasContext: context, viewport }).promise
-    signal.throwIfAborted()
-    return canvas.toBuffer("image/png")
+    const pages: {page:number;png:Buffer;width:number;height:number}[]=[]
+    for (let number=1;number<=Math.min(count,doc.numPages);number++) {
+      const page = await doc.getPage(number)
+      const base = page.getViewport({ scale: 1 })
+      const scale = Math.min(2048 / base.width, 4096 / base.height, Math.sqrt(8_000_000 / (base.width * base.height)))
+      const viewport = page.getViewport({ scale })
+      canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height))
+      const context = canvas.getContext("2d") as unknown as CanvasRenderingContext2D
+      await page.render({ canvas: null, canvasContext: context, viewport }).promise
+      signal.throwIfAborted()
+      pages.push({page:number,png:canvas.toBuffer("image/png"),width:canvas.width,height:canvas.height})
+      canvas.width=0;canvas.height=0;page.cleanup()
+    }
+    return {pageCount:doc.numPages,pages}
   } finally {
     signal.removeEventListener("abort", abort)
     if (canvas) { canvas.width = 0; canvas.height = 0 }
