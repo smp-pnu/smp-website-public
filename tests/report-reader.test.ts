@@ -21,8 +21,8 @@ test('optional PDF storage stays below both budgets and retains newest reports',
   const records=Array.from({length:40},(_,n)=>{const report=n.toString(16).padStart(32,'0');return {id:report,date:`2026-${String(n+1).padStart(2,'0')}`,cover:{reader:metadata(report)}}})
   const chosen=selectReaderAssets(records);assert.equal(chosen.length,readerAssetBudget.files);assert.equal(chosen[0].id,records[39].id)
   records.forEach(r=>{r.cover.reader.pdf.bytes=readerPdfMaxBytes})
-  const large=selectReaderAssets(records);assert.ok(large.reduce((sum,a)=>sum+a.bytes,0)<=readerAssetBudget.bytes)
-  assert.equal(large.length,21)
+  const large=selectReaderAssets(records);assert.ok(large.reduce((sum,a)=>sum+a.bytes,0)<=readerAssetBudget.bytes+readerAssetBudget.packBytes)
+  assert.equal(large.length,10)
 })
 const originalFetch=global.fetch
 afterEach(()=>{global.fetch=originalFetch})
@@ -73,11 +73,11 @@ test('page packs are bounded, owned and exposed only as an opaque validated hint
  assert.ok(preparedReader(id,reader))
  const cover=publicCover({...item,cover:{url:reader.pages[0].url,reader}})!
  assert.deepEqual(cover.reader?.pack,{key:'e'.repeat(64),bytes:1000});assert.equal('pagePack' in cover.reader!,false)
- for(const change of [{pagePackVersion:3},{pageCount:61},{pagePack:{...reader.pagePack,bytes:17*1024*1024}},{pagePack:{...reader.pagePack,url:`/_reader-pdfs/${'f'.repeat(32)}/${hash}.pack`}}])assert.equal(preparedReader(id,{...reader,...change}),undefined)
+ for(const change of [{pagePackVersion:3},{pageCount:121},{pagePack:{...reader.pagePack,bytes:25*1024*1024}},{pagePack:{...reader.pagePack,url:`/_reader-pdfs/${'f'.repeat(32)}/${hash}.pack`}}])assert.equal(preparedReader(id,{...reader,...change}),undefined)
  const records=Array.from({length:40},(_,i)=>{const report=i.toString(16).padStart(32,'0');return {id:report,date:String(i).padStart(2,'0'),cover:{reader:{...reader,pages:metadata(report).pages,pdf:{...reader.pdf,url:`/_reader-pdfs/${report}/${hash}.pdf`,bytes:24*1024*1024},pagePack:{...reader.pagePack,url:`/_reader-pdfs/${report}/${hash}.pack`,bytes:16*1024*1024}}}}})
  const selected=selectReaderAssets(records)
- assert.ok(selected.reduce((n,a)=>n+a.bytes+(a.pagePack?.bytes??0),0)<=readerAssetBudget.bytes)
- assert.ok(selected.reduce((n,a)=>n+(a.bytes?Math.ceil(a.bytes/(a.chunkSize??a.bytes)):0)+(a.pagePack?1:0),0)<=544)
+ assert.ok(selected.reduce((n,a)=>n+a.bytes+(a.pagePack?.bytes??0),0)<=readerAssetBudget.bytes+readerAssetBudget.packBytes)
+ assert.ok(selected.reduce((n,a)=>n+(a.bytes?Math.ceil(a.bytes/(a.chunkSize??a.bytes)):0)+(a.pagePack?1:0),0)<=readerAssetBudget.assetFiles)
 })
 
 test('page pack endpoint uses the current source proof and rejects stale hashes, ranges and missing assets',async()=>{
@@ -120,13 +120,13 @@ test('a large original can serve its bounded reading pack without an optimized P
 })
 
 test('reading editions are budgeted first, even when full PDFs would fill all storage',()=>{
- const records=Array.from({length:40},(_,i)=>{
+ const records=Array.from({length:191},(_,i)=>{
   const report=i.toString(16).padStart(32,'0')
   return {id:report,date:String(i).padStart(2,'0'),cover:{reader:{...metadata(report),pdf:{...metadata(report).pdf,bytes:24*1024*1024},pagePack:{url:`/_reader-pdfs/${report}/${hash}.pack`,bytes:10*1024*1024}}}}
  })
  const selected=selectReaderAssets(records)
- assert.equal(selected.length,32);assert.equal(selected.filter(v=>v.pagePack).length,32)
- assert.ok(selected.some(v=>v.bytes===0));assert.ok(selected.reduce((n,v)=>n+v.bytes+(v.pagePack?.bytes??0),0)<=512*1024*1024)
+ assert.equal(selected.length,191);assert.equal(selected.filter(v=>v.pagePack).length,191)
+ assert.ok(selected.some(v=>v.bytes===0));assert.ok(selected.reduce((n,v)=>n+v.bytes+(v.pagePack?.bytes??0),0)<=readerAssetBudget.bytes+readerAssetBudget.packBytes)
 })
 
 test('an evicted reading edition falls back without probing Drive',async()=>{
@@ -136,4 +136,14 @@ test('an evicted reading edition falls back without probing Drive',async()=>{
  s.env.ASSETS.fetch=async()=>new Response(null,{status:404})
  assert.equal((await s.read(`&prepared=${hash}&pages=${'e'.repeat(64)}`))?.status,404)
  assert.equal(s.counts().upstreamCalls,0)
+})
+
+
+test('storage overflow stops deployment instead of dropping old complete editions',()=>{
+ const records=Array.from({length:90},(_,i)=>{
+  const id=i.toString(16).padStart(32,'0')
+  return {id,date:'2026',cover:{reader:{...metadata(id),pagePack:{url:`/_reader-pdfs/${id}/${hash}.pack`,bytes:24*1024*1024}}}}
+ })
+ assert.throws(()=>selectReaderAssets(records),/storage safety budget/)
+ assert.ok(preparedReader(id,{...metadata(),pageCount:62,pagePack:{url:`/_reader-pdfs/${id}/${hash}.pack`,bytes:22*1024*1024}}))
 })

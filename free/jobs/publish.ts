@@ -38,9 +38,10 @@ async function main() {
   if(origin.protocol!=="https:" || origin.username || origin.password || origin.pathname!=="/" || origin.search || origin.hash) throw new Error("Invalid publisher origin")
   const account=required("CLOUDFLARE_ACCOUNT_ID"),database=required("SMP_FREE_DATABASE_ID")
   if(database==="16cf8db5-1f95-48f3-af68-b32cfa7f7908") throw new Error("Production publisher cannot write to the synthetic trial database")
+  const libraryMigration=process.env.SMP_CMS_OPERATION==="prepare-library"
   let nextRequest=0,requestCount=0
   const env:Env={...process.env,NOTION_WORKLOAD:"publisher",CMS_DB:remoteDatabase(account,database,required("CLOUDFLARE_API_TOKEN")),ASSETS:{fetch},NOTION_FETCH:async(input,init)=>{
-    if(++requestCount>300) throw new Error("Publisher request limit reached")
+    if(++requestCount>(libraryMigration?1000:300)) throw new Error("Publisher request limit reached")
     await new Promise(resolve=>setTimeout(resolve,Math.max(0,nextRequest-Date.now())))
     nextRequest=Date.now()+1100
     return fetch(input,init)
@@ -51,27 +52,27 @@ async function main() {
   await ensureJobFailures(env.CMS_DB)
   await ensureAdminSchema(env.CMS_DB)
   // No overlapping publishing runs, even if a second runner/manual job starts.
-  const now=Date.now()
-  const lock=await env.CMS_DB.prepare(`INSERT INTO free_controls(name,until_at) VALUES ('publisher',?) ON CONFLICT(name) DO UPDATE SET until_at=excluded.until_at WHERE until_at<? RETURNING until_at`).bind(now+14*60_000,now).first()
+  const now=Date.now(),leaseMs=(libraryMigration?175:14)*60_000
+  const lock=await env.CMS_DB.prepare(`INSERT INTO free_controls(name,until_at) VALUES ('publisher',?) ON CONFLICT(name) DO UPDATE SET until_at=excluded.until_at WHERE until_at<? RETURNING until_at`).bind(now+leaseMs,now).first()
   if(!lock) { console.log("Publisher already active");return }
-  const acquiredUntil=now+14*60_000
-  const deadline=Date.now()+11*60_000
+  const acquiredUntil=now+leaseMs
+  const deadline=Date.now()+(libraryMigration?150:11)*60_000
   env.NOTION_WAIT_UNTIL=deadline
   try {
     const recruitment=await prepareRecruitment(env)
     const forceBuild=process.env.SMP_FORCE_BUILD==="1" || recruitment.changed
     await reconcileIfDue(env)
     await repairRegionalImages(env.CMS_DB)
-    if(!forceBuild) await queueReaderBackfill(env)
-    const packCandidates=await env.CMS_DB.prepare("SELECT id FROM free_content WHERE kind='research' ORDER BY json_extract(item,'$.date') DESC,id LIMIT 32").all<{id:string}>()
-    const packEligible=new Set(packCandidates.results.map(row=>row.id))
+    if(libraryMigration || !forceBuild) await queueReaderBackfill(env,libraryMigration)
     const complete:Completed[]=[]
-    for(let count=0;count<4 && Date.now()<deadline;count++) {
-      const claim=await internal(new Request(`${origin}api/internal/jobs/claim`,{method:"POST"}),env)
+    for(let count=0;count<(libraryMigration?200:4) && Date.now()<deadline;count++) {
+      let claim:Response
+      try {claim=await internal(new Request(`${origin}api/internal/jobs/claim`,{method:"POST"}),env,{libraryMigration})}
+      catch(error) {if(error instanceof Busy && complete.length){console.warn("Preparation quota reached; deploying completed work before deferring the remainder");break}throw error}
       const {job}=await claim.json() as {job:Job|null}
       if(!job) break
       try {
-        if(job.kind==="research" && process.env.NOTION_METADATA_WRITE_ENABLED==="true") {
+        if(!libraryMigration && job.kind==="research" && process.env.NOTION_METADATA_WRITE_ENABLED==="true") {
           await syncReportMetadataUsing(job.id,async <T>(path:string,body?:unknown,method?:"PATCH")=>{
             const result=await notion<T>(env,path,body,method);if(!result) throw new Error("Report removed");return result
           })
@@ -84,13 +85,18 @@ async function main() {
         const item=job.kind==="members"?toMember(page,source(env,"members")):toContentItem(page,job.kind)
         if(!item) continue
         job.revision=page.last_edited_time??page.created_time
-        let blocks=job.kind==="members"?[]:await prepareBody(env,item as ContentItem,origin.href)
-        const cover=job.kind==="members"?await prepareMemberPhoto(item as Member):await prepareCover(item as ContentItem,job.cover,undefined,packEligible.has(job.id))
+        // A reader-only migration does not rewrite Notion or re-read unchanged
+        // article blocks. Normal publication still prepares the entire article.
+        const cachedBody=libraryMigration && job.kind==='research'
+          ?await env.CMS_DB.prepare("SELECT blocks FROM free_content WHERE id=? AND body_revision=?").bind(job.id,job.revision).first<{blocks:string|null}>():null
+        const blocks=cachedBody?.blocks?JSON.parse(cachedBody.blocks):job.kind==="members"?[]:await prepareBody(env,item as ContentItem,origin.href)
+        const cover=job.kind==="members"?await prepareMemberPhoto(item as Member):await prepareCover(item as ContentItem,job.cover,undefined,libraryMigration)
         complete.push({job,blocks,cover})
+        if(libraryMigration)console.log(JSON.stringify({readerPrepared:complete.length,id:job.id,pages:cover?.reader?.pageCount,packBytes:cover?.reader?.pagePack?.bytes}))
       } catch(error) {
         await fail(env,origin,job,error instanceof Busy?error.seconds*1000:900_000,jobErrorCode(error))
         console.error("One publication was deferred; original content remains in Notion/Drive")
-        if(error instanceof Busy) throw error
+        if(error instanceof Busy) {if(complete.length)break;throw error}
       }
     }
     if(!complete.length && !forceBuild) { console.log("No asset deployment needed");return }
@@ -128,7 +134,7 @@ async function main() {
     const readerRecords=await env.CMS_DB.prepare("SELECT id,json_extract(item,'$.date') AS date,cover FROM free_content WHERE kind='research' AND cover IS NOT NULL").all<{id:string;date:string;cover:string}>()
     const updated=new Map(readerRecords.results.map(row=>[row.id,{id:row.id,date:row.date||"",cover:JSON.parse(row.cover)}]))
     for(const result of complete) if(result.job.kind==='research') updated.set(result.job.id,{id:result.job.id,date:(result.job.item as ContentItem).date||"",cover:result.cover})
-    await prepareReaderAssets([...updated.values()],origin,Math.min(Date.now()+90_000,deadline-120_000))
+    await prepareReaderAssets([...updated.values()],origin,Math.min(Date.now()+8*60_000,deadline-120_000))
     command("scripts/build-free.mjs")
     command("scripts/deploy-free.mjs")
     await setAdminConfig(env.CMS_DB,"recruitment_deployed",recruitment.fingerprint)

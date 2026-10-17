@@ -81,7 +81,7 @@ export async function prepareBody(env:Env,item:ContentItem,origin:string,depende
   if(Buffer.byteLength(JSON.stringify(blocks))>55_000) throw new Error("Prepared body exceeds 55 KiB; split this notice into shorter posts")
   return blocks
 }
-export async function prepareCover(item:ContentItem,previous?:Cover|null,dependencies:{download:typeof downloadPdfSnapshot;render:typeof renderReaderPages;save:typeof saveImage;optimize:typeof optimizeReaderPdf;pack?:typeof prepareReaderPack}={download:downloadPdfSnapshot,render:renderReaderPages,save:saveImage,optimize:optimizeReaderPdf,pack:prepareReaderPack},allowPack=true):Promise<Cover|null> {
+export async function prepareCover(item:ContentItem,previous?:Cover|null,dependencies:{download:typeof downloadPdfSnapshot;render:typeof renderReaderPages;save:typeof saveImage;optimize:typeof optimizeReaderPdf;pack?:typeof prepareReaderPack}={download:downloadPdfSnapshot,render:renderReaderPages,save:saveImage,optimize:optimizeReaderPdf,pack:prepareReaderPack},skipPdfOptimization=false):Promise<Cover|null> {
   const pdf=getPdfSources(item)[0]
   if(!pdf || item.kind!=="research") return null
   const key=sourceKey(item)!
@@ -92,16 +92,17 @@ export async function prepareCover(item:ContentItem,previous?:Cover|null,depende
   const pdfHash=createHash("sha256").update(data).digest("hex")
   const source=snapshot.lastModified && Number.isFinite(Date.parse(snapshot.lastModified))
     ? {key:pdfHash,bytes:data.length,modified:snapshot.lastModified,checkedAt:Date.now()} : undefined
+  if(dependencies.pack && !source)throw new Error('PDF source date is required for a complete reader edition')
   const saved=preparedReader(item.id,previous?.reader)
   const reusable=previous?.pdfHash===pdfHash && path.test(previous.url) && path.test(previous.previewUrl) && saved
   if(reusable) {
     // Existing images are reusable while legacy PDFs gain chunked transport.
-    const upgraded=!saved.pdf?.initialChunks && snapshot.lastModified
+    const upgraded=!skipPdfOptimization && !saved.pdf?.initialChunks && snapshot.lastModified
       ? await dependencies.optimize(item.id,data).catch(()=>undefined) : undefined
     const prepared=upgraded??saved.pdf
-    const pagePack = source && allowPack ? await dependencies.pack?.(item.id,data,saved.pagePack).catch(()=>saved.pagePack) : saved.pagePack
+    const pagePack = source ? await dependencies.pack?.(item.id,data,saved.pagePack) ?? saved.pagePack : saved.pagePack
     return {url:previous.url,previewUrl:previous.previewUrl,width:previous.width,height:previous.height,sourceKey:key,pdfHash,
-      reader:{...saved,...(allowPack?{pagePackVersion:2 as const}:{}),...(source?{source}:{}),...(pagePack?{pagePack}:{}),...(prepared?{pdf:{...prepared,sourceBytes:data.length,
+      reader:{...saved,...(pagePack?{pagePackVersion:2 as const}:{}),...(source?{source}:{}),...(pagePack?{pagePack}:{}),...(prepared?{pdf:{...prepared,sourceBytes:data.length,
         sourceModified:snapshot.lastModified??saved.pdf?.sourceModified??'',
         checkedAt:snapshot.lastModified && Number.isFinite(Date.parse(snapshot.lastModified))?Date.now():1}}:{})}}
   }
@@ -112,11 +113,11 @@ export async function prepareCover(item:ContentItem,previous?:Cover|null,depende
     pages.push({page:image.page,url:await dependencies.save(item.id,large.data),width:large.info.width,height:large.info.height})
   }
   const small=await sharp(rendered.pages[0].png).resize({width:720,withoutEnlargement:true}).webp({quality:82}).toBuffer()
-  const optimized=snapshot.lastModified && Number.isFinite(Date.parse(snapshot.lastModified)) ? await dependencies.optimize(item.id,data).catch(()=>{
+  const optimized=!skipPdfOptimization && snapshot.lastModified && Number.isFinite(Date.parse(snapshot.lastModified)) ? await dependencies.optimize(item.id,data).catch(()=>{
     console.warn("Optional web PDF copy unavailable; original PDF and saved pages remain usable")
     return undefined
   }) : undefined
-  const pagePack = source && allowPack ? await dependencies.pack?.(item.id,data).catch(()=>undefined) : undefined
+  const pagePack = source ? await dependencies.pack?.(item.id,data) : undefined
   return {url:await dependencies.save(item.id,small),previewUrl:pages[0].url,width:pages[0].width,height:pages[0].height,sourceKey:key,pdfHash,
-    reader:{version:1,...(allowPack?{pagePackVersion:2 as const}:{}),pageCount:rendered.pageCount,pages,...(source?{source}:{}),...(pagePack?{pagePack}:{}),...(optimized?{pdf:{...optimized,sourceBytes:data.length,sourceModified:snapshot.lastModified!,checkedAt:Date.now()}}:{})}}
+    reader:{version:1,...(pagePack?{pagePackVersion:2 as const}:{}),pageCount:rendered.pageCount,pages,...(source?{source}:{}),...(pagePack?{pagePack}:{}),...(optimized?{pdf:{...optimized,sourceBytes:data.length,sourceModified:snapshot.lastModified!,checkedAt:Date.now()}}:{})}}
 }

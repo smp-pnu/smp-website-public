@@ -58,7 +58,7 @@ export async function renderReaderPages(data: Uint8Array, count = 3, signal = Ab
   return renderPages(data, count, signal)
 }
 type RenderedPage = {page:number;png:Buffer;width:number;height:number}
-export async function renderReaderPackPages(data: Uint8Array, save: (page: RenderedPage) => Promise<void>, signal = AbortSignal.timeout(60_000)) {
+export async function renderReaderPackPages(data: Uint8Array, save: (page: RenderedPage) => Promise<void>, signal = AbortSignal.timeout(150_000)) {
   return renderPages(data, pagePackMaxPages, signal, save)
 }
 async function renderPages(data: Uint8Array, count: number, signal: AbortSignal, save?: (page: RenderedPage) => Promise<void>) {
@@ -73,7 +73,7 @@ async function renderPages(data: Uint8Array, count: number, signal: AbortSignal,
   try {
     const doc = await task.promise
     const pages: RenderedPage[]=[]
-    if (save && doc.numPages > pagePackMaxPages) return {pageCount:doc.numPages,pages}
+    if (save && doc.numPages > pagePackMaxPages) throw new Error("Report exceeds prepared page limit")
     for (let number=1;number<=Math.min(count,doc.numPages);number++) {
       const page = await doc.getPage(number)
       const base = page.getViewport({ scale: 1 })

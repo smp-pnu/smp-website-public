@@ -9,7 +9,7 @@ export function createPagePackLoader(url: string, pdfKey: string, hint: PagePack
   async function load() {
     if (!/^[a-f0-9]{64}$/.test(pdfKey) || !/^[a-f0-9]{64}$/.test(hint.key) || !Number.isSafeInteger(hint.bytes) || hint.bytes < 14 || hint.bytes > pagePackMaxBytes) return
     const response = await fetcher(`${url}${url.includes('?')?'&':'?'}prepared=${pdfKey}&pages=${hint.key}`, {
-      signal:AbortSignal.any([abort.signal,AbortSignal.timeout(20000)]),redirect:'error',
+      signal:AbortSignal.any([abort.signal,AbortSignal.timeout(Math.max(20000,Math.ceil(hint.bytes/(512*1024))*1000))]),redirect:'error',
     })
     if (!response.ok || response.headers.get('content-type') !== 'application/octet-stream'
       || Number(response.headers.get('content-length')) !== hint.bytes || !response.body) { await response.body?.cancel(); return }

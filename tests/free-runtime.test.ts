@@ -1,3 +1,4 @@
+import { queueReaderBackfill } from "../free/jobs/reader-backfill"
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import { DatabaseSync } from "node:sqlite"
@@ -357,4 +358,34 @@ test("long and date-based Notion Retry-After values are never shortened",async t
     assert.equal(sqlite.prepare("SELECT until_at FROM free_controls WHERE name='notion-backoff'").get()!.until_at,due)
     now=due-1;await assert.rejects(notion(env,"pages/test"));assert.equal(calls,2)
   } finally {sqlite.close()}
+})
+
+
+test('library backfill includes old reports, ignores completed packs and preserves failed jobs',async()=>{
+ const {sqlite,env}=setup()
+ try {
+  await storePages(env,Array.from({length:40},(_,n)=>({...page(),id:n.toString(16).padStart(32,'0')})),'research')
+  sqlite.exec("DELETE FROM free_jobs; UPDATE free_content SET cover='{\"reader\":{\"pagePackVersion\":2}}'")
+  await queueReaderBackfill(env,true)
+  assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM free_jobs').get()!.n,40)
+  sqlite.exec("DELETE FROM free_jobs; UPDATE free_content SET cover='{\"reader\":{\"pagePack\":{\"url\":\"ready.pack\"}}}'")
+  await queueReaderBackfill(env,true)
+  assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM free_jobs').get()!.n,0)
+ } finally {sqlite.close()}
+})
+
+test('manual library preparation has a separate finite budget and keeps normal publication quota',async()=>{
+ const {sqlite,env}=setup()
+ try {
+  await storePage(env,page(),'research')
+  const before=Date.now()
+  const response=await internal(req('jobs/claim'),env,{libraryMigration:true})
+  assert.ok((await response.json() as any).job)
+  assert.equal(sqlite.prepare("SELECT count FROM free_budget WHERE key LIKE 'reader-library-day:%'").get()!.count,1)
+  assert.equal(sqlite.prepare("SELECT count FROM free_budget WHERE key LIKE 'prepare-day:%'").get(),undefined)
+  assert.ok(Number(sqlite.prepare('SELECT lease_until FROM free_jobs').get()!.lease_until)>before+170*60_000)
+  sqlite.exec('UPDATE free_jobs SET lease_until=0')
+  await internal(req('jobs/claim'),env)
+  assert.equal(sqlite.prepare("SELECT count FROM free_budget WHERE key LIKE 'prepare-day:%'").get()!.count,1)
+ } finally {sqlite.close()}
 })

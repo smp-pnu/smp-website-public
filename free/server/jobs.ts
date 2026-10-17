@@ -8,7 +8,7 @@ import { rebuildDocuments } from "./catalog"
 import { preparedReader } from "../../lib/report-reader"
 import type { Env } from "./types"
 const json = (body: unknown, status = 200) => Response.json(body, { status })
-export async function internal(request: Request, env: Env) {
+export async function internal(request: Request, env: Env, options: {libraryMigration?: boolean} = {}) {
   const path = new URL(request.url).pathname
   if (path === "/api/internal/status" && request.method === "GET") {
     const [sync, queue, budget] = await Promise.all([
@@ -22,9 +22,11 @@ export async function internal(request: Request, env: Env) {
     const token = crypto.randomUUID()
     const row = await env.CMS_DB.prepare(`UPDATE free_jobs SET attempts=attempts+1,lease_token=?, lease_until=? WHERE id=(
       SELECT id FROM free_jobs WHERE next_at<=? AND lease_until<=? AND attempts<5 ORDER BY next_at LIMIT 1) RETURNING id,revision`)
-      .bind(token, Date.now()+900_000, Date.now(), Date.now()).first<{ id: string; revision: string }>()
+      .bind(token, Date.now()+(options.libraryMigration?175:15)*60_000, Date.now(), Date.now()).first<{ id: string; revision: string }>()
     if (!row) return json({ job: null })
-    try { await spend(env.CMS_DB, "prepare-day", 50, 86_400_000) }
+    // This option is supplied only by the explicitly dispatched Node publisher;
+    // it cannot be selected by an HTTP parameter or the deployed Worker.
+    try { await spend(env.CMS_DB, options.libraryMigration?"reader-library-day":"prepare-day", options.libraryMigration?200:50, 86_400_000) }
     catch(error) {
       await env.CMS_DB.prepare("UPDATE free_jobs SET attempts=attempts-1,lease_token=NULL,lease_until=0 WHERE id=? AND lease_token=?").bind(row.id,token).run()
       throw error

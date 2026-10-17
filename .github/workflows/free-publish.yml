@@ -3,10 +3,10 @@ on:
   workflow_dispatch:
     inputs:
       operation:
-        description: 'publish: 게시 / status: 상태 / retry-failed: 중단 건 재시도 / refresh-report: PDF·표지 새로 확인'
+        description: 'publish: 게시 / status: 상태 / retry-failed: 중단 건 재시도 / refresh-report: PDF·표지 새로 확인 / prepare-library: 기존 리포트 전체 변환'
         type: choice
         default: publish
-        options: [publish, status, retry-failed, refresh-report]
+        options: [publish, status, retry-failed, refresh-report, prepare-library]
       page_id:
         description: 'retry-failed / refresh-report에서만 Notion 페이지 ID 입력'
         type: string
@@ -24,7 +24,7 @@ jobs:
   publish:
     if: github.repository == 'smp-pnu/smp-website-public' && vars.SMP_FREE_PUBLISH_ENABLED == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: ${{ github.event.inputs.operation == 'prepare-library' && 180 || 15 }}
     environment: free-production
     env:
       WRANGLER_SEND_METRICS: 'false'
