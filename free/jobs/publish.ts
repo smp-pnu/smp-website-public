@@ -63,6 +63,8 @@ async function main() {
     await reconcileIfDue(env)
     await repairRegionalImages(env.CMS_DB)
     if(!forceBuild) await queueReaderBackfill(env)
+    const packCandidates=await env.CMS_DB.prepare("SELECT id FROM free_content WHERE kind='research' ORDER BY json_extract(item,'$.date') DESC,id LIMIT 32").all<{id:string}>()
+    const packEligible=new Set(packCandidates.results.map(row=>row.id))
     const complete:Completed[]=[]
     for(let count=0;count<4 && Date.now()<deadline;count++) {
       const claim=await internal(new Request(`${origin}api/internal/jobs/claim`,{method:"POST"}),env)
@@ -83,7 +85,7 @@ async function main() {
         if(!item) continue
         job.revision=page.last_edited_time??page.created_time
         let blocks=job.kind==="members"?[]:await prepareBody(env,item as ContentItem,origin.href)
-        const cover=job.kind==="members"?await prepareMemberPhoto(item as Member):await prepareCover(item as ContentItem,job.cover)
+        const cover=job.kind==="members"?await prepareMemberPhoto(item as Member):await prepareCover(item as ContentItem,job.cover,undefined,packEligible.has(job.id))
         complete.push({job,blocks,cover})
       } catch(error) {
         await fail(env,origin,job,error instanceof Busy?error.seconds*1000:900_000,jobErrorCode(error))

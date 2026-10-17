@@ -103,3 +103,18 @@ test('very long PDFs stop speculative rendering at the page cap and remain reada
   assert.equal(f.state().entries.length, 120)
   f.cache.dispose()
 })
+
+test('a foreground jump cancels a slow speculative page without marking it as broken',async()=>{
+ let state:PdfPreparation|undefined,started=false,cancelled=false
+ const cache=new PdfPageCache({total:5,maxBytes:10000,release:()=>{},changed:s=>{state=s},yield:tick,
+  render:async(page,signal)=>{
+   if(page===2 && !cancelled){started=true;await new Promise((_resolve,reject)=>signal.addEventListener('abort',()=>{cancelled=true;reject(Error('cancelled'))},{once:true}))}
+   return {page,url:`blob:${page}`,bytes:100,ratio:1.4}
+  }})
+ cache.request(1)
+ await until(()=>started)
+ cache.request(5)
+ await until(()=>!!state?.entries.some(v=>v.page===5))
+ assert.equal(cancelled,true);assert.deepEqual(state?.failed,[])
+ cache.prepareRest();await until(()=>!!state?.complete);cache.dispose()
+})

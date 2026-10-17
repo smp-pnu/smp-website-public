@@ -1,5 +1,5 @@
 import type { ContentItem } from "./content-model"
-import { preparedReader, readerPreview,type ReaderPreview } from "./report-reader"
+import { preparedReader, readerPreview, readerPackSource,type ReaderPreview } from "./report-reader"
 
 export type PublicCover = { url: string; previewUrl?: string; width?: number; height?: number; reader?:ReaderPreview }
 export type CoveredItem = ContentItem & { cover?: PublicCover }
@@ -13,7 +13,11 @@ export function publicCover(item: CoveredItem) {
   if(reader && pdf?.chunkSize) {
     reader.rangeOnly=true
     if(pdf.initialChunks)reader.transport={key:pdf.url.split('/').at(-1)!.slice(0,-4),bytes:pdf.bytes,chunks:pdf.initialChunks}
-    if(reader.transport && prepared?.pagePack)reader.pack={key:prepared.pagePack.url.split('/').at(-1)!.slice(0,-5),bytes:prepared.pagePack.bytes}
+  }
+  const packSource=prepared && readerPackSource(prepared)
+  if(reader && prepared?.pagePack && packSource) {
+    reader.pack={key:prepared.pagePack.url.split('/').at(-1)!.slice(0,-5),bytes:prepared.pagePack.bytes}
+    reader.packSource=packSource.key
   }
   return { url:cover.url, previewUrl:cover.previewUrl && path.test(cover.previewUrl)?cover.previewUrl:cover.url,...(reader?{reader}:{}),
     ...([cover.width,cover.height].every(n=>typeof n==='number'&&Number.isSafeInteger(n)&&n>0&&n<=4096)?{width:cover.width,height:cover.height}:{}) }

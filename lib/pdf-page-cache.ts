@@ -15,6 +15,7 @@ export class PdfPageCache {
   private busy = false
   private stopped = false
   private abort = new AbortController()
+  private active?: {page:number; abort:AbortController}
 
   constructor(private options: {
     total: number; maxBytes: number; maxPages?: number
@@ -27,6 +28,8 @@ export class PdfPageCache {
   request(page: number) {
     if (page < 1 || page > this.options.total || this.stopped) return
     this.requested = page
+    // Do not make a reader wait for an expensive speculative page render.
+    if(!this.entries.has(page) && this.active && this.active.page!==page) this.active.abort.abort()
     void this.pump()
   }
   show(page: number) { this.visible = page }
@@ -57,8 +60,10 @@ export class PdfPageCache {
       while (!this.stopped && !this.paused) {
         const page = this.next()
         if (page === undefined) break
+        const active={page,abort:new AbortController()}
+        this.active=active
         try {
-          const entry = await this.options.render(page, this.abort.signal)
+          const entry = await this.options.render(page, AbortSignal.any([this.abort.signal,active.abort.signal]))
           if (this.stopped) { this.options.release(entry); break }
           const overLimit = () => this.bytes + entry.bytes > this.options.maxBytes || this.entries.size >= (this.options.maxPages ?? 120)
           if (overLimit()) {
@@ -75,8 +80,8 @@ export class PdfPageCache {
           this.bytes += entry.bytes
         } catch {
           if (this.stopped) break
-          this.failures.add(page)
-        }
+          if(!active.abort.signal.aborted)this.failures.add(page)
+        } finally {if(this.active===active)this.active=undefined}
         this.options.changed(this.snapshot())
         await this.options.yield()
       }

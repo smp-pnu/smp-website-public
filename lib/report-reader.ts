@@ -5,6 +5,7 @@ export const readerPdfMaxBytes = 24 * 1024 * 1024
 export const readerPdfChunkBytes = 1 * 1024 * 1024
 export const readerPdfChunkedMaxBytes = 32 * 1024 * 1024
 export type ReaderTransport = {key:string;bytes:number;chunks:number[]}
+export type ReaderSource = { key: string; bytes: number; modified: string; checkedAt: number }
 export type ReaderPdf = { url: string; bytes: number; chunkSize?: number; initialChunks?: number[]; sourceBytes: number; sourceModified: string; checkedAt: number }
 export function readerPdfParts(pdf: Pick<ReaderPdf, "url" | "bytes" | "chunkSize">) {
   if (!pdf.chunkSize) return [{url:pdf.url,bytes:pdf.bytes,start:0}]
@@ -14,11 +15,12 @@ export function readerPdfParts(pdf: Pick<ReaderPdf, "url" | "bytes" | "chunkSize
   }))
 }
 export type ReaderPage = { page: number; url: string; width: number; height: number }
-export type ReaderPreview = { version: 1; pageCount: number; pages: ReaderPage[]; rangeOnly?: true; transport?:ReaderTransport; pack?:PagePackHint }
+export type ReaderPreview = { version: 1; pageCount: number; pages: ReaderPage[]; rangeOnly?: true; transport?:ReaderTransport; pack?:PagePackHint; packSource?:string }
 export type PreparedReader = ReaderPreview & {
   pdf?: ReaderPdf
   pagePack?: PagePackAsset
-  pagePackVersion?: 1
+  pagePackVersion?: 1 | 2
+  source?: ReaderSource
 }
 export function readerPreview(id: string, value: unknown): ReaderPreview | undefined {
   if (!value || typeof value !== "object") return
@@ -34,10 +36,16 @@ export function preparedReader(id: string, value: unknown): PreparedReader | und
   const preview = readerPreview(id, value)
   if (!preview) return
   const attempted = (value as PreparedReader).pagePackVersion
-  if (attempted !== undefined && attempted !== 1) return
-  const base = {...preview,...(attempted ? {pagePackVersion:1 as const} : {})}
+  if (attempted !== undefined && attempted !== 1 && attempted !== 2) return
+  const source=(value as PreparedReader).source
+  if (source && (!/^[a-f0-9]{64}$/.test(source.key) || !Number.isSafeInteger(source.bytes) || source.bytes<5 || source.bytes>128*1024*1024
+    || typeof source.modified!=='string' || !Number.isFinite(Date.parse(source.modified)) || !Number.isSafeInteger(source.checkedAt) || source.checkedAt<=0)) return
+  const pack = (value as PreparedReader).pagePack
+  if (pack && (!new RegExp(`^/_reader-pdfs/${id}/[a-f0-9]{64}\\.pack$`).test(pack.url)
+    || !Number.isSafeInteger(pack.bytes) || pack.bytes < 14 || pack.bytes > pagePackMaxBytes || preview.pageCount > pagePackMaxPages)) return
+  const base = {...preview,...(attempted ? {pagePackVersion:attempted} : {}),...(source?{source:{key:source.key,bytes:source.bytes,modified:source.modified,checkedAt:source.checkedAt}}:{}),...(pack?{pagePack:{url:pack.url,bytes:pack.bytes}}:{})}
   const pdf = (value as PreparedReader).pdf
-  if (!pdf) return base
+  if (!pdf) return pack && !source ? undefined : base
   if (!new RegExp(`^/_reader-pdfs/${id}/[a-f0-9]{64}\\.pdf$`).test(pdf.url)
     || (pdf.chunkSize !== undefined && pdf.chunkSize !== readerPdfChunkBytes)
     || !Number.isSafeInteger(pdf.bytes) || pdf.bytes < 5 || pdf.bytes > (pdf.chunkSize ? readerPdfChunkedMaxBytes : readerPdfMaxBytes)
@@ -45,8 +53,13 @@ export function preparedReader(id: string, value: unknown): PreparedReader | und
     || !Number.isSafeInteger(pdf.sourceBytes) || pdf.sourceBytes < 5 || pdf.sourceBytes > 128 * 1024 * 1024
     || typeof pdf.sourceModified !== "string" || !Number.isFinite(Date.parse(pdf.sourceModified))
     || !Number.isSafeInteger(pdf.checkedAt) || pdf.checkedAt <= 0) return
-  const pack = (value as PreparedReader).pagePack
-  if (pack && (!new RegExp(`^/_reader-pdfs/${id}/[a-f0-9]{64}\\.pack$`).test(pack.url)
-    || !Number.isSafeInteger(pack.bytes) || pack.bytes < 14 || pack.bytes > pagePackMaxBytes || preview.pageCount > pagePackMaxPages)) return
   return { ...base, ...(pack ? {pagePack:{url:pack.url,bytes:pack.bytes}} : {}), pdf: {url:pdf.url,bytes:pdf.bytes,...(pdf.chunkSize?{chunkSize:pdf.chunkSize}:{}),...(pdf.initialChunks?{initialChunks:[...pdf.initialChunks]}:{}),sourceBytes:pdf.sourceBytes,sourceModified:pdf.sourceModified,checkedAt:pdf.checkedAt} }
+}
+
+// Page images and an optimized PDF are independent products of the same source.
+// Legacy packs used the optimized PDF hash; retain those URLs during migration.
+export function readerPackSource(reader: PreparedReader): ReaderSource | undefined {
+  if(reader.source)return reader.source
+  const pdf=reader.pdf
+  return pdf?{key:pdf.url.split('/').at(-1)!.slice(0,-4),bytes:pdf.sourceBytes,modified:pdf.sourceModified,checkedAt:pdf.checkedAt}:undefined
 }

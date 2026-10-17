@@ -1,24 +1,34 @@
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises"
 import { createHash } from "node:crypto"
-import { preparedReader, readerPdfParts } from "../../lib/report-reader"
+import { preparedReader, readerPdfParts, readerPackSource } from "../../lib/report-reader"
 import type { PagePackAsset } from '../../lib/pdf-page-pack'
 
 export const readerAssetBudget = { files:32, bytes:512*1024*1024 }
 type Candidate={id:string;date:string;cover:unknown}
 export function selectReaderAssets(records:Candidate[]) {
-  const selected: {id:string;url:string;bytes:number;chunkSize?:number;pagePack?:PagePackAsset}[]=[],seen=new Set<string>()
+  const selected: {id:string;url:string;bytes:number;chunkSize?:number;pagePack?:PagePackAsset;packSource?:string}[]=[],seen=new Set<string>()
   let bytes=0,files=0
-  for(const row of [...records].sort((a,b)=>b.date.localeCompare(a.date))) {
-    if(seen.has(row.id))continue
+  const candidates=[...records].sort((a,b)=>b.date.localeCompare(a.date)||a.id.localeCompare(b.id)).filter(row=>{
+    if(seen.has(row.id))return false
     seen.add(row.id)
-    const reader=preparedReader(row.id,(row.cover as {reader?:unknown})?.reader),asset=reader?.pdf
-    if(!asset || selected.length>=readerAssetBudget.files || bytes+asset.bytes>readerAssetBudget.bytes)continue
+    return true
+  }).map(row=>({...row,reader:preparedReader(row.id,(row.cover as {reader?:unknown})?.reader)}))
+  // Reading images take priority over optional duplicate PDF bytes. A large
+  // original must not exclude an otherwise small, complete reading edition.
+  for(const row of candidates) {
+    const pack=row.reader?.pagePack,source=row.reader && readerPackSource(row.reader)
+    if(!pack || !source || selected.length>=readerAssetBudget.files || bytes+pack.bytes>readerAssetBudget.bytes || files>=544)continue
+    selected.push({id:row.id,url:row.reader?.pdf?.url??`/_reader-pdfs/${row.id}/${source.key}.pdf`,bytes:0,pagePack:pack,packSource:source.key})
+    bytes+=pack.bytes;files++
+  }
+  for(const row of candidates) {
+    const asset=row.reader?.pdf,existing=selected.find(value=>value.id===row.id)
+    if(!asset || (!existing && selected.length>=readerAssetBudget.files) || bytes+asset.bytes>readerAssetBudget.bytes)continue
     const count=readerPdfParts(asset).length
     if(files+count>544)continue
-    const pack=reader?.pagePack
-    const pagePack=pack && bytes+asset.bytes+pack.bytes<=readerAssetBudget.bytes && files+count+1<=544?pack:undefined
-    selected.push({id:row.id,url:asset.url,bytes:asset.bytes,...(asset.chunkSize?{chunkSize:asset.chunkSize}:{}),...(pagePack?{pagePack}:{})})
-    bytes+=asset.bytes+(pagePack?.bytes??0);files+=count+(pagePack?1:0)
+    const value={id:row.id,url:asset.url,bytes:asset.bytes,...(asset.chunkSize?{chunkSize:asset.chunkSize}:{})}
+    if(existing)Object.assign(existing,value);else selected.push(value)
+    bytes+=asset.bytes;files+=count
   }
   return selected
 }
@@ -34,15 +44,21 @@ export async function prepareReaderAssets(records:Candidate[],origin:URL,deadlin
       const valid=(bytes:Uint8Array)=>bytes.length===packed.bytes && createHash('sha256').update(bytes).digest('hex')===key
       let present=false
       try {present=valid(await readFile(`${root}/${path}`))}catch{}
-      if(!present && Date.now()<deadline)try {
-        const response=await fetch(new URL(`/api/content/research/${asset.id}/pdf?prepared=${hash}&pages=${key}`,origin),{redirect:'error',signal:AbortSignal.timeout(Math.max(1,Math.min(15000,deadline-Date.now())))})
+      // During an upgrade the deployed server may still use the legacy PDF
+      // hash. Recover the identical, integrity-checked pack under either key.
+      for(const source of new Set([asset.packSource??hash,hash])) {
+        if(present || Date.now()>=deadline)break
+        try {
+        const response=await fetch(new URL(`/api/content/research/${asset.id}/pdf?prepared=${source}&pages=${key}`,origin),{redirect:'error',signal:AbortSignal.timeout(Math.max(1,Math.min(15000,deadline-Date.now())))})
         if(response.ok && response.headers.get('content-type')==='application/octet-stream' && Number(response.headers.get('content-length'))===packed.bytes) {
           const data=Buffer.from(await response.arrayBuffer())
           if(valid(data)){await mkdir(`${root}/${asset.id}`,{recursive:true});await writeFile(`${root}/${path}`,data);present=true}
         }else await response.body?.cancel()
-      }catch{/* Missing optional pages fall back to local PDF rendering. */}
+        }catch{/* Missing optional pages fall back to local PDF rendering. */}
+      }
       if(present)keep.add(path)
     }
+    if(!asset.bytes)continue
     const paths=parts.map(part=>part.url.slice('/_reader-pdfs/'.length))
     try {
       const digest=createHash('sha256');let valid=true

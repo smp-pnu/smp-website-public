@@ -20,7 +20,7 @@ export async function renderPdfPageImage(pdf: RenderablePdfDocument, page: numbe
     await task.promise
     const blob = await encodePdfPageImage(canvas, signal)
     if (signal.aborted) throw new Error('Cancelled')
-    return { page, url: URL.createObjectURL(blob), bytes: blob.size, ratio }
+    return { page, url: URL.createObjectURL(blob), bytes: blob.size, ratio, width:canvas.width }
   } finally {
     signal.removeEventListener('abort', cancel)
     canvas.width = canvas.height = 0

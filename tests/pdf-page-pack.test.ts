@@ -47,3 +47,14 @@ test('resizing cancels only the obsolete view; disposing cancels the shared down
  const stopped=new AbortController();stopped.abort()
  await assert.rejects(loader.read(1,stopped.signal))
 })
+
+test('the lightweight reader obtains every page with one request and no PDF parser',async()=>{
+ let calls=0;const loader=createPagePackLoader('/pdf',pdfKey,{key,bytes:bytes.length},3,async()=>{calls++;return response()})
+ const all=await loader.readAll(new AbortController().signal)
+ assert.deepEqual(all?.map(v=>v.page),[1,2,3]);assert.equal(calls,1)
+ const another=await loader.readAll(new AbortController().signal)
+ assert.equal(calls,1);assert.notEqual(all?.[0].url,another?.[0].url)
+ for(const entry of [...all!,...another!])URL.revokeObjectURL(entry.url)
+ loader.dispose()
+ await assert.rejects(loader.readAll(new AbortController().signal))
+})
