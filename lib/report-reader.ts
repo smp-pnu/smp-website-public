@@ -3,7 +3,8 @@ export const readerVersion = 1
 export const readerPdfMaxBytes = 24 * 1024 * 1024
 export const readerPdfChunkBytes = 1 * 1024 * 1024
 export const readerPdfChunkedMaxBytes = 32 * 1024 * 1024
-export type ReaderPdf = { url: string; bytes: number; chunkSize?: number; sourceBytes: number; sourceModified: string; checkedAt: number }
+export type ReaderTransport = {key:string;bytes:number;chunks:number[]}
+export type ReaderPdf = { url: string; bytes: number; chunkSize?: number; initialChunks?: number[]; sourceBytes: number; sourceModified: string; checkedAt: number }
 export function readerPdfParts(pdf: Pick<ReaderPdf, "url" | "bytes" | "chunkSize">) {
   if (!pdf.chunkSize) return [{url:pdf.url,bytes:pdf.bytes,start:0}]
   return Array.from({length:Math.ceil(pdf.bytes/pdf.chunkSize)},(_,i)=>({
@@ -12,7 +13,7 @@ export function readerPdfParts(pdf: Pick<ReaderPdf, "url" | "bytes" | "chunkSize
   }))
 }
 export type ReaderPage = { page: number; url: string; width: number; height: number }
-export type ReaderPreview = { version: 1; pageCount: number; pages: ReaderPage[]; rangeOnly?: true }
+export type ReaderPreview = { version: 1; pageCount: number; pages: ReaderPage[]; rangeOnly?: true; transport?:ReaderTransport }
 export type PreparedReader = ReaderPreview & {
   pdf?: ReaderPdf
 }
@@ -34,8 +35,9 @@ export function preparedReader(id: string, value: unknown): PreparedReader | und
   if (!new RegExp(`^/_reader-pdfs/${id}/[a-f0-9]{64}\\.pdf$`).test(pdf.url)
     || (pdf.chunkSize !== undefined && pdf.chunkSize !== readerPdfChunkBytes)
     || !Number.isSafeInteger(pdf.bytes) || pdf.bytes < 5 || pdf.bytes > (pdf.chunkSize ? readerPdfChunkedMaxBytes : readerPdfMaxBytes)
+    || (pdf.initialChunks!==undefined && (!pdf.chunkSize || !Array.isArray(pdf.initialChunks) || pdf.initialChunks.length<1 || pdf.initialChunks.length>8 || pdf.initialChunks[0]!==0 || pdf.initialChunks.some((n,i,a)=>!Number.isSafeInteger(n)||n<0||n>=Math.ceil(pdf.bytes/pdf.chunkSize!)||(i>0&&n<=a[i-1]))))
     || !Number.isSafeInteger(pdf.sourceBytes) || pdf.sourceBytes < 5 || pdf.sourceBytes > 128 * 1024 * 1024
     || typeof pdf.sourceModified !== "string" || !Number.isFinite(Date.parse(pdf.sourceModified))
     || !Number.isSafeInteger(pdf.checkedAt) || pdf.checkedAt <= 0) return
-  return { ...preview, pdf: {url:pdf.url,bytes:pdf.bytes,...(pdf.chunkSize?{chunkSize:pdf.chunkSize}:{}),sourceBytes:pdf.sourceBytes,sourceModified:pdf.sourceModified,checkedAt:pdf.checkedAt} }
+  return { ...preview, pdf: {url:pdf.url,bytes:pdf.bytes,...(pdf.chunkSize?{chunkSize:pdf.chunkSize}:{}),...(pdf.initialChunks?{initialChunks:[...pdf.initialChunks]}:{}),sourceBytes:pdf.sourceBytes,sourceModified:pdf.sourceModified,checkedAt:pdf.checkedAt} }
 }

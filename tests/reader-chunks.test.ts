@@ -40,3 +40,9 @@ test('large prepared documents are bounded by total size and fixed part size; pu
  const cover=publicCover({id,kind:'research',cover:{url:reader.pages[0].url,reader}} as unknown as ContentItem)!
  assert.equal(cover.reader?.rangeOnly,true);assert.equal('pdf' in cover.reader!,false)
 })
+test('first-page hints are bounded, ordered, and only expose an owned content hash',()=>{
+ const reader={version:1 as const,pageCount:1,pages:[{page:1,url:`/report-covers/${id}/${hash}.webp`,width:2048,height:2899}],pdf:{...pdf,initialChunks:[0,2]}}
+ const cover=publicCover({id,kind:'research',cover:{url:reader.pages[0].url,reader}} as unknown as ContentItem)!
+ assert.deepEqual(cover.reader?.transport,{key:hash,bytes:pdf.bytes,chunks:[0,2]})
+ for(const initialChunks of [[],[1],[0,0],[0,2,1],[0,3],[0,-1],Array.from({length:9},(_,n)=>n)])assert.equal(preparedReader(id,{...reader,pdf:{...reader.pdf,initialChunks}}),undefined)
+})

@@ -9,7 +9,11 @@ export function publicCover(item: CoveredItem) {
   const path=new RegExp(`^/report-covers/${item.id}/[a-f0-9]{64}\\.webp$`)
   if(!path.test(cover.url)) return null
   const reader=readerPreview(item.id,cover.reader)
-  if(reader && preparedReader(item.id,cover.reader)?.pdf?.chunkSize) reader.rangeOnly=true
+  const pdf=preparedReader(item.id,cover.reader)?.pdf
+  if(reader && pdf?.chunkSize) {
+    reader.rangeOnly=true
+    if(pdf.initialChunks)reader.transport={key:pdf.url.split('/').at(-1)!.slice(0,-4),bytes:pdf.bytes,chunks:pdf.initialChunks}
+  }
   return { url:cover.url, previewUrl:cover.previewUrl && path.test(cover.previewUrl)?cover.previewUrl:cover.url,...(reader?{reader}:{}),
     ...([cover.width,cover.height].every(n=>typeof n==='number'&&Number.isSafeInteger(n)&&n>0&&n<=4096)?{width:cover.width,height:cover.height}:{}) }
 }

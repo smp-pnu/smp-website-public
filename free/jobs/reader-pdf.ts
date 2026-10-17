@@ -6,6 +6,8 @@ import { join, resolve } from "node:path"
 import { createHash } from "node:crypto"
 import { readerPdfChunkBytes, readerPdfChunkedMaxBytes, readerPdfParts } from "../../lib/report-reader"
 
+import { firstPageChunks } from "./reader-start"
+
 const execute = promisify(execFile)
 let pythonReady: Promise<string> | undefined
 function python() {
@@ -34,7 +36,7 @@ export async function optimizeReaderPdf(id: string, bytes: Uint8Array) {
     const data=await readFile(output), hash=createHash("sha256").update(data).digest("hex")
     const target=`.smp-cache/reader-pdfs/${id}`
     await mkdir(target,{recursive:true})
-    const asset={url:`/_reader-pdfs/${id}/${hash}.pdf`,bytes:data.length,chunkSize:readerPdfChunkBytes}
+    const asset={url:`/_reader-pdfs/${id}/${hash}.pdf`,bytes:data.length,chunkSize:readerPdfChunkBytes,initialChunks:await firstPageChunks(data).catch(()=>[0])}
     for(const part of readerPdfParts(asset)) await writeFile(`.smp-cache/reader-pdfs/${part.url.slice('/_reader-pdfs/'.length)}`,data.subarray(part.start,part.start+part.bytes))
     return asset
   } finally { await rm(dir,{recursive:true,force:true}) }
