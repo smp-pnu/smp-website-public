@@ -140,10 +140,19 @@ test('an evicted reading edition falls back without probing Drive',async()=>{
 
 
 test('storage overflow stops deployment instead of dropping old complete editions',()=>{
- const records=Array.from({length:90},(_,i)=>{
+ const records=Array.from({length:180},(_,i)=>{
   const id=i.toString(16).padStart(32,'0')
   return {id,date:'2026',cover:{reader:{...metadata(id),pagePack:{url:`/_reader-pdfs/${id}/${hash}.pack`,bytes:24*1024*1024}}}}
  })
  assert.throws(()=>selectReaderAssets(records),/storage safety budget/)
  assert.ok(preparedReader(id,{...metadata(),pageCount:62,pagePack:{url:`/_reader-pdfs/${id}/${hash}.pack`,bytes:22*1024*1024}}))
+})
+
+
+test('a decade of 20 annual additions fits without evicting the current reading library',()=>{
+ const records=Array.from({length:391},(_,i)=>{
+  const id=i.toString(16).padStart(32,'0')
+  return {id,date:String(i),cover:{reader:{...metadata(id),pagePack:{url:`/_reader-pdfs/${id}/${hash}.pack`,bytes:10*1024*1024}}}}
+ })
+ assert.equal(selectReaderAssets(records).filter(row=>row.pagePack).length,391)
 })

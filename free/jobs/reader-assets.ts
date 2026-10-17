@@ -1,11 +1,12 @@
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises"
 import { createHash } from "node:crypto"
 import { preparedReader, readerPdfParts, readerPackSource } from "../../lib/report-reader"
+import readerLimits from "../reader-storage-limits.json"
 import type { PagePackAsset } from '../../lib/pdf-page-pack'
 
 // Application safeguards, below free static-file and runner/cache capacity.
 // All complete editions are retained; only optional duplicate PDFs rotate.
-export const readerAssetBudget = { files:32, bytes:256*1024*1024, packFiles:1000, packBytes:2*1024*1024*1024, assetFiles:1544 }
+export const readerAssetBudget = readerLimits
 type Candidate={id:string;date:string;cover:unknown}
 export function selectReaderAssets(records:Candidate[]) {
   const selected: {id:string;url:string;bytes:number;chunkSize?:number;pagePack?:PagePackAsset;packSource?:string}[]=[],seen=new Set<string>()
