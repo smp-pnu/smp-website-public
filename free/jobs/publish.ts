@@ -100,6 +100,9 @@ async function main() {
       }
     }
     if(!complete.length && !forceBuild) { console.log("No asset deployment needed");return }
+    // Preparation stops early so deployment and publication checks can finish
+    // inside the lease. Those checks still obey the shared Notion rate limits.
+    env.NOTION_WAIT_UNTIL=acquiredUntil-60_000
     // A cache eviction must never remove covers from the next deployment.
     // Recover every currently referenced asset from this site's last deployment;
     // if even one recovery fails, leave that deployment in place.
@@ -134,7 +137,7 @@ async function main() {
     const readerRecords=await env.CMS_DB.prepare("SELECT id,json_extract(item,'$.date') AS date,cover FROM free_content WHERE kind='research' AND cover IS NOT NULL").all<{id:string;date:string;cover:string}>()
     const updated=new Map(readerRecords.results.map(row=>[row.id,{id:row.id,date:row.date||"",cover:JSON.parse(row.cover)}]))
     for(const result of complete) if(result.job.kind==='research') updated.set(result.job.id,{id:result.job.id,date:(result.job.item as ContentItem).date||"",cover:result.cover})
-    await prepareReaderAssets([...updated.values()],origin,Math.min(Date.now()+8*60_000,deadline-120_000))
+    await prepareReaderAssets([...updated.values()],origin,Math.min(Date.now()+8*60_000,acquiredUntil-(libraryMigration?12:2)*60_000))
     command("scripts/build-free.mjs")
     command("scripts/deploy-free.mjs")
     await setAdminConfig(env.CMS_DB,"recruitment_deployed",recruitment.fingerprint)
