@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Document } from "react-pdf"
-import type { ReadingDocument } from "@/lib/pdf-reading-preload"
+import type { RenderablePdfDocument } from "@/lib/pdf-reading-preload"
 import { PdfBufferedPages } from "./pdf-buffered-pages"
 import { usePdfReadingPreload } from "./use-pdf-reading-preload"
 import { pdfOptions, preparedPdfOptions } from "./pdf-config"
@@ -21,7 +21,7 @@ export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChang
   const [zoom, setZoom] = useState(1)
   const [attempt, setAttempt] = useState(0)
   const [failed, setFailed] = useState(false)
-  const [pdfDocument, setPdfDocument] = useState<ReadingDocument>()
+  const [pdfDocument, setPdfDocument] = useState<RenderablePdfDocument>()
   const [initialPagesReady, setInitialPagesReady] = useState(false)
   const [rangeFile,setRangeFile]=useState<ReturnType<typeof preparedRangeFile>['file']>()
   const [rangeFallback,setRangeFallback]=useState(false)
@@ -115,7 +115,7 @@ export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChang
           } catch { /* Optional preference only. */ }
         }}
         onPassword={fail} externalLinkTarget="_blank" onItemClick={({ pageNumber }) => { if (pageNumber) navigate(pageNumber) }}>
-        <PdfBufferedPages key={`${width}:${zoom}`} page={page} total={pages} width={width} zoom={zoom} onReady={rendered} onInitialPagesReady={preparedInitialPages} onError={fail} />
+        {pdfDocument && <PdfBufferedPages key={width} pdf={pdfDocument} page={page} width={width} zoom={zoom} fullyLoaded={fullyLoaded} onReady={rendered} onInitialPagesReady={preparedInitialPages} onError={fail} />}
       </Document>}
     </div>
   </div>

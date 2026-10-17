@@ -1,6 +1,11 @@
+import type { pdfjs } from 'react-pdf'
+
+export type RenderablePdfDocument = Awaited<ReturnType<typeof pdfjs.getDocument>['promise']>
+
 export type ReadingDocument = {
   numPages: number
   getData: () => Promise<Uint8Array>
+  getDownloadInfo?: () => Promise<{ length: number }>
 }
 
 // Called once the visible/adjacent canvases have warmed the first three pages.

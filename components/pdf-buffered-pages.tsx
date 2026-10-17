@@ -1,33 +1,72 @@
 "use client"
 
-import { useEffect, useReducer } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Page } from 'react-pdf'
-import { createPdfPageBuffer, updatePdfPageBuffer } from '@/lib/pdf-page-buffer'
+import type { RenderablePdfDocument } from '@/lib/pdf-reading-preload'
+import { usePdfPageCache } from './use-pdf-page-cache'
 
-export function PdfBufferedPages({ page, total, width, zoom, onReady, onInitialPagesReady, onError }: {
-  page: number; total: number; width: number; zoom: number
+function CachedPageImage({ url, page, width, height, onDecoded, onError }: {
+  url: string; page: number; width: number; height: number
+  onDecoded: (url: string, ready: boolean) => void; onError: () => void
+}) {
+  useEffect(() => () => onDecoded(url, false), [url, onDecoded])
+  // Decode before swapping, including when returning to a previously unmounted image.
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url} alt={`PDF ${page}페이지`} width={width} height={height} draggable={false} className="block h-full w-full"
+    onLoad={event => { const image = event.currentTarget; void image.decode().then(() => { if (image.isConnected) onDecoded(url, true) }).catch(() => { if (image.isConnected) onError() }) }} onError={onError} />
+}
+
+function PageLayers({ page, width, zoom, ratio }: { page: number; width: number; zoom: number; ratio: number }) {
+  const [renderedZoom, setRenderedZoom] = useState<number | null>(null)
+  return <Page pageNumber={page} width={width} scale={zoom} renderMode={zoom === 1 ? 'none' : 'canvas'}
+    devicePixelRatio={Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(6_000_000 / ((width * zoom) ** 2 * ratio)))}
+    onRenderSuccess={() => setRenderedZoom(zoom)}
+    className={`!bg-transparent ${renderedZoom !== zoom ? '[&>canvas]:opacity-0' : ''}`} loading={null} error={null} />
+}
+
+export function PdfBufferedPages({ pdf, page, width, zoom, fullyLoaded, onReady, onInitialPagesReady, onError }: {
+  pdf: RenderablePdfDocument; page: number; width: number; zoom: number; fullyLoaded: boolean
   onReady: (page: number) => void; onInitialPagesReady: () => void; onError: () => void
 }) {
-  const [buffer, dispatch] = useReducer((state: ReturnType<typeof createPdfPageBuffer>, event: Parameters<typeof updatePdfPageBuffer>[1]) => updatePdfPageBuffer(state, event, total, zoom === 1), page, createPdfPageBuffer)
-  useEffect(() => { dispatch({ type: 'request', page }) }, [page])
-  useEffect(() => { if (buffer.visible !== null) onReady(buffer.visible) }, [buffer.visible, onReady])
+  const [visible, setVisible] = useState<number | null>(null)
+  const [decoded, setDecoded] = useState<Set<string>>(() => new Set())
+  const handleDecoded = useCallback((url: string, ready: boolean) => setDecoded(previous => {
+    if (previous.has(url) === ready) return previous
+    const next = new Set(previous)
+    if (ready) next.add(url); else next.delete(url)
+    return next
+  }), [])
+  const state = usePdfPageCache(pdf, width, page, fullyLoaded, visible)
+  const requested = state.entries.find(entry => entry.page === page)
+  const current = state.entries.find(entry => entry.page === visible)
+  // Only three images are mounted/decoded. All other pages remain compressed blobs.
+  const next = state.entries.find(entry => entry.page === page + 1)
+  const mounted = [...new Set([current, requested, next])].filter(entry => entry !== undefined)
+  const ready = requested && decoded.has(requested.url)
+  const shown = ready ? page : visible
   useEffect(() => {
-    if (total > 0 && Array.from({ length: Math.min(3, total) }, (_, i) => i + 1).every(page => buffer.entries.some(entry => entry.page === page && entry.ready))) onInitialPagesReady()
-  }, [buffer.entries, total, onInitialPagesReady])
-  const pending = buffer.visible !== page
-  return <div className="relative" data-pdf-visible-page={buffer.visible ?? ''} aria-busy={pending}
-    style={buffer.visible === null ? { aspectRatio: '595 / 842' } : undefined}>
-    {pending && buffer.visible !== null && <p role="status" className="absolute right-3 top-3 z-10 rounded bg-slate-950/85 px-3 py-2 text-xs text-white">{page}페이지 준비 중…</p>}
-    {buffer.entries.map(entry => {
-      const shown = entry.page === buffer.visible
-      return <div key={entry.page} data-pdf-buffer-page={entry.page} aria-hidden={!shown} inert={!shown}
-        className={shown ? 'relative' : 'pointer-events-none absolute inset-x-0 top-0 opacity-0'}>
-        <Page pageNumber={entry.page} width={width} scale={zoom} devicePixelRatio={Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(6_000_000 / ((width * zoom) ** 2 * 1.5)))}
-          loading={null} error={null}
-          onRenderSuccess={() => dispatch({ type: 'ready', page: entry.page })}
-          onLoadError={() => { dispatch({ type: 'failed', page: entry.page }); if (entry.page === page) onError() }}
-          onRenderError={() => { dispatch({ type: 'failed', page: entry.page }); if (entry.page === page) onError() }} />
-      </div>
-    })}
+    if (ready) { setVisible(page); onReady(page) }
+  }, [ready, page, onReady])
+  useEffect(() => {
+    if (Array.from({ length: Math.min(3, pdf.numPages) }, (_, index) => index + 1).every(page => (state.entries.some(entry => entry.page === page) || state.failed.includes(page)))) onInitialPagesReady()
+  }, [state.entries, state.failed, pdf.numPages, onInitialPagesReady])
+  useEffect(() => { if (state.failed.includes(page)) onError() }, [state.failed, page, onError])
+  const pending = shown !== page
+  return <div data-pdf-prepared-pages={state.entries.length} data-pdf-cache-bytes={state.entries.reduce((sum, entry) => sum + entry.bytes, 0)} data-pdf-preparation={state.complete ? 'complete' : state.limited ? 'limited' : 'preparing'}>
+    <p className="border-b border-white/10 px-4 py-2 text-xs text-slate-300" role="status">
+      {state.complete ? '전체 페이지 준비 완료' : state.limited || state.failed.length ? '준비된 페이지부터 읽을 수 있습니다' : `페이지 준비 중 · ${state.entries.length}/${pdf.numPages}`}
+    </p>
+    <div className="relative" data-pdf-visible-page={shown ?? ''} aria-busy={pending}
+      style={shown === null ? { aspectRatio: '595 / 842' } : undefined}>
+      {pending && visible !== null && <p role="status" className="absolute right-3 top-3 z-20 rounded bg-slate-950/85 px-3 py-2 text-xs text-white">{page}페이지 준비 중…</p>}
+      {mounted.map(entry => <div key={entry.url} data-pdf-buffer-page={entry.page} aria-hidden={entry.page !== shown} inert={entry.page !== shown}
+        className={entry.page === shown ? 'relative' : 'hidden'} style={{ width: width * zoom, height: width * zoom * entry.ratio }}>
+        <CachedPageImage url={entry.url} page={entry.page} width={width * zoom} height={width * zoom * entry.ratio}
+          onDecoded={handleDecoded} onError={() => { if (entry.page === page) onError() }} />
+        {entry.page === shown && <div className="absolute inset-0">
+          <PageLayers page={entry.page} width={width} zoom={zoom} ratio={entry.ratio} />
+        </div>}
+      </div>)}
+    </div>
   </div>
 }
