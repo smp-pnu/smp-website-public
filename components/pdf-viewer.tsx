@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic"
 import Image from "next/image"
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import type { ReaderPreview } from "@/lib/report-reader"
 
 const PdfCanvas = dynamic(() => import("./pdf-canvas"), {
@@ -21,6 +21,16 @@ function PdfReader({ url, preview }: PdfViewerProps) {
   const [ready, setReady] = useState(false)
   const [page,setPage]=useState(1)
   const [failedImages,setFailedImages]=useState<string[]>([])
+  useEffect(() => {
+    if (!url) return
+    for (const page of preview?.reader?.pages ?? []) {
+      const image = new window.Image()
+      image.decoding = 'async'
+      image.fetchPriority = 'low'
+      image.src = page.url
+      void image.decode().catch(() => {})
+    }
+  }, [url, preview?.reader?.pages])
   const image=preview?.reader?.pages.find(p=>p.page===page)
   const imageUrl=image?.url??(page===1?preview?.url:undefined)
   const fallbackUrl=page===1?preview?.fallbackUrl:undefined

@@ -26,3 +26,18 @@ test('changed PDF sizes and missing prepared copies cause a bounded fallback; ab
  const pending=createPdfRangeLoader('/api/pdf',hint,()=>failures++,async(_u,init)=>{calls++;await new Promise((_,reject)=>init?.signal?.addEventListener('abort',()=>{aborted++;reject(Error('aborted'))},{once:true}));throw Error('unreachable')})
  pending.prefetch();pending.abort();await new Promise(resolve=>setImmediate(resolve));assert.equal(calls,4);assert.equal(aborted,4);assert.equal(failures,1)
 })
+
+test('whole-document warmup batches adjacent missing chunks without repeating prefetched data',async()=>{
+ const calls:{start:number;end:number}[]=[],data=new Uint8Array(size*10+35)
+ for(let i=0;i<data.length;i++)data[i]=Math.floor(i/size)
+ const loader=createPdfRangeLoader('/api/pdf',{...hint,bytes:data.length,chunks:[0,10]},()=>assert.fail('unexpected fallback'),async(_url,init)=>{
+  const [,a,b]=/bytes=(\d+)-(\d+)/.exec(new Headers(init?.headers).get('range')!)!,start=Number(a),end=Number(b);calls.push({start,end})
+  return new Response(data.slice(start,end+1),{status:206,headers:{'Content-Type':'application/pdf','Content-Range':`bytes ${start}-${end}/${data.length}`}})
+ })
+ loader.prefetch()
+ assert.deepEqual(await loader.read(0,data.length),data)
+ assert.equal(calls.length,5) // two priority chunks + three grouped ranges
+ assert.equal(calls.reduce((n,c)=>n+c.end-c.start+1,0),data.length)
+ assert.ok(calls.every(c=>c.end-c.start+1<=4*size))
+ loader.abort()
+})
