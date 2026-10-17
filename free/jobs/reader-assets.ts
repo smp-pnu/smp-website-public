@@ -3,11 +3,13 @@ import { createHash } from "node:crypto"
 import { preparedReader, readerPdfParts, readerPackSource } from "../../lib/report-reader"
 import type { PagePackAsset } from '../../lib/pdf-page-pack'
 
-export const readerAssetBudget = { files:32, bytes:512*1024*1024 }
+// Application safeguards, below free static-file and runner/cache capacity.
+// All complete editions are retained; only optional duplicate PDFs rotate.
+export const readerAssetBudget = { files:32, bytes:256*1024*1024, packFiles:1000, packBytes:2*1024*1024*1024, assetFiles:1544 }
 type Candidate={id:string;date:string;cover:unknown}
 export function selectReaderAssets(records:Candidate[]) {
   const selected: {id:string;url:string;bytes:number;chunkSize?:number;pagePack?:PagePackAsset;packSource?:string}[]=[],seen=new Set<string>()
-  let bytes=0,files=0
+  let bytes=0,files=0,packBytes=0,packFiles=0,pdfFiles=0
   const candidates=[...records].sort((a,b)=>b.date.localeCompare(a.date)||a.id.localeCompare(b.id)).filter(row=>{
     if(seen.has(row.id))return false
     seen.add(row.id)
@@ -17,23 +19,24 @@ export function selectReaderAssets(records:Candidate[]) {
   // original must not exclude an otherwise small, complete reading edition.
   for(const row of candidates) {
     const pack=row.reader?.pagePack,source=row.reader && readerPackSource(row.reader)
-    if(!pack || !source || selected.length>=readerAssetBudget.files || bytes+pack.bytes>readerAssetBudget.bytes || files>=544)continue
+    if(!pack || !source)continue
+    if(packFiles+1>readerAssetBudget.packFiles || packBytes+pack.bytes>readerAssetBudget.packBytes)throw new Error('Complete reader library exceeds storage safety budget')
     selected.push({id:row.id,url:row.reader?.pdf?.url??`/_reader-pdfs/${row.id}/${source.key}.pdf`,bytes:0,pagePack:pack,packSource:source.key})
-    bytes+=pack.bytes;files++
+    packBytes+=pack.bytes;packFiles++;files++
   }
   for(const row of candidates) {
     const asset=row.reader?.pdf,existing=selected.find(value=>value.id===row.id)
-    if(!asset || (!existing && selected.length>=readerAssetBudget.files) || bytes+asset.bytes>readerAssetBudget.bytes)continue
+    if(!asset || pdfFiles>=readerAssetBudget.files || bytes+asset.bytes>readerAssetBudget.bytes)continue
     const count=readerPdfParts(asset).length
-    if(files+count>544)continue
+    if(files+count>readerAssetBudget.assetFiles)continue
     const value={id:row.id,url:asset.url,bytes:asset.bytes,...(asset.chunkSize?{chunkSize:asset.chunkSize}:{})}
     if(existing)Object.assign(existing,value);else selected.push(value)
-    bytes+=asset.bytes;files+=count
+    bytes+=asset.bytes;files+=count;pdfFiles++
   }
   return selected
 }
-// Optional speed copies have a hard storage ceiling. Missing copies always
-// fall back to Drive; recovery never downloads an original by accident.
+// Never evict a published complete edition to deploy unrelated content.
+// A failed recovery preserves the previous deployment and retries later.
 export async function prepareReaderAssets(records:Candidate[],origin:URL,deadline=Date.now()+90_000) {
   const root=".smp-cache/reader-pdfs",keep=new Set<string>()
   await mkdir(root,{recursive:true})
@@ -56,7 +59,8 @@ export async function prepareReaderAssets(records:Candidate[],origin:URL,deadlin
         }else await response.body?.cancel()
         }catch{/* Missing optional pages fall back to local PDF rendering. */}
       }
-      if(present)keep.add(path)
+      if(!present)throw new Error("Cannot recover a complete reader edition; keeping the current deployment")
+      keep.add(path)
     }
     if(!asset.bytes)continue
     const paths=parts.map(part=>part.url.slice('/_reader-pdfs/'.length))

@@ -1,5 +1,5 @@
-export const pagePackMaxBytes = 16 * 1024 * 1024
-export const pagePackMaxPages = 60
+export const pagePackMaxBytes = 24 * 1024 * 1024
+export const pagePackMaxPages = 120
 export type PagePackAsset = { url: string; bytes: number }
 export type PagePackHint = { key: string; bytes: number }
 export type PackedPage = { page: number; width: number; height: number; data: Uint8Array }

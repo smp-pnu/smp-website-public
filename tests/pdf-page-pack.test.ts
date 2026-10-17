@@ -58,3 +58,11 @@ test('the lightweight reader obtains every page with one request and no PDF pars
  loader.dispose()
  await assert.rejects(loader.readAll(new AbortController().signal))
 })
+
+
+test('long reports retain all 62 pages in a single bounded pack',()=>{
+ const pages=Array.from({length:62},(_,i)=>({page:i+1,width:2048,height:2899,data:image}))
+ const packed=encodePagePack(pages)
+ assert.equal(decodePagePack(packed,62).at(-1)!.page,62)
+ assert.throws(()=>encodePagePack(Array.from({length:121},(_,i)=>({...pages[0],page:i+1}))))
+})

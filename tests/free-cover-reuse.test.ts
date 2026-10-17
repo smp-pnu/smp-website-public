@@ -49,7 +49,7 @@ test('unchanged optimized PDFs retain their first-page map without re-optimizing
  assert.equal(optimized,1);assert.equal(renders,1);assert.deepEqual(second?.reader?.pdf?.initialChunks,[0]);assert.equal(second?.url,first?.url)
 })
 
-test('page packs reuse the verified PDF, regenerate on replacement and remain optional',async()=>{
+test('page packs reuse verified PDFs and a failed replacement stays retryable',async()=>{
  const png=await sharp({create:{width:64,height:90,channels:3,background:'#fff'}}).png().toBuffer()
  let data=new TextEncoder().encode('%PDF-one'),seenPrevious:unknown[]=[]
  const asset={url:`/_reader-pdfs/${id}/${'e'.repeat(64)}.pack`,bytes:1000}
@@ -57,17 +57,16 @@ test('page packs reuse the verified PDF, regenerate on replacement and remain op
  const first=await prepareCover(item,null,deps),again=await prepareCover(item,first,deps)
  assert.deepEqual(again?.reader?.pagePack,asset);assert.deepEqual(seenPrevious,[undefined,asset])
  data=new TextEncoder().encode('%PDF-replaced')
- const changed=await prepareCover(item,again,{...deps,pack:async()=>{throw Error('Optional timeout')}})
- assert.equal(changed?.reader?.pagePack,undefined);assert.equal(changed?.reader?.pagePackVersion,2)
- assert.equal(changed?.reader?.pages.length,1);assert.ok(changed?.reader?.pdf)
+ await assert.rejects(prepareCover(item,again,{...deps,pack:async()=>{throw Error('Pack timeout')}}),/Pack timeout/)
+ assert.equal(again?.reader?.pagePack?.url,asset.url,'failure must not mutate the saved edition')
 })
 
-test('pack generation is independent of PDF optimization and is skipped outside the bounded working set',async()=>{
+test('all reports generate packs, including older dated reports in a reader-only migration',async()=>{
  const png=await sharp({create:{width:64,height:90,channels:3,background:'#fff'}}).png().toBuffer()
  let packs=0
  const deps={download:async()=>({data:new TextEncoder().encode('%PDF-large'),lastModified:'Tue, 06 Oct 2026 04:50:46 GMT'}),render:async()=>({pageCount:1,pages:[{page:1,png,width:64,height:90}]}),save:async(report:string,bytes:Uint8Array)=>`/report-covers/${report}/${createHash('sha256').update(bytes).digest('hex')}.webp`,optimize:async()=>undefined,pack:async()=>{packs++;return {url:`/_reader-pdfs/${id}/${'e'.repeat(64)}.pack`,bytes:1000}}}
  const accelerated=await prepareCover(item,null,deps)
  assert.ok(accelerated?.reader?.pagePack);assert.ok(accelerated?.reader?.source);assert.equal(accelerated?.reader?.pdf,undefined)
- const archive=await prepareCover(item,null,deps,false)
- assert.equal(packs,1);assert.equal(archive?.reader?.pagePack,undefined);assert.equal(archive?.reader?.pagePackVersion,undefined)
+ const archive=await prepareCover({...item,date:'2010-01-01'},null,deps,true)
+ assert.equal(packs,2);assert.ok(archive?.reader?.pagePack);assert.equal(archive?.reader?.pagePackVersion,2)
 })
