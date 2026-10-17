@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createPdfPageBuffer, updatePdfPageBuffer } from '../lib/pdf-page-buffer'
-import { preloadPdfReading } from '../lib/pdf-reading-preload'
+import { fillPdfReadingCache } from '../lib/pdf-reading-preload'
 
 test('first three canvases warm in order and cached page changes never clear the visible page', () => {
   let state = createPdfPageBuffer(1)
@@ -31,17 +31,15 @@ test('rapid jumps retain old pixels and a late render cannot display the wrong p
   assert.ok(state.entries.every(entry => entry.page <= 27))
 })
 
-test('preload prepares only the first three pages before filling the existing document cache', async () => {
-  const calls: number[] = []
-  const pdf = { numPages: 27, getPage: async (page: number) => ({ getOperatorList: async () => { calls.push(page) } }), getData: async () => { calls.push(0); return new Uint8Array() } }
-  assert.equal(await preloadPdfReading(pdf, { cancelled: () => false, beforeFullDownload: async () => true }), true)
-  assert.deepEqual(calls, [1, 2, 3, 0])
-  calls.length = 0
-  await preloadPdfReading(pdf, { cancelled: () => calls.length === 1, beforeFullDownload: async () => true })
-  assert.deepEqual(calls, [1])
-  calls.length = 0
-  await preloadPdfReading({ ...pdf, numPages: 2 }, { cancelled: () => false, beforeFullDownload: async () => false })
-  assert.deepEqual(calls, [1, 2])
+test('whole-document preload observes visibility, cancellation and connection guards', async () => {
+  let downloads = 0, cancelled = false
+  const pdf = { numPages: 27, getData: async () => { downloads++; return new Uint8Array() } }
+  assert.equal(await fillPdfReadingCache(pdf, { cancelled: () => false, beforeFullDownload: async () => true }), true)
+  assert.equal(downloads, 1)
+  await fillPdfReadingCache(pdf, { cancelled: () => true, beforeFullDownload: async () => true })
+  await fillPdfReadingCache(pdf, { cancelled: () => false, beforeFullDownload: async () => false })
+  await fillPdfReadingCache(pdf, { cancelled: () => cancelled, beforeFullDownload: async () => { cancelled = true; return true } })
+  assert.equal(downloads, 1)
 })
 
 test('zoomed pages keep only the visible and requested canvases without speculative renders', () => {

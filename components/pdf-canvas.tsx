@@ -22,13 +22,13 @@ export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChang
   const [attempt, setAttempt] = useState(0)
   const [failed, setFailed] = useState(false)
   const [pdfDocument, setPdfDocument] = useState<ReadingDocument>()
-  const [firstPaint, setFirstPaint] = useState(false)
+  const [initialPagesReady, setInitialPagesReady] = useState(false)
   const [rangeFile,setRangeFile]=useState<ReturnType<typeof preparedRangeFile>['file']>()
   const [rangeFallback,setRangeFallback]=useState(false)
-  const fullyLoaded = usePdfReadingPreload(pdfDocument, firstPaint, Boolean(transport && !rangeFallback))
+  const fullyLoaded = usePdfReadingPreload(pdfDocument, initialPagesReady, Boolean(transport && !rangeFallback))
   useEffect(()=>{
     setRangeFallback(false);setRangeFile(undefined)
-    setPdfDocument(undefined);setFirstPaint(false)
+    setPdfDocument(undefined);setInitialPagesReady(false)
     if(!url || !transport)return
     const prepared=preparedRangeFile(url,transport,()=>setRangeFallback(true))
     setRangeFile(prepared.file)
@@ -40,7 +40,9 @@ export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChang
   const [fullscreen, setFullscreen] = useState(false)
   const [fullscreenError, setFullscreenError] = useState(false)
   const fail = useCallback(() => { setFailed(true); onReady(page) }, [onReady,page])
-  const rendered = useCallback((value: number) => { setFirstPaint(true); onReady(value) }, [onReady])
+  const preparedInitialPages = useCallback(() => setInitialPagesReady(true), [])
+  // A reader jumping ahead or zooming should not wait for the initial window.
+  const rendered = useCallback((value: number) => { if(value >= 3 || zoom !== 1) setInitialPagesReady(true); onReady(value) }, [onReady, zoom])
   useEffect(() => {
     setFullscreenAvailable(Boolean(document.fullscreenEnabled))
     const update = () => setFullscreen(document.fullscreenElement === reader.current)
@@ -66,7 +68,7 @@ export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChang
   const error = <div role="alert" className="p-6 text-sm leading-7 text-slate-200">
     <p>PDF를 표시하지 못했습니다. 잠시 후 다시 시도하거나 위의 PDF 다운로드를 이용해주세요.</p>
     <p>계속 열리지 않으면 학회에 문의해주세요.</p>
-    <button className={`${buttonClass} mt-3`} onClick={() => { onRetry(); setFailed(false); setPages(0); setFirstPaint(false); setPdfDocument(undefined); onPageChange(1); setAttempt(value => value + 1) }}>다시 시도</button>
+    <button className={`${buttonClass} mt-3`} onClick={() => { onRetry(); setFailed(false); setPages(0); setInitialPagesReady(false); setPdfDocument(undefined); onPageChange(1); setAttempt(value => value + 1) }}>다시 시도</button>
   </div>
 
   return <div ref={reader} data-pdf-download-state={fullyLoaded ? 'complete' : 'partial'} className={`overflow-hidden rounded-lg border border-white/20 bg-slate-950 ${fullscreen ? "flex h-screen flex-col" : ""}`}>
@@ -113,7 +115,7 @@ export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChang
           } catch { /* Optional preference only. */ }
         }}
         onPassword={fail} externalLinkTarget="_blank" onItemClick={({ pageNumber }) => { if (pageNumber) navigate(pageNumber) }}>
-        <PdfBufferedPages key={`${width}:${zoom}`} page={page} total={pages} width={width} zoom={zoom} onReady={rendered} onError={fail} />
+        <PdfBufferedPages key={`${width}:${zoom}`} page={page} total={pages} width={width} zoom={zoom} onReady={rendered} onInitialPagesReady={preparedInitialPages} onError={fail} />
       </Document>}
     </div>
   </div>

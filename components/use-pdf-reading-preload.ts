@@ -1,17 +1,17 @@
 "use client"
 
 import { useEffect, useState } from 'react'
-import { preloadPdfReading, type ReadingDocument } from '@/lib/pdf-reading-preload'
+import { fillPdfReadingCache, type ReadingDocument } from '@/lib/pdf-reading-preload'
 
-export function usePdfReadingPreload(pdf: ReadingDocument | undefined, firstPaint: boolean, bounded: boolean) {
+export function usePdfReadingPreload(pdf: ReadingDocument | undefined, initialPagesReady: boolean, bounded: boolean) {
   const [complete, setComplete] = useState(false)
   useEffect(() => {
-    if (!pdf || !firstPaint) return
+    if (!pdf || !initialPagesReady || !bounded) return
     const abort = new AbortController()
     setComplete(false)
     const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection
-    const full = bounded && !connection?.saveData && !['slow-2g', '2g'].includes(connection?.effectiveType ?? '')
-    void preloadPdfReading(pdf, {
+    const full = !connection?.saveData && !['slow-2g', '2g'].includes(connection?.effectiveType ?? '')
+    void fillPdfReadingCache(pdf, {
       cancelled: () => abort.signal.aborted,
       beforeFullDownload: async () => {
         if (!full) return false
@@ -25,6 +25,6 @@ export function usePdfReadingPreload(pdf: ReadingDocument | undefined, firstPain
       },
     }).then(done => { if (!abort.signal.aborted) setComplete(done) }).catch(() => { /* Existing per-page loading remains available. */ })
     return () => abort.abort()
-  }, [pdf, firstPaint, bounded])
+  }, [pdf, initialPagesReady, bounded])
   return complete
 }

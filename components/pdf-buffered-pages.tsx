@@ -4,13 +4,16 @@ import { useEffect, useReducer } from 'react'
 import { Page } from 'react-pdf'
 import { createPdfPageBuffer, updatePdfPageBuffer } from '@/lib/pdf-page-buffer'
 
-export function PdfBufferedPages({ page, total, width, zoom, onReady, onError }: {
+export function PdfBufferedPages({ page, total, width, zoom, onReady, onInitialPagesReady, onError }: {
   page: number; total: number; width: number; zoom: number
-  onReady: (page: number) => void; onError: () => void
+  onReady: (page: number) => void; onInitialPagesReady: () => void; onError: () => void
 }) {
   const [buffer, dispatch] = useReducer((state: ReturnType<typeof createPdfPageBuffer>, event: Parameters<typeof updatePdfPageBuffer>[1]) => updatePdfPageBuffer(state, event, total, zoom === 1), page, createPdfPageBuffer)
   useEffect(() => { dispatch({ type: 'request', page }) }, [page])
   useEffect(() => { if (buffer.visible !== null) onReady(buffer.visible) }, [buffer.visible, onReady])
+  useEffect(() => {
+    if (total > 0 && Array.from({ length: Math.min(3, total) }, (_, i) => i + 1).every(page => buffer.entries.some(entry => entry.page === page && entry.ready))) onInitialPagesReady()
+  }, [buffer.entries, total, onInitialPagesReady])
   const pending = buffer.visible !== page
   return <div className="relative" data-pdf-visible-page={buffer.visible ?? ''} aria-busy={pending}
     style={buffer.visible === null ? { aspectRatio: '595 / 842' } : undefined}>
