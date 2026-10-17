@@ -64,8 +64,10 @@ export function PdfBufferedPages({ pdf, page, width, zoom, prepareRemaining, onD
     <div className="relative" data-pdf-visible-page={shown ?? ''} aria-busy={pending}
       style={shown === null ? { aspectRatio: '595 / 842' } : undefined}>
       {pending && visible !== null && <p role="status" className="absolute right-3 top-3 z-20 rounded bg-slate-950/85 px-3 py-2 text-xs text-white">{page}페이지 준비 중…</p>}
+      {/* PDF annotations may extend beyond the page. Keep them inside the paper so
+          they cannot create scrollbars and repeatedly reset the width-based cache. */}
       {mounted.map(entry => <div key={entry.url} data-pdf-buffer-page={entry.page} aria-hidden={entry.page !== shown} inert={entry.page !== shown}
-        className={entry.page === shown ? 'relative' : 'hidden'} style={{ width: width * zoom, height: width * zoom * entry.ratio }}>
+        className={`overflow-hidden ${entry.page === shown ? 'relative' : 'hidden'}`} style={{ width: width * zoom, height: width * zoom * entry.ratio }}>
         <CachedPageImage url={entry.url} page={entry.page} width={width * zoom} height={width * zoom * entry.ratio}
           onDecoded={handleDecoded} onError={() => { if (entry.page === page) onError() }} />
         {entry.page === shown && <div className="absolute inset-0">
