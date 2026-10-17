@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react'
 import { fillPdfReadingCache, type ReadingDocument } from '@/lib/pdf-reading-preload'
 
 export function usePdfReadingPreload(pdf: ReadingDocument | undefined, initialPagesReady: boolean, bounded: boolean) {
-  const [state, setState] = useState<'pending' | 'complete' | 'on-demand'>('pending')
+  type State = 'pending' | 'complete' | 'on-demand'
+  const [result, setResult] = useState<{ pdf: ReadingDocument; state: State }>()
   useEffect(() => {
     if (!pdf || !initialPagesReady) return
     const abort = new AbortController()
+    const setState = (state: State) => setResult({ pdf, state })
     setState('pending')
     const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection
     const full = !connection?.saveData && !['slow-2g', '2g'].includes(connection?.effectiveType ?? '')
@@ -33,5 +35,5 @@ export function usePdfReadingPreload(pdf: ReadingDocument | undefined, initialPa
     }).then(done => { if (!abort.signal.aborted) setState(done ? 'complete' : 'on-demand') }).catch(() => { if (!abort.signal.aborted) setState('on-demand') })
     return () => abort.abort()
   }, [pdf, initialPagesReady, bounded])
-  return state
+  return initialPagesReady && result && result.pdf === pdf ? result.state : 'pending'
 }
