@@ -48,3 +48,16 @@ test('unchanged optimized PDFs retain their first-page map without re-optimizing
  const first=await prepareCover(item,null,deps),second=await prepareCover(item,first,deps)
  assert.equal(optimized,1);assert.equal(renders,1);assert.deepEqual(second?.reader?.pdf?.initialChunks,[0]);assert.equal(second?.url,first?.url)
 })
+
+test('page packs reuse the verified PDF, regenerate on replacement and remain optional',async()=>{
+ const png=await sharp({create:{width:64,height:90,channels:3,background:'#fff'}}).png().toBuffer()
+ let data=new TextEncoder().encode('%PDF-one'),seenPrevious:unknown[]=[]
+ const asset={url:`/_reader-pdfs/${id}/${'e'.repeat(64)}.pack`,bytes:1000}
+ const deps={download:async()=>({data,lastModified:'Tue, 06 Oct 2026 04:50:46 GMT'}),render:async()=>({pageCount:1,pages:[{page:1,png,width:64,height:90}]}),save:async(report:string,bytes:Uint8Array)=>`/report-covers/${report}/${createHash('sha256').update(bytes).digest('hex')}.webp`,optimize:async()=>({url:`/_reader-pdfs/${id}/${'f'.repeat(64)}.pdf`,bytes:11,chunkSize:1024*1024,initialChunks:[0]}),pack:async(_id:string,_data:Uint8Array,previous?:typeof asset)=>{seenPrevious.push(previous);return asset}}
+ const first=await prepareCover(item,null,deps),again=await prepareCover(item,first,deps)
+ assert.deepEqual(again?.reader?.pagePack,asset);assert.deepEqual(seenPrevious,[undefined,asset])
+ data=new TextEncoder().encode('%PDF-replaced')
+ const changed=await prepareCover(item,again,{...deps,pack:async()=>{throw Error('Optional timeout')}})
+ assert.equal(changed?.reader?.pagePack,undefined);assert.equal(changed?.reader?.pagePackVersion,1)
+ assert.equal(changed?.reader?.pages.length,1);assert.ok(changed?.reader?.pdf)
+})

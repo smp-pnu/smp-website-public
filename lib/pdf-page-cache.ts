@@ -1,4 +1,4 @@
-export type PreparedPdfPage = { page: number; url: string; bytes: number; ratio: number }
+export type PreparedPdfPage = { page: number; url: string; bytes: number; ratio: number; width?: number }
 export type PdfPreparation = { entries: PreparedPdfPage[]; complete: boolean; limited: boolean; failed: number[] }
 
 // Keep compressed images, not one large canvas (and text layer) per PDF page.

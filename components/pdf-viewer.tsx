@@ -58,7 +58,7 @@ function PdfReader({ url, preview }: PdfViewerProps) {
       <div className={ready ? undefined : "pointer-events-none absolute inset-0 opacity-0"} inert={!ready} aria-hidden={!ready}>
         {/* Mount the lazy module alongside metadata, but only a confirmed URL
             permits PdfCanvas to request document bytes. */}
-        <PdfCanvas url={url} rangeOnly={preview?.reader?.rangeOnly} transport={preview?.reader?.transport} page={page} onPageChange={setPage} onReady={showReader} onRetry={showPreview} />
+        <PdfCanvas url={url} rangeOnly={preview?.reader?.rangeOnly} transport={preview?.reader?.transport} pack={preview?.reader?.pack} page={page} onPageChange={setPage} onReady={showReader} onRetry={showPreview} />
       </div>
     </div>
     <noscript><p className="p-6 text-slate-300">PDF 미리보기를 사용하려면 JavaScript를 켜주세요. 위 다운로드 버튼으로도 파일을 받을 수 있습니다.</p></noscript>

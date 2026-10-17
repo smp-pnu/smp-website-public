@@ -8,12 +8,13 @@ import { usePdfReadingPreload } from "./use-pdf-reading-preload"
 import { pdfOptions, preparedPdfOptions } from "./pdf-config"
 import { preparedRangeFile } from "./pdf-range-file"
 import type { ReaderTransport } from "@/lib/report-reader"
+import type { PagePackHint } from '@/lib/pdf-page-pack'
 import "react-pdf/dist/Page/TextLayer.css"
 import "react-pdf/dist/Page/AnnotationLayer.css"
 
 const buttonClass = "rounded border border-white/25 px-3 py-2 text-sm text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-2 focus-visible:outline-sky-300"
 
-export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChange, onReady, onRetry }: { url?: string; rangeOnly?:boolean; transport?:ReaderTransport; page:number; onPageChange:(page:number)=>void; onReady: (page:number) => void; onRetry: () => void }) {
+export default function PdfCanvas({ url, rangeOnly, transport, pack, page, onPageChange, onReady, onRetry }: { url?: string; rangeOnly?:boolean; transport?:ReaderTransport; pack?:PagePackHint; page:number; onPageChange:(page:number)=>void; onReady: (page:number) => void; onRetry: () => void }) {
   const reader = useRef<HTMLDivElement>(null)
   const viewport = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
@@ -116,7 +117,7 @@ export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChang
           } catch { /* Optional preference only. */ }
         }}
         onPassword={fail} externalLinkTarget="_blank" onItemClick={({ pageNumber }) => { if (pageNumber) navigate(pageNumber) }}>
-        {pdfDocument && <PdfBufferedPages key={width} pdf={pdfDocument} page={page} width={width} zoom={zoom} prepareRemaining={fullyLoaded || preloadState === 'loading'} onDemand={preloadState === 'on-demand'} onReady={rendered} onInitialPagesReady={preparedInitialPages} onError={fail} />}
+        {pdfDocument && <PdfBufferedPages pdf={pdfDocument} page={page} width={width} zoom={zoom} prepareRemaining={fullyLoaded || preloadState === 'loading'} onDemand={preloadState === 'on-demand'} onReady={rendered} onInitialPagesReady={preparedInitialPages} onError={fail} url={url} pdfKey={rangeFallback?undefined:transport?.key} pack={rangeFallback?undefined:pack} />}
       </Document>}
     </div>
   </div>

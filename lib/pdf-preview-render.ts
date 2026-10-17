@@ -3,6 +3,7 @@ import path from "node:path"
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs"
 import { createCanvas, type Canvas } from "@napi-rs/canvas"
 import { streamPdf } from "./pdf-response"
+import { pagePackMaxPages } from './pdf-page-pack'
 
 const maxPdfBytes = 128 * 1024 * 1024
 const assetPath = path.join(process.cwd(), "node_modules/pdfjs-dist")
@@ -53,8 +54,15 @@ export async function renderFirstPage(data: Uint8Array, signal = AbortSignal.tim
 }
 
 export async function renderReaderPages(data: Uint8Array, count = 3, signal = AbortSignal.timeout(60_000)) {
-  signal.throwIfAborted()
   if (!Number.isInteger(count) || count < 1 || count > 3) throw new Error("Invalid preview page count")
+  return renderPages(data, count, signal)
+}
+type RenderedPage = {page:number;png:Buffer;width:number;height:number}
+export async function renderReaderPackPages(data: Uint8Array, save: (page: RenderedPage) => Promise<void>, signal = AbortSignal.timeout(60_000)) {
+  return renderPages(data, pagePackMaxPages, signal, save)
+}
+async function renderPages(data: Uint8Array, count: number, signal: AbortSignal, save?: (page: RenderedPage) => Promise<void>) {
+  signal.throwIfAborted()
   const task = getDocument({ data: new Uint8Array(data), useSystemFonts: false,
     cMapUrl: `${assetPath}/cmaps/`, cMapPacked: true,
     standardFontDataUrl: `${assetPath}/standard_fonts/`, wasmUrl: `${assetPath}/wasm/`,
@@ -64,7 +72,8 @@ export async function renderReaderPages(data: Uint8Array, count = 3, signal = Ab
   let canvas: Canvas | undefined
   try {
     const doc = await task.promise
-    const pages: {page:number;png:Buffer;width:number;height:number}[]=[]
+    const pages: RenderedPage[]=[]
+    if (save && doc.numPages > pagePackMaxPages) return {pageCount:doc.numPages,pages}
     for (let number=1;number<=Math.min(count,doc.numPages);number++) {
       const page = await doc.getPage(number)
       const base = page.getViewport({ scale: 1 })
@@ -74,7 +83,8 @@ export async function renderReaderPages(data: Uint8Array, count = 3, signal = Ab
       const context = canvas.getContext("2d") as unknown as CanvasRenderingContext2D
       await page.render({ canvas: null, canvasContext: context, viewport }).promise
       signal.throwIfAborted()
-      pages.push({page:number,png:canvas.toBuffer("image/png"),width:canvas.width,height:canvas.height})
+      const image = {page:number,png:canvas.toBuffer("image/png"),width:canvas.width,height:canvas.height}
+      if (save) await save(image); else pages.push(image)
       canvas.width=0;canvas.height=0;page.cleanup()
     }
     return {pageCount:doc.numPages,pages}

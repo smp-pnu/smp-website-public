@@ -99,7 +99,7 @@ async function main() {
     const records=await env.CMS_DB.prepare("SELECT cover,blocks FROM free_content UNION ALL SELECT cover,NULL AS blocks FROM free_report_covers").all<{cover:string|null;blocks:string|null}>()
     const existing=publicationAssets(records.results.flatMap(row=>[row.cover?JSON.parse(row.cover):null,row.blocks?JSON.parse(row.blocks):null]),origin.origin)
     const incoming=publicationAssets(complete.flatMap(result=>[result.blocks,result.cover]),origin.origin)
-    const readerChanged=complete.some(result=>JSON.stringify([result.cover?.reader?.pdf?.url,result.cover?.reader?.pdf?.chunkSize])!==JSON.stringify([result.job.cover?.reader?.pdf?.url,result.job.cover?.reader?.pdf?.chunkSize]))
+    const readerChanged=complete.some(result=>JSON.stringify([result.cover?.reader?.pdf?.url,result.cover?.reader?.pdf?.chunkSize,result.cover?.reader?.pagePack?.url])!==JSON.stringify([result.job.cover?.reader?.pdf?.url,result.job.cover?.reader?.pdf?.chunkSize,result.job.cover?.reader?.pagePack?.url]))
     if(!requiresAssetDeployment(existing,incoming,forceBuild||readerChanged)) {
       await finishPublications(env,origin,complete)
       console.log(JSON.stringify({prepared:complete.length,notionRequests:requestCount,assetDeployment:false}))
