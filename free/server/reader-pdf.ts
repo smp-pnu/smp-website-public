@@ -56,7 +56,11 @@ export async function readerPdf(request:Request,item:ContentItem,env:Env,ctx:Con
     let packed:Response
     try {packed=await env.ASSETS.fetch(new Request(new URL(reader.pagePack.url,url),{signal:AbortSignal.timeout(15000)}))}
     catch {return missing()}
-    if(packed.status!==200 || !packed.body || packed.headers.get('content-type')?.split(';')[0]!=='application/octet-stream'
+    // Cloudflare omits MIME for unknown extensions such as .pack. This is an
+    // owned, hash-addressed binary asset; reject an explicit HTML/error type,
+    // but supply the known type ourselves when the binding leaves it unset.
+    const type=packed.headers.get('content-type')?.split(';')[0]
+    if(packed.status!==200 || !packed.body || (type && type!=='application/octet-stream')
       || (packed.headers.has('content-length') && Number(packed.headers.get('content-length'))!==reader.pagePack.bytes)) {await packed.body?.cancel();return missing()}
     return new Response(packed.body,{headers:{...pdfHeaders,'Content-Type':'application/octet-stream','Content-Length':String(reader.pagePack.bytes),'Content-Security-Policy':'sandbox',
       'Server-Timing':`pdf-source;desc="PAGES", pdf-proof;dur=${verifiedAt-metadataAt}`}})

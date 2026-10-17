@@ -86,6 +86,10 @@ test('page pack endpoint uses the current source proof and rejects stale hashes,
  s.env.ASSETS.fetch=async(req)=>{assert.equal(new URL((req as Request).url).pathname,pack.url);return new Response(new Uint8Array(1000),{headers:{'Content-Type':'application/octet-stream','Content-Length':'1000'}})}
  const query=`&prepared=${hash}&pages=${'e'.repeat(64)}`
  const result=(await s.read(query))!;assert.equal(result.status,200);assert.equal((await result.arrayBuffer()).byteLength,1000);assert.match(result.headers.get('cache-control')!,/private/)
+ s.env.ASSETS.fetch=async()=>new Response(new Uint8Array(1000))
+ const untyped=(await s.read(query))!;assert.equal(untyped.status,200);assert.equal(untyped.headers.get('content-type'),'application/octet-stream');assert.equal((await untyped.arrayBuffer()).byteLength,1000)
+ s.env.ASSETS.fetch=async()=>new Response('<html>Not found</html>',{headers:{'Content-Type':'text/html'}})
+ assert.equal((await s.read(query))?.status,404)
  assert.equal((await s.read('&pages='+'e'.repeat(64)))?.status,404)
  assert.equal((await s.read(`&prepared=${hash}&pages=${'b'.repeat(64)}`))?.status,404)
  assert.equal((await s.read(query,{range:'bytes=0-4'}))?.status,416)
