@@ -1,7 +1,10 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Document, Page } from "react-pdf"
+import { Document } from "react-pdf"
+import type { ReadingDocument } from "@/lib/pdf-reading-preload"
+import { PdfBufferedPages } from "./pdf-buffered-pages"
+import { usePdfReadingPreload } from "./use-pdf-reading-preload"
 import { pdfOptions, preparedPdfOptions } from "./pdf-config"
 import { preparedRangeFile } from "./pdf-range-file"
 import type { ReaderTransport } from "@/lib/report-reader"
@@ -18,10 +21,14 @@ export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChang
   const [zoom, setZoom] = useState(1)
   const [attempt, setAttempt] = useState(0)
   const [failed, setFailed] = useState(false)
+  const [pdfDocument, setPdfDocument] = useState<ReadingDocument>()
+  const [firstPaint, setFirstPaint] = useState(false)
   const [rangeFile,setRangeFile]=useState<ReturnType<typeof preparedRangeFile>['file']>()
   const [rangeFallback,setRangeFallback]=useState(false)
+  const fullyLoaded = usePdfReadingPreload(pdfDocument, firstPaint, Boolean(transport && !rangeFallback))
   useEffect(()=>{
     setRangeFallback(false);setRangeFile(undefined)
+    setPdfDocument(undefined);setFirstPaint(false)
     if(!url || !transport)return
     const prepared=preparedRangeFile(url,transport,()=>setRangeFallback(true))
     setRangeFile(prepared.file)
@@ -33,6 +40,7 @@ export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChang
   const [fullscreen, setFullscreen] = useState(false)
   const [fullscreenError, setFullscreenError] = useState(false)
   const fail = useCallback(() => { setFailed(true); onReady(page) }, [onReady,page])
+  const rendered = useCallback((value: number) => { setFirstPaint(true); onReady(value) }, [onReady])
   useEffect(() => {
     setFullscreenAvailable(Boolean(document.fullscreenEnabled))
     const update = () => setFullscreen(document.fullscreenElement === reader.current)
@@ -58,10 +66,10 @@ export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChang
   const error = <div role="alert" className="p-6 text-sm leading-7 text-slate-200">
     <p>PDF를 표시하지 못했습니다. 잠시 후 다시 시도하거나 위의 PDF 다운로드를 이용해주세요.</p>
     <p>계속 열리지 않으면 학회에 문의해주세요.</p>
-    <button className={`${buttonClass} mt-3`} onClick={() => { onRetry(); setFailed(false); setPages(0); onPageChange(1); setAttempt(value => value + 1) }}>다시 시도</button>
+    <button className={`${buttonClass} mt-3`} onClick={() => { onRetry(); setFailed(false); setPages(0); setFirstPaint(false); setPdfDocument(undefined); onPageChange(1); setAttempt(value => value + 1) }}>다시 시도</button>
   </div>
 
-  return <div ref={reader} className={`overflow-hidden rounded-lg border border-white/20 bg-slate-950 ${fullscreen ? "flex h-screen flex-col" : ""}`}>
+  return <div ref={reader} data-pdf-download-state={fullyLoaded ? 'complete' : 'partial'} className={`overflow-hidden rounded-lg border border-white/20 bg-slate-950 ${fullscreen ? "flex h-screen flex-col" : ""}`}>
     <div role="group" aria-label="PDF 페이지와 확대 설정" className="flex flex-wrap items-center justify-between gap-3 border-b border-white/15 p-3">
       <div className="flex items-center gap-2">
         <button aria-label="이전 페이지" className={buttonClass} disabled={page <= 1 || failed || !pages} onClick={() => navigate(page - 1)}>←</button>
@@ -93,10 +101,11 @@ export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChang
       <button type="button" className="min-h-9 px-2 text-slate-400" onClick={() => setResumePage(null)}>닫기</button>
     </div>}
     <div ref={viewport} tabIndex={0} aria-label="PDF 문서" className={`overflow-x-auto bg-slate-800 ${fullscreen ? "min-h-0 flex-1 overflow-y-auto" : ""}`}>
-      {failed ? error : url && file && width > 0 && <Document key={attempt} file={file} options={rangeOnly ? preparedPdfOptions : pdfOptions} suspense={false}
+      {failed ? error : url && file && width > 0 && <Document key={`${attempt}:${rangeFallback}`} file={file} options={rangeOnly ? preparedPdfOptions : pdfOptions} suspense={false}
         loading={<p role="status" className="p-6 text-sm text-slate-200">PDF를 불러오고 있습니다…</p>}
         error={error} onLoadError={()=>{if(transport&&!rangeFallback)setRangeFallback(true);else fail()}} onSourceError={fail} onLoadSuccess={pdf => {
           setPages(pdf.numPages)
+          setPdfDocument(pdf)
           if(page>pdf.numPages)onPageChange(pdf.numPages)
           try {
             const saved = Number(localStorage.getItem(`smp:pdf-page:v1:${url}`))
@@ -104,9 +113,7 @@ export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChang
           } catch { /* Optional preference only. */ }
         }}
         onPassword={fail} externalLinkTarget="_blank" onItemClick={({ pageNumber }) => { if (pageNumber) navigate(pageNumber) }}>
-        <Page pageNumber={page} width={width} scale={zoom} devicePixelRatio={Math.min(window.devicePixelRatio || 1, 2)}
-          onRenderSuccess={rendered=>onReady(rendered.pageNumber)} onLoadError={fail} onRenderError={fail}
-          loading={<p role="status" className="p-6 text-slate-200">페이지를 표시하고 있습니다…</p>} error={error} />
+        <PdfBufferedPages key={`${width}:${zoom}`} page={page} total={pages} width={width} zoom={zoom} onReady={rendered} onError={fail} />
       </Document>}
     </div>
   </div>
