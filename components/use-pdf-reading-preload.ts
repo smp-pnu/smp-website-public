@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { fillPdfReadingCache, type ReadingDocument } from '@/lib/pdf-reading-preload'
 
 export function usePdfReadingPreload(pdf: ReadingDocument | undefined, initialPagesReady: boolean, bounded: boolean) {
-  type State = 'pending' | 'complete' | 'on-demand'
+  type State = 'pending' | 'loading' | 'complete' | 'on-demand'
   const [result, setResult] = useState<{ pdf: ReadingDocument; state: State }>()
   useEffect(() => {
     if (!pdf || !initialPagesReady) return
@@ -22,6 +22,9 @@ export function usePdfReadingPreload(pdf: ReadingDocument | undefined, initialPa
     }
     void fillPdfReadingCache(pdf, {
       cancelled: () => abort.signal.aborted,
+      // Start preparing subsequent pages while the bounded transfer continues.
+      // PDF.js shares its existing byte cache and prioritizes needed ranges.
+      started: () => { if (!abort.signal.aborted) setState('loading') },
       beforeFullDownload: async () => {
         if (!full) return false
         if (document.visibilityState === 'visible') return true

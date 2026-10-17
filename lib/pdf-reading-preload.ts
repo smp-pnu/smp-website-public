@@ -13,8 +13,11 @@ export type ReadingDocument = {
 export async function fillPdfReadingCache(pdf: ReadingDocument, options: {
   cancelled: () => boolean
   beforeFullDownload: () => Promise<boolean>
+  started?: () => void
 }) {
   if (options.cancelled() || !await options.beforeFullDownload() || options.cancelled()) return false
-  await pdf.getData()
+  const download = pdf.getData()
+  options.started?.()
+  await download
   return !options.cancelled()
 }
