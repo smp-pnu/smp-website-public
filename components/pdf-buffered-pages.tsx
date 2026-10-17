@@ -24,8 +24,8 @@ function PageLayers({ page, width, zoom, ratio }: { page: number; width: number;
     className={`!bg-transparent ${renderedZoom !== zoom ? '[&>canvas]:opacity-0' : ''}`} loading={null} error={null} />
 }
 
-export function PdfBufferedPages({ pdf, page, width, zoom, fullyLoaded, onReady, onInitialPagesReady, onError }: {
-  pdf: RenderablePdfDocument; page: number; width: number; zoom: number; fullyLoaded: boolean
+export function PdfBufferedPages({ pdf, page, width, zoom, fullyLoaded, onDemand, onReady, onInitialPagesReady, onError }: {
+  pdf: RenderablePdfDocument; page: number; width: number; zoom: number; fullyLoaded: boolean; onDemand: boolean
   onReady: (page: number) => void; onInitialPagesReady: () => void; onError: () => void
 }) {
   const [visible, setVisible] = useState<number | null>(null)
@@ -52,9 +52,9 @@ export function PdfBufferedPages({ pdf, page, width, zoom, fullyLoaded, onReady,
   }, [state.entries, state.failed, pdf.numPages, onInitialPagesReady])
   useEffect(() => { if (state.failed.includes(page)) onError() }, [state.failed, page, onError])
   const pending = shown !== page
-  return <div data-pdf-prepared-pages={state.entries.length} data-pdf-cache-bytes={state.entries.reduce((sum, entry) => sum + entry.bytes, 0)} data-pdf-preparation={state.complete ? 'complete' : state.limited ? 'limited' : 'preparing'}>
+  return <div data-pdf-prepared-pages={state.entries.length} data-pdf-cache-bytes={state.entries.reduce((sum, entry) => sum + entry.bytes, 0)} data-pdf-preparation={state.complete ? 'complete' : state.limited ? 'limited' : onDemand ? 'on-demand' : 'preparing'}>
     <p className="border-b border-white/10 px-4 py-2 text-xs text-slate-300" role="status">
-      {state.complete ? '전체 페이지 준비 완료' : state.limited || state.failed.length ? '준비된 페이지부터 읽을 수 있습니다' : `페이지 준비 중 · ${state.entries.length}/${pdf.numPages}`}
+      {state.complete ? '전체 페이지 준비 완료' : state.limited || state.failed.length || onDemand ? '준비된 페이지부터 읽을 수 있습니다' : `페이지 준비 중 · ${state.entries.length}/${pdf.numPages}`}
     </p>
     <div className="relative" data-pdf-visible-page={shown ?? ''} aria-busy={pending}
       style={shown === null ? { aspectRatio: '595 / 842' } : undefined}>

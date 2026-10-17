@@ -4,17 +4,18 @@ import { useEffect, useState } from 'react'
 import { fillPdfReadingCache, type ReadingDocument } from '@/lib/pdf-reading-preload'
 
 export function usePdfReadingPreload(pdf: ReadingDocument | undefined, initialPagesReady: boolean, bounded: boolean) {
-  const [complete, setComplete] = useState(false)
+  const [state, setState] = useState<'pending' | 'complete' | 'on-demand'>('pending')
   useEffect(() => {
     if (!pdf || !initialPagesReady) return
     const abort = new AbortController()
-    setComplete(false)
+    setState('pending')
     const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection
     const full = !connection?.saveData && !['slow-2g', '2g'].includes(connection?.effectiveType ?? '')
+    if (!full) { setState('on-demand'); return () => abort.abort() }
     if (!bounded) {
       // Legacy streams may already contain the entire file. Observe completion;
       // never force an unbounded Drive download just to prepare page images.
-      if (full) void pdf.getDownloadInfo?.().then(() => { if (!abort.signal.aborted) setComplete(true) }).catch(() => {})
+      void pdf.getDownloadInfo?.().then(() => { if (!abort.signal.aborted) setState('complete') }).catch(() => { if (!abort.signal.aborted) setState('on-demand') })
       return () => abort.abort()
     }
     void fillPdfReadingCache(pdf, {
@@ -29,8 +30,8 @@ export function usePdfReadingPreload(pdf: ReadingDocument | undefined, initialPa
           abort.signal.addEventListener('abort', () => finish(false), { once: true })
         })
       },
-    }).then(done => { if (!abort.signal.aborted) setComplete(done) }).catch(() => { /* Existing per-page loading remains available. */ })
+    }).then(done => { if (!abort.signal.aborted) setState(done ? 'complete' : 'on-demand') }).catch(() => { if (!abort.signal.aborted) setState('on-demand') })
     return () => abort.abort()
   }, [pdf, initialPagesReady, bounded])
-  return complete
+  return state
 }

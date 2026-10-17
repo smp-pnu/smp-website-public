@@ -25,7 +25,8 @@ export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChang
   const [initialPagesReady, setInitialPagesReady] = useState(false)
   const [rangeFile,setRangeFile]=useState<ReturnType<typeof preparedRangeFile>['file']>()
   const [rangeFallback,setRangeFallback]=useState(false)
-  const fullyLoaded = usePdfReadingPreload(pdfDocument, initialPagesReady, Boolean(transport && !rangeFallback))
+  const preloadState = usePdfReadingPreload(pdfDocument, initialPagesReady, Boolean(transport && !rangeFallback))
+  const fullyLoaded = preloadState === 'complete'
   useEffect(()=>{
     setRangeFallback(false);setRangeFile(undefined)
     setPdfDocument(undefined);setInitialPagesReady(false)
@@ -115,7 +116,7 @@ export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChang
           } catch { /* Optional preference only. */ }
         }}
         onPassword={fail} externalLinkTarget="_blank" onItemClick={({ pageNumber }) => { if (pageNumber) navigate(pageNumber) }}>
-        {pdfDocument && <PdfBufferedPages key={width} pdf={pdfDocument} page={page} width={width} zoom={zoom} fullyLoaded={fullyLoaded} onReady={rendered} onInitialPagesReady={preparedInitialPages} onError={fail} />}
+        {pdfDocument && <PdfBufferedPages key={width} pdf={pdfDocument} page={page} width={width} zoom={zoom} fullyLoaded={fullyLoaded} onDemand={preloadState === 'on-demand'} onReady={rendered} onInitialPagesReady={preparedInitialPages} onError={fail} />}
       </Document>}
     </div>
   </div>
