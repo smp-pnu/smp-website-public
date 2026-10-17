@@ -67,3 +67,30 @@ test('an asset binding that ignores Range never advertises false range support w
   assert.equal(response.status,200);assert.equal(response.headers.get('accept-ranges'),'none');assert.equal((await response.arrayBuffer()).byteLength,100)
  }
 })
+
+test('page packs are bounded, owned and exposed only as an opaque validated hint',()=>{
+ const reader={...metadata(),pagePackVersion:1 as const,pagePack:{url:`/_reader-pdfs/${id}/${'e'.repeat(64)}.pack`,bytes:1000},pdf:{...metadata().pdf,chunkSize:1024*1024,initialChunks:[0]}}
+ assert.ok(preparedReader(id,reader))
+ const cover=publicCover({...item,cover:{url:reader.pages[0].url,reader}})!
+ assert.deepEqual(cover.reader?.pack,{key:'e'.repeat(64),bytes:1000});assert.equal('pagePack' in cover.reader!,false)
+ for(const change of [{pagePackVersion:2},{pageCount:61},{pagePack:{...reader.pagePack,bytes:17*1024*1024}},{pagePack:{...reader.pagePack,url:`/_reader-pdfs/${'f'.repeat(32)}/${hash}.pack`}}])assert.equal(preparedReader(id,{...reader,...change}),undefined)
+ const records=Array.from({length:40},(_,i)=>{const report=i.toString(16).padStart(32,'0');return {id:report,date:String(i).padStart(2,'0'),cover:{reader:{...reader,pages:metadata(report).pages,pdf:{...reader.pdf,url:`/_reader-pdfs/${report}/${hash}.pdf`,bytes:24*1024*1024},pagePack:{...reader.pagePack,url:`/_reader-pdfs/${report}/${hash}.pack`,bytes:16*1024*1024}}}}})
+ const selected=selectReaderAssets(records)
+ assert.ok(selected.reduce((n,a)=>n+a.bytes+(a.pagePack?.bytes??0),0)<=readerAssetBudget.bytes)
+ assert.ok(selected.reduce((n,a)=>n+Math.ceil(a.bytes/a.chunkSize!)+(a.pagePack?1:0),0)<=544)
+})
+
+test('page pack endpoint uses the current source proof and rejects stale hashes, ranges and missing assets',async()=>{
+ const s=setup(),pack={url:`/_reader-pdfs/${id}/${'e'.repeat(64)}.pack`,bytes:1000}
+ Object.assign(s.value,{pagePack:pack,pagePackVersion:1});s.update()
+ s.env.ASSETS.fetch=async(req)=>{assert.equal(new URL((req as Request).url).pathname,pack.url);return new Response(new Uint8Array(1000),{headers:{'Content-Type':'application/octet-stream','Content-Length':'1000'}})}
+ const query=`&prepared=${hash}&pages=${'e'.repeat(64)}`
+ const result=(await s.read(query))!;assert.equal(result.status,200);assert.equal((await result.arrayBuffer()).byteLength,1000);assert.match(result.headers.get('cache-control')!,/private/)
+ assert.equal((await s.read('&pages='+'e'.repeat(64)))?.status,404)
+ assert.equal((await s.read(`&prepared=${hash}&pages=${'b'.repeat(64)}`))?.status,404)
+ assert.equal((await s.read(query,{range:'bytes=0-4'}))?.status,416)
+ assert.equal((await s.read(query,undefined,{...item,editedAt:'changed'}))?.status,404)
+ assert.equal((await s.read(query,undefined,{...item,externalUrl:'https://drive.google.com/file/d/changed-file/view'}))?.status,404)
+ s.env.ASSETS.fetch=async()=>{throw Error('Missing asset')};assert.equal((await s.read(query))?.status,404)
+ s.remove();assert.equal((await s.read(query))?.status,404)
+})

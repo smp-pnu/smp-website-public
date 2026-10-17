@@ -16,17 +16,20 @@ type ProofCache=Pick<Cache,"match"|"put">
 // Only called after visitorPublication. Raw asset paths are never public routes.
 export async function readerPdf(request:Request,item:ContentItem,env:Env,ctx:Context,
   cache:ProofCache|undefined=(globalThis as unknown as {caches?:{default:ProofCache}}).caches?.default):Promise<Response|undefined> {
-  const url=new URL(request.url),wanted=url.searchParams.get("prepared")
+  const url=new URL(request.url),wanted=url.searchParams.get("prepared"),wantedPack=url.searchParams.get('pages')
+  if (url.searchParams.has('pages') && (!/^[a-f0-9]{64}$/.test(wantedPack??'') || !/^[a-f0-9]{64}$/.test(wanted??''))) return new Response('Not found',{status:404,headers:pdfHeaders})
   if(item.kind!=="research" || url.searchParams.get("download")==="1") return
   const pdf=getPdfSources(item)[0]
   if(!pdf || (!wanted && (url.searchParams.get("source")==="external"?"source=external":`index=${url.searchParams.get("index")??"0"}`)!==pdf.query)) return
-  const missing=()=>wanted?new Response("Not found",{status:404,headers:pdfHeaders}):undefined
+  const missing=()=>wanted || wantedPack?new Response("Not found",{status:404,headers:pdfHeaders}):undefined
   const began=Date.now()
   const row=await env.CMS_DB.prepare("SELECT body_revision,cover FROM free_content WHERE id=? AND kind='research'").bind(item.id).first<{body_revision:string;cover:string|null}>()
   if(!row || row.body_revision!==item.editedAt || !row.cover) return missing()
   const cover=JSON.parse(row.cover),reader=preparedReader(item.id,cover.reader),asset=reader?.pdf
   if(!asset || cover.sourceKey!==sourceKey(item) || (wanted && !asset.url.endsWith(`/${wanted}.pdf`))) return missing()
+  if(wantedPack && (!wanted || !reader?.pagePack?.url.endsWith(`/${wantedPack}.pack`)))return missing()
   const range=request.headers.get("range")
+  if(wantedPack && range)return new Response('Unsupported range',{status:416,headers:pdfHeaders})
   if(range && !parsePdfRange(range)) return new Response("Unsupported range",{status:416,headers:pdfHeaders})
   // Never mix old prepared bytes with a replaced Drive file at the same URL.
   // Compare source mtime + length at most once per 5 minutes per cached copy.
@@ -49,6 +52,15 @@ export async function readerPdf(request:Request,item:ContentItem,env:Env,ctx:Con
   })
   if(!fresh) return missing()
   const verifiedAt=Date.now()
+  if(wantedPack && reader?.pagePack) {
+    let packed:Response
+    try {packed=await env.ASSETS.fetch(new Request(new URL(reader.pagePack.url,url),{signal:AbortSignal.timeout(15000)}))}
+    catch {return missing()}
+    if(packed.status!==200 || !packed.body || packed.headers.get('content-type')?.split(';')[0]!=='application/octet-stream'
+      || (packed.headers.has('content-length') && Number(packed.headers.get('content-length'))!==reader.pagePack.bytes)) {await packed.body?.cancel();return missing()}
+    return new Response(packed.body,{headers:{...pdfHeaders,'Content-Type':'application/octet-stream','Content-Length':String(reader.pagePack.bytes),'Content-Security-Policy':'sandbox',
+      'Server-Timing':`pdf-source;desc="PAGES", pdf-proof;dur=${verifiedAt-metadataAt}`}})
+  }
   const response=asset.chunkSize?await readReaderChunks(request,asset,env):await readReaderAsset(request,asset,env,cache)
   if(!response)return missing()
   const headers=new Headers(pdfHeaders)

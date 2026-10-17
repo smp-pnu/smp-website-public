@@ -1,9 +1,10 @@
 "use client"
 
-import { useCallback, useEffect, useState } from 'react'
+import { memo, useCallback, useEffect, useState } from 'react'
 import { Page } from 'react-pdf'
 import type { RenderablePdfDocument } from '@/lib/pdf-reading-preload'
 import { usePdfPageCache } from './use-pdf-page-cache'
+import type { PagePackHint } from '@/lib/pdf-page-pack'
 
 function CachedPageImage({ url, page, width, height, onDecoded, onError }: {
   url: string; page: number; width: number; height: number
@@ -16,27 +17,31 @@ function CachedPageImage({ url, page, width, height, onDecoded, onError }: {
     onLoad={event => { const image = event.currentTarget; void image.decode().then(() => { if (image.isConnected) onDecoded(url, true) }).catch(() => { if (image.isConnected) onError() }) }} onError={onError} />
 }
 
-function PageLayers({ page, width, zoom, ratio }: { page: number; width: number; zoom: number; ratio: number }) {
+const PageLayers = memo(function PageLayers({ page, width, zoom, ratio, rasterWidth }: { page: number; width: number; zoom: number; ratio: number; rasterWidth?: number }) {
   const [renderedZoom, setRenderedZoom] = useState<number | null>(null)
-  return <Page pageNumber={page} width={width} scale={zoom} renderMode={zoom === 1 ? 'none' : 'canvas'}
-    devicePixelRatio={Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(6_000_000 / ((width * zoom) ** 2 * ratio)))}
+  const density=Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(6_000_000 / ((width * zoom) ** 2 * ratio)))
+  const refine=zoom!==1 || (rasterWidth!==undefined && rasterWidth+1<width*density)
+  return <Page pageNumber={page} width={width} scale={zoom} renderMode={refine ? 'canvas' : 'none'}
+    devicePixelRatio={density}
     onRenderSuccess={() => setRenderedZoom(zoom)}
     className={`!bg-transparent ${renderedZoom !== zoom ? '[&>canvas]:opacity-0' : ''}`} loading={null} error={null} />
-}
+})
 
-export function PdfBufferedPages({ pdf, page, width, zoom, prepareRemaining, onDemand, onReady, onInitialPagesReady, onError }: {
+export function PdfBufferedPages({ pdf, page, width, zoom, prepareRemaining, onDemand, onReady, onInitialPagesReady, onError, url, pdfKey, pack }: {
   pdf: RenderablePdfDocument; page: number; width: number; zoom: number; prepareRemaining: boolean; onDemand: boolean
   onReady: (page: number) => void; onInitialPagesReady: () => void; onError: () => void
+  url?: string; pdfKey?: string; pack?: PagePackHint
 }) {
   const [visible, setVisible] = useState<number | null>(null)
   const [decoded, setDecoded] = useState<Set<string>>(() => new Set())
+  useEffect(() => { setVisible(null); setDecoded(new Set()) }, [pdf, width])
   const handleDecoded = useCallback((url: string, ready: boolean) => setDecoded(previous => {
     if (previous.has(url) === ready) return previous
     const next = new Set(previous)
     if (ready) next.add(url); else next.delete(url)
     return next
   }), [])
-  const state = usePdfPageCache(pdf, width, page, prepareRemaining, visible)
+  const state = usePdfPageCache(pdf, width, page, prepareRemaining, visible,url,pdfKey,pack)
   const requested = state.entries.find(entry => entry.page === page)
   const current = state.entries.find(entry => entry.page === visible)
   // Only three images are mounted/decoded. All other pages remain compressed blobs.
@@ -64,7 +69,7 @@ export function PdfBufferedPages({ pdf, page, width, zoom, prepareRemaining, onD
         <CachedPageImage url={entry.url} page={entry.page} width={width * zoom} height={width * zoom * entry.ratio}
           onDecoded={handleDecoded} onError={() => { if (entry.page === page) onError() }} />
         {entry.page === shown && <div className="absolute inset-0">
-          <PageLayers page={entry.page} width={width} zoom={zoom} ratio={entry.ratio} />
+          <PageLayers page={entry.page} width={width} zoom={zoom} ratio={entry.ratio} rasterWidth={entry.width} />
         </div>}
       </div>)}
     </div>

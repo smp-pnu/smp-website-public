@@ -48,7 +48,7 @@ if(!fixture) for(const kind of ["research","notice","members"]) {
     vars:{...config.vars,SMP_SYNC_KIND:kind},triggers:{crons:["* * * * *"]}},null,2))
 }
 let files = 0, bytes = 0, readerFiles=0, readerBytes=0
-async function inspect(dir) { for (const name of await readdir(dir)) { const file=path.join(dir,name), info=await stat(file); if(info.isDirectory()) await inspect(file); else { files++; bytes+=info.size; if(info.size>25*1024*1024) throw new Error(`Oversized asset: ${name}`); if(path.relative(client,file).startsWith('_reader-pdfs/')) {readerFiles++;readerBytes+=info.size;if(info.size>(name.endsWith('.bin')?1:24)*1024*1024)throw new Error('Reader PDF exceeds safety limit')} } } }
+async function inspect(dir) { for (const name of await readdir(dir)) { const file=path.join(dir,name), info=await stat(file); if(info.isDirectory()) await inspect(file); else { files++; bytes+=info.size; if(info.size>25*1024*1024) throw new Error(`Oversized asset: ${name}`); if(path.relative(client,file).startsWith('_reader-pdfs/')) {readerFiles++;readerBytes+=info.size;if(info.size>(name.endsWith('.bin')?1:name.endsWith('.pack')?16:24)*1024*1024)throw new Error('Reader PDF exceeds safety limit')} } } }
 await inspect(client)
 if(readerFiles>544 || readerBytes>512*1024*1024)throw new Error("Reader PDF storage safety limit exceeded")
 if (files > 18_000) throw new Error("Static file safety limit exceeded")
