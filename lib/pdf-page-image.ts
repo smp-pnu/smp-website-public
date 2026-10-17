@@ -1,5 +1,6 @@
 import type { RenderablePdfDocument } from '@/lib/pdf-reading-preload'
 import type { PreparedPdfPage } from './pdf-page-cache'
+import { encodePdfPageImage } from './pdf-page-encoding'
 
 export async function renderPdfPageImage(pdf: RenderablePdfDocument, page: number, width: number, signal: AbortSignal): Promise<PreparedPdfPage> {
   const source = await pdf.getPage(page)
@@ -17,7 +18,7 @@ export async function renderPdfPageImage(pdf: RenderablePdfDocument, page: numbe
   signal.addEventListener('abort', cancel, { once: true })
   try {
     await task.promise
-    const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('Image encoding failed')), 'image/webp', 0.94))
+    const blob = await encodePdfPageImage(canvas, signal)
     if (signal.aborted) throw new Error('Cancelled')
     return { page, url: URL.createObjectURL(blob), bytes: blob.size, ratio }
   } finally {

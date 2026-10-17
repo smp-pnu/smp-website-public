@@ -24,8 +24,8 @@ function PageLayers({ page, width, zoom, ratio }: { page: number; width: number;
     className={`!bg-transparent ${renderedZoom !== zoom ? '[&>canvas]:opacity-0' : ''}`} loading={null} error={null} />
 }
 
-export function PdfBufferedPages({ pdf, page, width, zoom, fullyLoaded, onDemand, onReady, onInitialPagesReady, onError }: {
-  pdf: RenderablePdfDocument; page: number; width: number; zoom: number; fullyLoaded: boolean; onDemand: boolean
+export function PdfBufferedPages({ pdf, page, width, zoom, prepareRemaining, onDemand, onReady, onInitialPagesReady, onError }: {
+  pdf: RenderablePdfDocument; page: number; width: number; zoom: number; prepareRemaining: boolean; onDemand: boolean
   onReady: (page: number) => void; onInitialPagesReady: () => void; onError: () => void
 }) {
   const [visible, setVisible] = useState<number | null>(null)
@@ -36,7 +36,7 @@ export function PdfBufferedPages({ pdf, page, width, zoom, fullyLoaded, onDemand
     if (ready) next.add(url); else next.delete(url)
     return next
   }), [])
-  const state = usePdfPageCache(pdf, width, page, fullyLoaded, visible)
+  const state = usePdfPageCache(pdf, width, page, prepareRemaining, visible)
   const requested = state.entries.find(entry => entry.page === page)
   const current = state.entries.find(entry => entry.page === visible)
   // Only three images are mounted/decoded. All other pages remain compressed blobs.

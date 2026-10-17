@@ -116,7 +116,7 @@ export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChang
           } catch { /* Optional preference only. */ }
         }}
         onPassword={fail} externalLinkTarget="_blank" onItemClick={({ pageNumber }) => { if (pageNumber) navigate(pageNumber) }}>
-        {pdfDocument && <PdfBufferedPages key={width} pdf={pdfDocument} page={page} width={width} zoom={zoom} fullyLoaded={fullyLoaded} onDemand={preloadState === 'on-demand'} onReady={rendered} onInitialPagesReady={preparedInitialPages} onError={fail} />}
+        {pdfDocument && <PdfBufferedPages key={width} pdf={pdfDocument} page={page} width={width} zoom={zoom} prepareRemaining={fullyLoaded || preloadState === 'loading'} onDemand={preloadState === 'on-demand'} onReady={rendered} onInitialPagesReady={preparedInitialPages} onError={fail} />}
       </Document>}
     </div>
   </div>
