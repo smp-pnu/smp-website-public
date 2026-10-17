@@ -93,7 +93,7 @@ export async function prepareCover(item:ContentItem,previous?:Cover|null,depende
   const reusable=previous?.pdfHash===pdfHash && path.test(previous.url) && path.test(previous.previewUrl) && saved
   if(reusable) {
     // Existing images are reusable while legacy PDFs gain chunked transport.
-    const upgraded=!saved.pdf?.chunkSize && snapshot.lastModified
+    const upgraded=!saved.pdf?.initialChunks && snapshot.lastModified
       ? await dependencies.optimize(item.id,data).catch(()=>undefined) : undefined
     const prepared=upgraded??saved.pdf
     return {url:previous.url,previewUrl:previous.previewUrl,width:previous.width,height:previous.height,sourceKey:key,pdfHash,

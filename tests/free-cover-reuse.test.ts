@@ -42,3 +42,9 @@ test('optional optimization failure keeps first pages and the original reader av
   const cover=await prepareCover(item,null,{download:async()=>({data:new TextEncoder().encode('%PDF-fallback'),lastModified:'Tue, 06 Oct 2026 04:50:46 GMT'}),render:async()=>({pageCount:1,pages:[{page:1,png,width:64,height:90}]}),save:async(report,data)=>`/report-covers/${report}/${createHash('sha256').update(data).digest('hex')}.webp`,optimize:async()=>{throw Error('Optional tool unavailable')}})
   assert.equal(cover?.reader?.pages.length,1);assert.equal(cover?.reader?.pdf,undefined)
 })
+test('unchanged optimized PDFs retain their first-page map without re-optimizing or re-rendering',async()=>{
+ const png=await sharp({create:{width:64,height:90,channels:3,background:'#fff'}}).png().toBuffer();let optimized=0,renders=0
+ const deps={download:async()=>({data:new TextEncoder().encode('%PDF-stable'),lastModified:'Tue, 06 Oct 2026 04:50:46 GMT'}),render:async()=>{renders++;return {pageCount:1,pages:[{page:1,png,width:64,height:90}]}},save:async(report:string,data:Uint8Array)=>`/report-covers/${report}/${createHash('sha256').update(data).digest('hex')}.webp`,optimize:async()=>{optimized++;return {url:`/_reader-pdfs/${id}/${'f'.repeat(64)}.pdf`,bytes:11,chunkSize:1024*1024,initialChunks:[0]}}}
+ const first=await prepareCover(item,null,deps),second=await prepareCover(item,first,deps)
+ assert.equal(optimized,1);assert.equal(renders,1);assert.deepEqual(second?.reader?.pdf?.initialChunks,[0]);assert.equal(second?.url,first?.url)
+})

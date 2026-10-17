@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Document, Page } from "react-pdf"
 import { pdfOptions, preparedPdfOptions } from "./pdf-config"
+import { preparedRangeFile } from "./pdf-range-file"
+import type { ReaderTransport } from "@/lib/report-reader"
 import "react-pdf/dist/Page/TextLayer.css"
 import "react-pdf/dist/Page/AnnotationLayer.css"
 
 const buttonClass = "rounded border border-white/25 px-3 py-2 text-sm text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-2 focus-visible:outline-sky-300"
 
-export default function PdfCanvas({ url, rangeOnly, page, onPageChange, onReady, onRetry }: { url?: string; rangeOnly?:boolean; page:number; onPageChange:(page:number)=>void; onReady: (page:number) => void; onRetry: () => void }) {
+export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChange, onReady, onRetry }: { url?: string; rangeOnly?:boolean; transport?:ReaderTransport; page:number; onPageChange:(page:number)=>void; onReady: (page:number) => void; onRetry: () => void }) {
   const reader = useRef<HTMLDivElement>(null)
   const viewport = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
@@ -16,6 +18,16 @@ export default function PdfCanvas({ url, rangeOnly, page, onPageChange, onReady,
   const [zoom, setZoom] = useState(1)
   const [attempt, setAttempt] = useState(0)
   const [failed, setFailed] = useState(false)
+  const [rangeFile,setRangeFile]=useState<ReturnType<typeof preparedRangeFile>['file']>()
+  const [rangeFallback,setRangeFallback]=useState(false)
+  useEffect(()=>{
+    setRangeFallback(false);setRangeFile(undefined)
+    if(!url || !transport)return
+    const prepared=preparedRangeFile(url,transport,()=>setRangeFallback(true))
+    setRangeFile(prepared.file)
+    return prepared.dispose
+  },[url,transport,attempt])
+  const file=transport && !rangeFallback?rangeFile:url
   const [resumePage, setResumePage] = useState<number | null>(null)
   const [fullscreenAvailable, setFullscreenAvailable] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
@@ -81,9 +93,9 @@ export default function PdfCanvas({ url, rangeOnly, page, onPageChange, onReady,
       <button type="button" className="min-h-9 px-2 text-slate-400" onClick={() => setResumePage(null)}>닫기</button>
     </div>}
     <div ref={viewport} tabIndex={0} aria-label="PDF 문서" className={`overflow-x-auto bg-slate-800 ${fullscreen ? "min-h-0 flex-1 overflow-y-auto" : ""}`}>
-      {failed ? error : url && width > 0 && <Document key={attempt} file={url} options={rangeOnly ? preparedPdfOptions : pdfOptions} suspense={false}
+      {failed ? error : url && file && width > 0 && <Document key={attempt} file={file} options={rangeOnly ? preparedPdfOptions : pdfOptions} suspense={false}
         loading={<p role="status" className="p-6 text-sm text-slate-200">PDF를 불러오고 있습니다…</p>}
-        error={error} onLoadError={fail} onSourceError={fail} onLoadSuccess={pdf => {
+        error={error} onLoadError={()=>{if(transport&&!rangeFallback)setRangeFallback(true);else fail()}} onSourceError={fail} onLoadSuccess={pdf => {
           setPages(pdf.numPages)
           if(page>pdf.numPages)onPageChange(pdf.numPages)
           try {
