@@ -2,6 +2,8 @@ import { build } from "esbuild"
 import { cp, mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises"
 import { spawnSync } from "node:child_process"
 import path from "node:path"
+import { stageReaderAssets } from "./stage-reader-assets.mjs"
+const readerLimits = JSON.parse(await readFile(new URL("../free/reader-storage-limits.json",import.meta.url),"utf8"))
 const root = path.resolve(import.meta.dirname, "..")
 const fixture = process.argv.includes("--fixture")
 process.env.SMP_FIXTURE_BUILD = fixture ? "1" : "0"
@@ -16,7 +18,7 @@ await cp(path.join(root, "public"), client, { recursive: true, filter: name => !
 const covers = path.join(root, ".smp-cache/covers")
 try { await cp(covers, path.join(client,"report-covers"), { recursive: true, filter: name => !name.endsWith(".json") && (!fixture || name===covers || path.relative(covers,name).split(path.sep)[0]==="a0000000000000000000000000000001") }) } catch (error) { if (error.code !== "ENOENT") throw error }
 const readerPdfs=path.join(root,".smp-cache/reader-pdfs")
-try { await cp(readerPdfs,path.join(client,"_reader-pdfs"),{recursive:true,filter:name=>!fixture || name===readerPdfs || path.relative(readerPdfs,name).split(path.sep)[0]==="a0000000000000000000000000000001"}) } catch(error) {if(error.code!=="ENOENT")throw error}
+await stageReaderAssets(readerPdfs,path.join(client,"_reader-pdfs"),fixture)
 run("scripts/prerender-free.mjs",fixture?["--fixture"]:[])
 const policy = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 await writeFile(path.join(client,"_headers"), `/*\n  Content-Security-Policy: ${policy}\n  X-Content-Type-Options: nosniff\n  X-Frame-Options: DENY\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()\n  Strict-Transport-Security: max-age=31536000\n${fixture ? "  X-Robots-Tag: noindex, nofollow, noarchive\n" : ""}/api/health\n  Content-Type: application/json; charset=utf-8\n  Cache-Control: public, max-age=300\n/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n/report-covers/*\n  Cache-Control: public, max-age=31536000, immutable\n/pdfjs/*\n  Cache-Control: public, max-age=31536000, immutable\n`)
@@ -50,7 +52,7 @@ if(!fixture) for(const kind of ["research","notice","members"]) {
 let files = 0, bytes = 0, readerFiles=0, readerBytes=0
 async function inspect(dir) { for (const name of await readdir(dir)) { const file=path.join(dir,name), info=await stat(file); if(info.isDirectory()) await inspect(file); else { files++; bytes+=info.size; if(info.size>25*1024*1024) throw new Error(`Oversized asset: ${name}`); if(path.relative(client,file).startsWith('_reader-pdfs/')) {readerFiles++;readerBytes+=info.size;if(info.size>(name.endsWith('.bin')?1:24)*1024*1024)throw new Error('Reader PDF exceeds safety limit')} } } }
 await inspect(client)
-if(readerFiles>1544 || readerBytes>(2048+256)*1024*1024)throw new Error("Reader PDF storage safety limit exceeded")
+if(readerFiles>readerLimits.assetFiles || readerBytes>readerLimits.packBytes+readerLimits.bytes)throw new Error("Reader PDF storage safety limit exceeded")
 if (files > 18_000) throw new Error("Static file safety limit exceeded")
 const worker = await readFile("dist/free/worker.js", "utf8")
 if (/react-dom|renderToReadableStream|@vercel\/blob|napi-rs\/canvas/.test(worker)) throw new Error("Heavy runtime dependency entered Worker")
