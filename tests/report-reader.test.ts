@@ -73,11 +73,11 @@ test('page packs are bounded, owned and exposed only as an opaque validated hint
  assert.ok(preparedReader(id,reader))
  const cover=publicCover({...item,cover:{url:reader.pages[0].url,reader}})!
  assert.deepEqual(cover.reader?.pack,{key:'e'.repeat(64),bytes:1000});assert.equal('pagePack' in cover.reader!,false)
- for(const change of [{pagePackVersion:2},{pageCount:61},{pagePack:{...reader.pagePack,bytes:17*1024*1024}},{pagePack:{...reader.pagePack,url:`/_reader-pdfs/${'f'.repeat(32)}/${hash}.pack`}}])assert.equal(preparedReader(id,{...reader,...change}),undefined)
+ for(const change of [{pagePackVersion:3},{pageCount:61},{pagePack:{...reader.pagePack,bytes:17*1024*1024}},{pagePack:{...reader.pagePack,url:`/_reader-pdfs/${'f'.repeat(32)}/${hash}.pack`}}])assert.equal(preparedReader(id,{...reader,...change}),undefined)
  const records=Array.from({length:40},(_,i)=>{const report=i.toString(16).padStart(32,'0');return {id:report,date:String(i).padStart(2,'0'),cover:{reader:{...reader,pages:metadata(report).pages,pdf:{...reader.pdf,url:`/_reader-pdfs/${report}/${hash}.pdf`,bytes:24*1024*1024},pagePack:{...reader.pagePack,url:`/_reader-pdfs/${report}/${hash}.pack`,bytes:16*1024*1024}}}}})
  const selected=selectReaderAssets(records)
  assert.ok(selected.reduce((n,a)=>n+a.bytes+(a.pagePack?.bytes??0),0)<=readerAssetBudget.bytes)
- assert.ok(selected.reduce((n,a)=>n+Math.ceil(a.bytes/a.chunkSize!)+(a.pagePack?1:0),0)<=544)
+ assert.ok(selected.reduce((n,a)=>n+(a.bytes?Math.ceil(a.bytes/(a.chunkSize??a.bytes)):0)+(a.pagePack?1:0),0)<=544)
 })
 
 test('page pack endpoint uses the current source proof and rejects stale hashes, ranges and missing assets',async()=>{
@@ -97,4 +97,43 @@ test('page pack endpoint uses the current source proof and rejects stale hashes,
  assert.equal((await s.read(query,undefined,{...item,externalUrl:'https://drive.google.com/file/d/changed-file/view'}))?.status,404)
  s.env.ASSETS.fetch=async()=>{throw Error('Missing asset')};assert.equal((await s.read(query))?.status,404)
  s.remove();assert.equal((await s.read(query))?.status,404)
+})
+
+test('a large original can serve its bounded reading pack without an optimized PDF',async()=>{
+ const s=setup(),pack={url:`/_reader-pdfs/${id}/${'e'.repeat(64)}.pack`,bytes:1000}
+ const reader={...metadata(),pdf:undefined,pagePack:pack,pagePackVersion:2 as const,source:{key:'c'.repeat(64),bytes:70*1024*1024,modified,checkedAt:Date.now()}}
+ assert.ok(preparedReader(id,reader))
+ const view=publicCover({...item,cover:{url:reader.pages[0].url,reader}})!.reader!
+ assert.equal(view.transport,undefined);assert.equal(view.packSource,'c'.repeat(64));assert.equal(view.pack?.key,'e'.repeat(64))
+ Object.assign(s.cover,{reader});s.update()
+ s.env.ASSETS.fetch=async()=>new Response(new Uint8Array(1000))
+ const query=`&prepared=${'c'.repeat(64)}&pages=${'e'.repeat(64)}`
+ assert.equal((await s.read(query))?.status,200)
+ assert.equal(await s.read(),undefined)
+ assert.equal((await s.read(query+'&download=1')),undefined)
+ reader.source.checkedAt=1;s.update()
+ // A changed original cannot inherit the saved reading edition.
+ global.fetch=async()=>new Response('%PDF-',{status:206,headers:{'content-type':'application/pdf','content-range':'bytes 0-4/123','last-modified':modified}})
+ assert.equal((await s.read(query))?.status,404)
+ for(const source of [{...reader.source,key:'invalid'},{...reader.source,bytes:129*1024*1024},{...reader.source,modified:'invalid'},{...reader.source,checkedAt:0}])assert.equal(preparedReader(id,{...reader,source}),undefined)
+ assert.equal(preparedReader(id,{...reader,source:undefined}),undefined)
+})
+
+test('reading editions are budgeted first, even when full PDFs would fill all storage',()=>{
+ const records=Array.from({length:40},(_,i)=>{
+  const report=i.toString(16).padStart(32,'0')
+  return {id:report,date:String(i).padStart(2,'0'),cover:{reader:{...metadata(report),pdf:{...metadata(report).pdf,bytes:24*1024*1024},pagePack:{url:`/_reader-pdfs/${report}/${hash}.pack`,bytes:10*1024*1024}}}}
+ })
+ const selected=selectReaderAssets(records)
+ assert.equal(selected.length,32);assert.equal(selected.filter(v=>v.pagePack).length,32)
+ assert.ok(selected.some(v=>v.bytes===0));assert.ok(selected.reduce((n,v)=>n+v.bytes+(v.pagePack?.bytes??0),0)<=512*1024*1024)
+})
+
+test('an evicted reading edition falls back without probing Drive',async()=>{
+ const s=setup()
+ Object.assign(s.value,{pagePack:{url:`/_reader-pdfs/${id}/${'e'.repeat(64)}.pack`,bytes:1000},pagePackVersion:1})
+ s.value.pdf.checkedAt=1;s.update()
+ s.env.ASSETS.fetch=async()=>new Response(null,{status:404})
+ assert.equal((await s.read(`&prepared=${hash}&pages=${'e'.repeat(64)}`))?.status,404)
+ assert.equal(s.counts().upstreamCalls,0)
 })

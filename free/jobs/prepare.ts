@@ -81,7 +81,7 @@ export async function prepareBody(env:Env,item:ContentItem,origin:string,depende
   if(Buffer.byteLength(JSON.stringify(blocks))>55_000) throw new Error("Prepared body exceeds 55 KiB; split this notice into shorter posts")
   return blocks
 }
-export async function prepareCover(item:ContentItem,previous?:Cover|null,dependencies:{download:typeof downloadPdfSnapshot;render:typeof renderReaderPages;save:typeof saveImage;optimize:typeof optimizeReaderPdf;pack?:typeof prepareReaderPack}={download:downloadPdfSnapshot,render:renderReaderPages,save:saveImage,optimize:optimizeReaderPdf,pack:prepareReaderPack}):Promise<Cover|null> {
+export async function prepareCover(item:ContentItem,previous?:Cover|null,dependencies:{download:typeof downloadPdfSnapshot;render:typeof renderReaderPages;save:typeof saveImage;optimize:typeof optimizeReaderPdf;pack?:typeof prepareReaderPack}={download:downloadPdfSnapshot,render:renderReaderPages,save:saveImage,optimize:optimizeReaderPdf,pack:prepareReaderPack},allowPack=true):Promise<Cover|null> {
   const pdf=getPdfSources(item)[0]
   if(!pdf || item.kind!=="research") return null
   const key=sourceKey(item)!
@@ -90,6 +90,8 @@ export async function prepareCover(item:ContentItem,previous?:Cover|null,depende
   // PDF bytes on the publishing runner, never during a visitor request.
   const snapshot=await dependencies.download(pdf.url),data=snapshot.data
   const pdfHash=createHash("sha256").update(data).digest("hex")
+  const source=snapshot.lastModified && Number.isFinite(Date.parse(snapshot.lastModified))
+    ? {key:pdfHash,bytes:data.length,modified:snapshot.lastModified,checkedAt:Date.now()} : undefined
   const saved=preparedReader(item.id,previous?.reader)
   const reusable=previous?.pdfHash===pdfHash && path.test(previous.url) && path.test(previous.previewUrl) && saved
   if(reusable) {
@@ -97,9 +99,9 @@ export async function prepareCover(item:ContentItem,previous?:Cover|null,depende
     const upgraded=!saved.pdf?.initialChunks && snapshot.lastModified
       ? await dependencies.optimize(item.id,data).catch(()=>undefined) : undefined
     const prepared=upgraded??saved.pdf
-    const pagePack = prepared ? await dependencies.pack?.(item.id,data,saved.pagePack).catch(()=>saved.pagePack) : undefined
+    const pagePack = source && allowPack ? await dependencies.pack?.(item.id,data,saved.pagePack).catch(()=>saved.pagePack) : saved.pagePack
     return {url:previous.url,previewUrl:previous.previewUrl,width:previous.width,height:previous.height,sourceKey:key,pdfHash,
-      reader:{...saved,pagePackVersion:1,...(pagePack?{pagePack}:{}),...(prepared?{pdf:{...prepared,sourceBytes:data.length,
+      reader:{...saved,...(allowPack?{pagePackVersion:2 as const}:{}),...(source?{source}:{}),...(pagePack?{pagePack}:{}),...(prepared?{pdf:{...prepared,sourceBytes:data.length,
         sourceModified:snapshot.lastModified??saved.pdf?.sourceModified??'',
         checkedAt:snapshot.lastModified && Number.isFinite(Date.parse(snapshot.lastModified))?Date.now():1}}:{})}}
   }
@@ -114,7 +116,7 @@ export async function prepareCover(item:ContentItem,previous?:Cover|null,depende
     console.warn("Optional web PDF copy unavailable; original PDF and saved pages remain usable")
     return undefined
   }) : undefined
-  const pagePack = optimized ? await dependencies.pack?.(item.id,data).catch(()=>undefined) : undefined
+  const pagePack = source && allowPack ? await dependencies.pack?.(item.id,data).catch(()=>undefined) : undefined
   return {url:await dependencies.save(item.id,small),previewUrl:pages[0].url,width:pages[0].width,height:pages[0].height,sourceKey:key,pdfHash,
-    reader:{version:1,pagePackVersion:1,pageCount:rendered.pageCount,pages,...(pagePack?{pagePack}:{}),...(optimized?{pdf:{...optimized,sourceBytes:data.length,sourceModified:snapshot.lastModified!,checkedAt:Date.now()}}:{})}}
+    reader:{version:1,...(allowPack?{pagePackVersion:2 as const}:{}),pageCount:rendered.pageCount,pages,...(source?{source}:{}),...(pagePack?{pagePack}:{}),...(optimized?{pdf:{...optimized,sourceBytes:data.length,sourceModified:snapshot.lastModified!,checkedAt:Date.now()}}:{})}}
 }

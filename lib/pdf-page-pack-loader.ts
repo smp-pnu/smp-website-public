@@ -30,6 +30,14 @@ export function createPagePackLoader(url: string, pdfKey: string, hint: PagePack
     return new Map(decodePagePack(bytes,count).map(page=>[page.page,{blob:new Blob([new Uint8Array(page.data)],{type:'image/webp'}),width:page.width,ratio:page.height/page.width}]))
   }
   return {
+    async readAll(signal:AbortSignal): Promise<PreparedPdfPage[] | undefined> {
+      signal.throwIfAborted();abort.signal.throwIfAborted()
+      pending ??= load().catch(()=>undefined)
+      const entries=await pending
+      signal.throwIfAborted();abort.signal.throwIfAborted()
+      if(!entries)return
+      return [...entries].map(([page,entry])=>({page,url:URL.createObjectURL(entry.blob),bytes:entry.blob.size,ratio:entry.ratio,width:entry.width}))
+    },
     async read(page: number, signal: AbortSignal): Promise<PreparedPdfPage | undefined> {
       signal.throwIfAborted()
       abort.signal.throwIfAborted()

@@ -16,13 +16,13 @@ test('same PDF bytes reuse the cover and all three reading pages and never extra
   assert.ok(first?.pdfHash)
   assert.equal(renders,1);assert.equal(saves,4)
   const second=await prepareCover({...item,title:'Renamed',editedAt:'2026-10-11'},first,deps)
-  assert.deepEqual(second,first)
+  assert.deepEqual({...second,reader:{...second?.reader,source:first.reader?.source}},first)
   const moved=await prepareCover({...item,externalUrl:'https://drive.google.com/file/d/fixture-report-456/view'},first,deps)
   assert.equal(moved?.pdfHash,first.pdfHash);assert.equal(moved?.url,first.url);assert.notEqual(moved?.sourceKey,first.sourceKey)
   assert.equal(renders,1);assert.equal(saves,4);assert.equal(downloads,3)
   const legacy=Object.assign({},first,{excerpt:{version:2,pages:[{number:1,text:'오래된 자동 발췌'}]}})
   const reused=await prepareCover(item,legacy,deps)
-  assert.deepEqual(reused,first)
+  assert.deepEqual({...reused,reader:{...reused?.reader,source:first.reader?.source}},first)
   assert.equal('excerpt' in (reused??{}),false)
   assert.equal(renders,1);assert.equal(downloads,4)
   bytes=new TextEncoder().encode('%PDF-replaced-behind-same-link')
@@ -58,6 +58,16 @@ test('page packs reuse the verified PDF, regenerate on replacement and remain op
  assert.deepEqual(again?.reader?.pagePack,asset);assert.deepEqual(seenPrevious,[undefined,asset])
  data=new TextEncoder().encode('%PDF-replaced')
  const changed=await prepareCover(item,again,{...deps,pack:async()=>{throw Error('Optional timeout')}})
- assert.equal(changed?.reader?.pagePack,undefined);assert.equal(changed?.reader?.pagePackVersion,1)
+ assert.equal(changed?.reader?.pagePack,undefined);assert.equal(changed?.reader?.pagePackVersion,2)
  assert.equal(changed?.reader?.pages.length,1);assert.ok(changed?.reader?.pdf)
+})
+
+test('pack generation is independent of PDF optimization and is skipped outside the bounded working set',async()=>{
+ const png=await sharp({create:{width:64,height:90,channels:3,background:'#fff'}}).png().toBuffer()
+ let packs=0
+ const deps={download:async()=>({data:new TextEncoder().encode('%PDF-large'),lastModified:'Tue, 06 Oct 2026 04:50:46 GMT'}),render:async()=>({pageCount:1,pages:[{page:1,png,width:64,height:90}]}),save:async(report:string,bytes:Uint8Array)=>`/report-covers/${report}/${createHash('sha256').update(bytes).digest('hex')}.webp`,optimize:async()=>undefined,pack:async()=>{packs++;return {url:`/_reader-pdfs/${id}/${'e'.repeat(64)}.pack`,bytes:1000}}}
+ const accelerated=await prepareCover(item,null,deps)
+ assert.ok(accelerated?.reader?.pagePack);assert.ok(accelerated?.reader?.source);assert.equal(accelerated?.reader?.pdf,undefined)
+ const archive=await prepareCover(item,null,deps,false)
+ assert.equal(packs,1);assert.equal(archive?.reader?.pagePack,undefined);assert.equal(archive?.reader?.pagePackVersion,undefined)
 })

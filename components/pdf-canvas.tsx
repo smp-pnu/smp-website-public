@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Document } from "react-pdf"
 import type { RenderablePdfDocument } from "@/lib/pdf-reading-preload"
 import { PdfBufferedPages } from "./pdf-buffered-pages"
@@ -8,18 +8,15 @@ import { usePdfReadingPreload } from "./use-pdf-reading-preload"
 import { pdfOptions, preparedPdfOptions } from "./pdf-config"
 import { preparedRangeFile } from "./pdf-range-file"
 import type { ReaderTransport } from "@/lib/report-reader"
-import type { PagePackHint } from '@/lib/pdf-page-pack'
+import { PdfReaderToolbar, pdfButtonClass as buttonClass } from "./pdf-reader-toolbar"
+import { usePdfViewport } from "./use-pdf-viewport"
 import "react-pdf/dist/Page/TextLayer.css"
 import "react-pdf/dist/Page/AnnotationLayer.css"
 
-const buttonClass = "rounded border border-white/25 px-3 py-2 text-sm text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-2 focus-visible:outline-sky-300"
-
-export default function PdfCanvas({ url, rangeOnly, transport, pack, page, onPageChange, onReady, onRetry }: { url?: string; rangeOnly?:boolean; transport?:ReaderTransport; pack?:PagePackHint; page:number; onPageChange:(page:number)=>void; onReady: (page:number) => void; onRetry: () => void }) {
-  const reader = useRef<HTMLDivElement>(null)
-  const viewport = useRef<HTMLDivElement>(null)
-  const [width, setWidth] = useState(0)
+export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChange, onReady, onRetry, initialZoom=1, onUnavailable }: { url?: string; rangeOnly?:boolean; transport?:ReaderTransport; page:number; onPageChange:(page:number)=>void; onReady: (page:number) => void; onRetry: () => void; initialZoom?:number; onUnavailable?:()=>void }) {
+  const {reader,viewport,width,fullscreen,fullscreenAvailable,fullscreenError,toggleFullscreen}=usePdfViewport()
   const [pages, setPages] = useState(0)
-  const [zoom, setZoom] = useState(1)
+  const [zoom, setZoom] = useState(initialZoom)
   const [attempt, setAttempt] = useState(0)
   const [failed, setFailed] = useState(false)
   const [pdfDocument, setPdfDocument] = useState<RenderablePdfDocument>()
@@ -38,26 +35,10 @@ export default function PdfCanvas({ url, rangeOnly, transport, pack, page, onPag
   },[url,transport,attempt])
   const file=transport && !rangeFallback?rangeFile:url
   const [resumePage, setResumePage] = useState<number | null>(null)
-  const [fullscreenAvailable, setFullscreenAvailable] = useState(false)
-  const [fullscreen, setFullscreen] = useState(false)
-  const [fullscreenError, setFullscreenError] = useState(false)
-  const fail = useCallback(() => { setFailed(true); onReady(page) }, [onReady,page])
+  const fail = useCallback(() => { setFailed(true); if(onUnavailable)onUnavailable();else onReady(page) }, [onReady,page,onUnavailable])
   const preparedInitialPages = useCallback(() => setInitialPagesReady(true), [])
   // A reader jumping ahead or zooming should not wait for the initial window.
   const rendered = useCallback((value: number) => { if(value >= 3 || zoom !== 1) setInitialPagesReady(true); onReady(value) }, [onReady, zoom])
-  useEffect(() => {
-    setFullscreenAvailable(Boolean(document.fullscreenEnabled))
-    const update = () => setFullscreen(document.fullscreenElement === reader.current)
-    document.addEventListener("fullscreenchange", update)
-    return () => document.removeEventListener("fullscreenchange", update)
-  }, [])
-  useEffect(() => {
-    const element = viewport.current
-    if (!element) return
-    const observer = new ResizeObserver(([entry]) => setWidth(Math.floor(entry.contentRect.width)))
-    observer.observe(element)
-    return () => observer.disconnect()
-  }, [])
 
   function navigate(value: number) {
     const nextPage = Math.max(1, Math.min(pages, value))
@@ -73,32 +54,9 @@ export default function PdfCanvas({ url, rangeOnly, transport, pack, page, onPag
     <button className={`${buttonClass} mt-3`} onClick={() => { onRetry(); setFailed(false); setPages(0); setInitialPagesReady(false); setPdfDocument(undefined); onPageChange(1); setAttempt(value => value + 1) }}>다시 시도</button>
   </div>
 
-  return <div ref={reader} data-pdf-download-state={fullyLoaded ? 'complete' : 'partial'} className={`overflow-hidden rounded-lg border border-white/20 bg-slate-950 ${fullscreen ? "flex h-screen flex-col" : ""}`}>
-    <div role="group" aria-label="PDF 페이지와 확대 설정" className="flex flex-wrap items-center justify-between gap-3 border-b border-white/15 p-3">
-      <div className="flex items-center gap-2">
-        <button aria-label="이전 페이지" className={buttonClass} disabled={page <= 1 || failed || !pages} onClick={() => navigate(page - 1)}>←</button>
-        <label className="flex items-center gap-2 text-sm text-slate-200">
-          <span className="sr-only">PDF 페이지</span>
-          <input aria-label="PDF 페이지" type="number" min={1} max={pages || 1} value={page} disabled={!pages || failed}
-            onChange={event => { const value = event.currentTarget.valueAsNumber; if (Number.isInteger(value)) navigate(value) }}
-            className="w-14 rounded border border-white/25 bg-slate-900 p-2 text-center text-white" />
-          <span aria-live="polite">/ {pages || "…"}</span>
-        </label>
-        <button aria-label="다음 페이지" className={buttonClass} disabled={!pages || page >= pages || failed} onClick={() => navigate(page + 1)}>→</button>
-      </div>
-      <div className="flex flex-wrap items-center gap-2"><label className="flex items-center gap-2 text-sm text-slate-200">확대
-        <select aria-label="PDF 확대" value={zoom} onChange={event => setZoom(Number(event.target.value))} className="rounded border border-white/25 bg-slate-900 p-2 text-white">
-          <option value={1}>화면에 맞춤</option><option value={1.25}>125%</option><option value={1.5}>150%</option><option value={2}>200%</option>
-        </select>
-      </label>
-      {fullscreenAvailable && <button type="button" aria-pressed={fullscreen} className={buttonClass} onClick={async () => {
-        try {
-          setFullscreenError(false)
-          if (document.fullscreenElement === reader.current) await document.exitFullscreen()
-          else await reader.current?.requestFullscreen()
-        } catch { setFullscreenError(true) }
-      }}>{fullscreen ? "전체 화면 닫기" : "전체 화면"}</button>}</div>
-    </div>
+  return <div ref={reader} data-pdf-reader-mode="original" data-pdf-download-state={fullyLoaded ? 'complete' : 'partial'} className={`overflow-hidden rounded-lg border border-white/20 bg-slate-950 ${fullscreen ? "flex h-screen flex-col" : ""}`}>
+    <PdfReaderToolbar page={page} pages={pages} zoom={zoom} disabled={failed} onNavigate={navigate} onZoom={setZoom}
+      fullscreen={fullscreen} fullscreenAvailable={fullscreenAvailable} onFullscreen={toggleFullscreen} />
     {fullscreenError && <p role="status" className="px-4 py-2 text-xs text-slate-300">이 브라우저에서는 전체 화면을 열 수 없습니다.</p>}
     {resumePage && <div className="flex items-center justify-between gap-3 border-b border-white/15 px-4 py-2 text-xs text-slate-300">
       <button type="button" className="min-h-9 text-sky-200 hover:underline" onClick={() => navigate(resumePage)}>이전에 읽던 {resumePage}페이지부터 이어 읽기 →</button>
@@ -117,7 +75,7 @@ export default function PdfCanvas({ url, rangeOnly, transport, pack, page, onPag
           } catch { /* Optional preference only. */ }
         }}
         onPassword={fail} externalLinkTarget="_blank" onItemClick={({ pageNumber }) => { if (pageNumber) navigate(pageNumber) }}>
-        {pdfDocument && <PdfBufferedPages pdf={pdfDocument} page={page} width={width} zoom={zoom} prepareRemaining={fullyLoaded || preloadState === 'loading'} onDemand={preloadState === 'on-demand'} onReady={rendered} onInitialPagesReady={preparedInitialPages} onError={fail} url={url} pdfKey={rangeFallback?undefined:transport?.key} pack={rangeFallback?undefined:pack} />}
+        {pdfDocument && <PdfBufferedPages pdf={pdfDocument} page={page} width={width} zoom={zoom} prepareRemaining={fullyLoaded || preloadState === 'loading'} onDemand={preloadState === 'on-demand'} onReady={rendered} onInitialPagesReady={preparedInitialPages} onError={fail} />}
       </Document>}
     </div>
   </div>
