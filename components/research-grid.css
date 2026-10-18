@@ -33,9 +33,9 @@
   contain: paint;
   transform: translate3d(0, 0, 0);
   will-change: transform;
-  transition: transform 220ms ease-out;
+  /* Ease both ends; keep the panel as the card's only moving layer. */
+  transition: transform 240ms cubic-bezier(.4, 0, .2, 1);
 }
-.research-card-arrow { transition: transform 160ms ease-out; }
 /* Reserve the same two lines even for short or missing CMS text. */
 .research-card-title { height: 3.5rem; }
 .research-card-summary { height: 3rem; }
@@ -43,19 +43,18 @@
 .research-card:focus-visible .research-card-action { color: var(--site-accent); }
 @media (max-width: 639px), (hover: none) {
   [data-card-grid] { --cover-overlap: 0px; row-gap: 32px; }
-  .research-card-info { will-change: auto; }
+  .research-card-info, .research-card:focus-visible .research-card-info {
+    transform: none;
+    transition: none;
+    will-change: auto;
+  }
 }
-@media (hover: hover) and (pointer: fine) {
+@media (min-width: 640px) and (hover: hover) and (pointer: fine) {
   .research-card:hover .research-card-info {
     transform: translate3d(0, var(--cover-overlap), 0);
   }
-  .research-card:hover .research-card-frame { border-color: rgb(255 255 255 / .25); }
   .research-card:hover .research-card-action { color: var(--site-accent); }
-  .research-card:hover .research-card-arrow { transform: translate(2px, -2px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .research-card-frame, .research-card-info,
-  .research-card-action, .research-card-arrow { transition: none; }
-  .research-card-arrow { transform: none; }
-  .research-card-info { will-change: auto; }
+  .research-card-info { transition: none; will-change: auto; }
 }
