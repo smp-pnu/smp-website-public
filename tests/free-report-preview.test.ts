@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { readApi, peekApi, ApiError } from "../free/client/api-cache"
+import { readApi, peekApi, ApiError } from "../lib/client-api-cache"
 import { cachedReportPreview } from "../free/client/report-preview"
 import { getPdfSources } from "../lib/pdf-source"
 import type { ContentItem } from "../lib/content-model"

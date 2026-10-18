@@ -1,7 +1,8 @@
-import { useEffect, useMemo } from "react"
-import { Navigate, useLocation, useParams } from "react-router"
+import { useEffect, useMemo, useRef } from "react"
+import { Navigate, useLocation, useNavigationType, useParams } from "react-router"
 import Link from "next/link"
 import Form from "next/form"
+import { SEARCH_CACHE_TTL } from "@/lib/client-api-cache"
 import { useApi } from "./api"
 import { cachedReportPreview } from "./report-preview"
 import { updatePageMetadata } from "./seo"
@@ -38,6 +39,17 @@ export function ListPage({ kind }: { kind: ContentKind }) {
   const { value, error } = useApi<ContentResult>(`/api/catalog/${kind}`)
   const search = useSearch()
   const result = useMemo(() => value && ({ ...value, items: sortContent(value.items) }), [value])
+  const { key, hash } = useLocation()
+  const navigationType = useNavigationType()
+  const restoredKey = useRef<string | undefined>(undefined)
+  useEffect(() => {
+    if (!result || !hash.startsWith("#content-") || restoredKey.current === key) return
+    restoredKey.current = key
+    // A cold list has no anchors when the router first restores scroll. Retry
+    // once after its data arrives, while leaving saved Back/Forward positions alone.
+    if (navigationType === "POP" && key !== "default") return
+    document.getElementById(hash.slice(1))?.scrollIntoView({ block: "start", behavior: "instant" })
+  }, [result, key, hash, navigationType])
   const content = result ? <ContentList result={result} kind={kind} search={search} /> : <Status error={error} />
   return <><SiteHeader />{kind === "notice" ? <NoticeListing>{content}</NoticeListing> : <main data-report-page="list" className="site-page min-h-[75svh] max-w-6xl">
     <PageIntro eyebrow="SMP PUBLICATIONS" title="RESEARCH">부산대학교 금융투자학회 SMP의 기업·산업 분석 리포트입니다. 기업명·종목코드·산업·발표 학기로 찾고, PDF 원문을 읽어보세요.</PageIntro>
@@ -94,7 +106,7 @@ function Attachments({ item }: { item: PreparedItem }) {
 }
 export function SearchPage() {
   const query = (useSearch().q ?? "").trim().slice(0, 100)
-  const { value, error } = useApi<{ entries: SiteSearchEntry[]; partial: boolean }>("/api/search")
+  const { value, error } = useApi<{ entries: SiteSearchEntry[]; partial: boolean }>("/api/search", SEARCH_CACHE_TTL)
   return <><SiteHeader /><main className="site-page min-h-[75svh] max-w-5xl"><PageIntro eyebrow="EXPLORE SMP" title="SEARCH">SMP의 리포트와 소식, 사람들을 한곳에서 찾아보세요.</PageIntro><Form action="/search" className="mt-10" role="search"><SearchField key={query} id="search-query" label="검색어" name="q" maxLength={100} defaultValue={query} placeholder="검색어를 입력하세요" /></Form>{!query ? <p className="py-20 text-center text-site-body">기업명, 리포트 제목, 이름 또는 학과를 입력해보세요.</p> : value ? <SiteSearchResults query={query} index={value} /> : <Status error={error} />}</main><SiteFooter /></>
 }
 export function NetworkPage() {

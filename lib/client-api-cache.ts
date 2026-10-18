@@ -1,3 +1,5 @@
+// Shared by search suggestions and routed content; one bounded browser cache.
+export const SEARCH_CACHE_TTL = 60_000
 type Cached = { value: unknown; until: number }
 const cache = new Map<string, Cached>()
 const paused=new Map<string,{until:number;error:ApiError}>()
@@ -40,7 +42,7 @@ export async function readApi<T>(path: string, ttl = 300_000): Promise<T> {
       throw error
     }
     const value = await response.json()
-    if (ttl) {
+    if (ttl && value?.partial !== true) {
       if (cache.size >= 12) cache.delete(cache.keys().next().value!)
       cache.set(path, { value, until: Date.now() + ttl })
     }

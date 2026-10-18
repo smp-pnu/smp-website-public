@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { peekApi, readApi } from "./api-cache"
+import { peekApi, readApi } from "@/lib/client-api-cache"
 
 export function useApi<T>(path: string, ttl = 300_000) {
   // Render a warm list immediately so ScrollRestoration sees its full height

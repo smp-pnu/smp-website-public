@@ -1,6 +1,6 @@
 import { normalizeId } from "../../lib/content-model"
 import type { ContentResult } from "../../lib/notion-model"
-import { peekApi } from "./api-cache"
+import { peekApi } from "@/lib/client-api-cache"
 import { publicCover,type CoveredItem } from "../../lib/public-cover"
 
 /** Reuse only metadata already delivered in the public list, never a document. */

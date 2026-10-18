@@ -29,4 +29,21 @@ jobs:
       - run: pnpm build
       - run: pnpm test:bundles
       - run: pnpm typecheck
-      - run: pnpm seed:free:fixture && pnpm build:free:fixture
+      - name: Test the Cloudflare runtime with local fixture data
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          node scripts/dev-free.mjs > /tmp/smp-fixture.log 2>&1 &
+          fixture_pid=$!
+          trap 'kill "$fixture_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in {1..90}; do
+            if curl --fail --silent http://127.0.0.1:3005/api/health > /dev/null; then
+              ready=1
+              break
+            fi
+            if ! kill -0 "$fixture_pid" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          if [ "$ready" != 1 ]; then cat /tmp/smp-fixture.log; exit 1; fi
+          node tests/free-http.mjs || { cat /tmp/smp-fixture.log; exit 1; }

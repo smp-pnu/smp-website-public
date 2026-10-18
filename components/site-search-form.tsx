@@ -4,30 +4,17 @@ import Link from "next/link"
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowRight } from "lucide-react"
+import { readApi, peekApi, SEARCH_CACHE_TTL } from "@/lib/client-api-cache"
 import { SearchField } from "@/components/search-field"
 import { siteSearchMatches, type SiteSearchEntry } from "@/lib/site-search-query"
 
 type SearchIndex = { entries: SiteSearchEntry[]; partial: boolean }
-let cached: { value: SearchIndex; until: number } | undefined
-let pending: Promise<SearchIndex> | undefined
-function loadIndex() {
-  if (cached && cached.until > Date.now()) return Promise.resolve(cached.value)
-  if (pending) return pending
-  pending = fetch("/api/search", { credentials: "same-origin", cache: "no-store", signal: AbortSignal.timeout(15_000) })
-    .then(async response => {
-      if (!response.ok) throw new Error("Search unavailable")
-      const value: SearchIndex = await response.json()
-      if (!value.partial) cached = { value, until: Date.now() + 60_000 }
-      return value
-    }).finally(() => { pending = undefined })
-  return pending
-}
 
 export function SiteSearchForm({ onNavigate }: { onNavigate: () => void }) {
   const router = useRouter()
   const id = useId()
   const [query, setQuery] = useState("")
-  const [index, setIndex] = useState<SearchIndex | null>(null)
+  const [index, setIndex] = useState<SearchIndex | null>(() => peekApi<SearchIndex>("/api/search", SEARCH_CACHE_TTL) ?? null)
   const [failed, setFailed] = useState(false)
   const [active, setActive] = useState(-1)
   const [isNavigating, startNavigation] = useTransition()
@@ -45,7 +32,7 @@ export function SiteSearchForm({ onNavigate }: { onNavigate: () => void }) {
   }
   useEffect(() => {
     let mounted = true
-    void loadIndex().then(value => { if (mounted) setIndex(value) }, () => { if (mounted) setFailed(true) })
+    void readApi<SearchIndex>("/api/search", SEARCH_CACHE_TTL).then(value => { if (mounted) setIndex(value) }, () => { if (mounted) setFailed(true) })
     return () => { mounted = false }
   }, [])
   const matches = useMemo(() => siteSearchMatches(index?.entries ?? [], query, 6), [index, query])
