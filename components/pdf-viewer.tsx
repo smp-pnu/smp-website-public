@@ -22,10 +22,9 @@ export function PdfViewer(props: PdfViewerProps) {
 function PdfReader({ url, preview }: PdfViewerProps) {
   const canPack=Boolean(preview?.reader?.pack && (preview.reader.packSource || preview.reader.transport))
   const [packReady,setPackReady]=useState(false),[canvasReady,setCanvasReady]=useState(false)
-  const [packFailed,setPackFailed]=useState(false),[originalRequested,setOriginalRequested]=useState(false)
-  const [originalFailed,setOriginalFailed]=useState(false),[initialZoom,setInitialZoom]=useState(1)
+  const [packFailed,setPackFailed]=useState(false)
   const ready=packReady || canvasReady
-  const needOriginal=!canPack || packFailed || originalRequested
+  const needOriginal=!canPack || packFailed
   const [page,setPage]=useState(1)
   const [failedImages,setFailedImages]=useState<string[]>([])
   useEffect(() => {
@@ -46,8 +45,6 @@ function PdfReader({ url, preview }: PdfViewerProps) {
   const showPack = useCallback((renderedPage:number) => { if(renderedPage===page)setPackReady(true) }, [page])
   const showPreview = useCallback(() => setCanvasReady(false), [])
   const fallback = useCallback(()=>{setPackFailed(true);setPackReady(false)},[])
-  const openOriginal = useCallback((zoom:number)=>{setInitialZoom(zoom);setOriginalFailed(false);setOriginalRequested(true)},[])
-  const originalUnavailable = useCallback(()=>{setOriginalRequested(false);setOriginalFailed(true)},[])
   return <>
     <div className="relative">
       {!ready && <div className="overflow-hidden rounded-lg border border-white/20 bg-slate-950/80">
@@ -67,11 +64,10 @@ function PdfReader({ url, preview }: PdfViewerProps) {
         </div>
       </div>}
       {canPack && !packFailed && !canvasReady && url && preview?.reader && <div className={packReady?undefined:"pointer-events-none absolute inset-0 opacity-0"} inert={!packReady} aria-hidden={!packReady}>
-        {originalFailed && <p role="status" className="px-4 py-2 text-xs text-slate-300">원문을 열지 못했습니다. 준비된 페이지는 계속 읽을 수 있습니다.</p>}
-        <PdfPackedReader url={url} preview={preview.reader} page={page} onPageChange={setPage} onReady={showPack} onFallback={fallback} onOriginal={openOriginal} pendingOriginal={originalRequested} />
+        <PdfPackedReader url={url} preview={preview.reader} page={page} onPageChange={setPage} onReady={showPack} onFallback={fallback} />
       </div>}
       {needOriginal && <div className={canvasReady ? undefined : "pointer-events-none absolute inset-0 opacity-0"} inert={!canvasReady} aria-hidden={!canvasReady}>
-        <PdfCanvas url={url} rangeOnly={preview?.reader?.rangeOnly} transport={preview?.reader?.transport} page={page} onPageChange={setPage} onReady={showReader} onRetry={showPreview} initialZoom={initialZoom} onUnavailable={packReady?originalUnavailable:undefined} />
+        <PdfCanvas url={url} rangeOnly={preview?.reader?.rangeOnly} transport={preview?.reader?.transport} page={page} onPageChange={setPage} onReady={showReader} onRetry={showPreview} />
       </div>}
     </div>
     <noscript><p className="p-6 text-slate-300">PDF 미리보기를 사용하려면 JavaScript를 켜주세요. 위 다운로드 버튼으로도 파일을 받을 수 있습니다.</p></noscript>

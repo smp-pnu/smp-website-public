@@ -5,14 +5,14 @@ import { createPagePackLoader } from '@/lib/pdf-page-pack-loader'
 import type { ReaderPreview } from '@/lib/report-reader'
 import type { PreparedPdfPage } from '@/lib/pdf-page-cache'
 import { PdfPageImages } from './pdf-page-images'
-import { PdfReaderToolbar, pdfButtonClass } from './pdf-reader-toolbar'
+import { PdfReaderToolbar } from './pdf-reader-toolbar'
 import { usePdfViewport } from './use-pdf-viewport'
 
 // The reading path does not import PDF.js, parse the PDF, or download its bytes.
-// Original text/links remain available through the explicit original-mode action.
-export default function PdfPackedReader({url,preview,page,onPageChange,onReady,onFallback,onOriginal,pendingOriginal}: {
+// Readers can download the original PDF for text selection and links.
+export default function PdfPackedReader({url,preview,page,onPageChange,onReady,onFallback}: {
   url:string;preview:ReaderPreview;page:number;onPageChange:(page:number)=>void;onReady:(page:number)=>void
-  onFallback:()=>void;onOriginal:(zoom:number)=>void;pendingOriginal:boolean
+  onFallback:()=>void
 }) {
   const {reader,viewport,width,fullscreen,fullscreenAvailable,fullscreenError,toggleFullscreen}=usePdfViewport()
   const [entries,setEntries]=useState<PreparedPdfPage[]>([]),[zoom,setZoom]=useState(1)
@@ -43,8 +43,7 @@ export default function PdfPackedReader({url,preview,page,onPageChange,onReady,o
   }
   return <div ref={reader} data-pdf-reader-mode="prepared" className={`overflow-hidden rounded-lg border border-white/20 bg-slate-950 ${fullscreen?'flex h-screen flex-col':''}`}>
     <PdfReaderToolbar page={page} pages={count} zoom={zoom} onNavigate={navigate} onZoom={setZoom}
-      fullscreen={fullscreen} fullscreenAvailable={fullscreenAvailable} onFullscreen={toggleFullscreen}
-      action={<button className={pdfButtonClass} disabled={pendingOriginal} onClick={()=>onOriginal(zoom)} title="PDF 원문의 텍스트 선택과 링크를 사용합니다">{pendingOriginal?'원문 준비 중…':'텍스트 선택'}</button>} />
+      fullscreen={fullscreen} fullscreenAvailable={fullscreenAvailable} onFullscreen={toggleFullscreen} />
     {fullscreenError && <p role="status" className="px-4 py-2 text-xs text-slate-300">이 브라우저에서는 전체 화면을 열 수 없습니다.</p>}
     {resume && <div className="flex items-center justify-between gap-3 border-b border-white/15 px-4 py-2 text-xs text-slate-300">
       <button className="min-h-9 text-sky-200 hover:underline" onClick={()=>navigate(resume)}>이전에 읽던 {resume}페이지부터 이어 읽기 →</button>

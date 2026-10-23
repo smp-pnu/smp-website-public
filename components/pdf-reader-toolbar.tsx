@@ -1,13 +1,13 @@
 "use client"
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 
 export const pdfButtonClass = 'rounded border border-white/25 px-3 py-2 text-sm text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-2 focus-visible:outline-sky-300'
 
-export function PdfReaderToolbar({page,pages,zoom,disabled=false,onNavigate,onZoom,fullscreen,fullscreenAvailable,onFullscreen,action}: {
+export function PdfReaderToolbar({page,pages,zoom,disabled=false,onNavigate,onZoom,fullscreen,fullscreenAvailable,onFullscreen}: {
   page:number; pages:number; zoom:number; disabled?:boolean
   onNavigate:(page:number)=>void; onZoom:(zoom:number)=>void
-  fullscreen:boolean; fullscreenAvailable:boolean; onFullscreen:()=>void; action?:ReactNode
+  fullscreen:boolean; fullscreenAvailable:boolean; onFullscreen:()=>void
 }) {
   const [draft,setDraft]=useState(String(page))
   useEffect(()=>setDraft(String(page)),[page])
@@ -30,7 +30,6 @@ export function PdfReaderToolbar({page,pages,zoom,disabled=false,onNavigate,onZo
       <button aria-label="다음 페이지" className={pdfButtonClass} disabled={disabled || !pages || page>=pages} onClick={()=>onNavigate(page+1)}>→</button>
     </div>
     <div className="flex flex-wrap items-center gap-2">
-      {action}
       <label className="flex items-center gap-2 text-sm text-slate-200">확대
         <select aria-label="PDF 확대" value={zoom} onChange={event=>onZoom(Number(event.target.value))} className="rounded border border-white/25 bg-slate-900 p-2 text-white">
           <option value={1}>화면에 맞춤</option><option value={1.25}>125%</option><option value={1.5}>150%</option><option value={2}>200%</option>

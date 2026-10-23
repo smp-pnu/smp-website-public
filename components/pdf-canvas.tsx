@@ -13,10 +13,10 @@ import { usePdfViewport } from "./use-pdf-viewport"
 import "react-pdf/dist/Page/TextLayer.css"
 import "react-pdf/dist/Page/AnnotationLayer.css"
 
-export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChange, onReady, onRetry, initialZoom=1, onUnavailable }: { url?: string; rangeOnly?:boolean; transport?:ReaderTransport; page:number; onPageChange:(page:number)=>void; onReady: (page:number) => void; onRetry: () => void; initialZoom?:number; onUnavailable?:()=>void }) {
+export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChange, onReady, onRetry }: { url?: string; rangeOnly?:boolean; transport?:ReaderTransport; page:number; onPageChange:(page:number)=>void; onReady: (page:number) => void; onRetry: () => void }) {
   const {reader,viewport,width,fullscreen,fullscreenAvailable,fullscreenError,toggleFullscreen}=usePdfViewport()
   const [pages, setPages] = useState(0)
-  const [zoom, setZoom] = useState(initialZoom)
+  const [zoom, setZoom] = useState(1)
   const [attempt, setAttempt] = useState(0)
   const [failed, setFailed] = useState(false)
   const [pdfDocument, setPdfDocument] = useState<RenderablePdfDocument>()
@@ -35,7 +35,7 @@ export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChang
   },[url,transport,attempt])
   const file=transport && !rangeFallback?rangeFile:url
   const [resumePage, setResumePage] = useState<number | null>(null)
-  const fail = useCallback(() => { setFailed(true); if(onUnavailable)onUnavailable();else onReady(page) }, [onReady,page,onUnavailable])
+  const fail = useCallback(() => { setFailed(true); onReady(page) }, [onReady,page])
   const preparedInitialPages = useCallback(() => setInitialPagesReady(true), [])
   // A reader jumping ahead or zooming should not wait for the initial window.
   const rendered = useCallback((value: number) => { if(value >= 3 || zoom !== 1) setInitialPagesReady(true); onReady(value) }, [onReady, zoom])
