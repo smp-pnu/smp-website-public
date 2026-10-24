@@ -31,3 +31,7 @@ node_modules
 /test-results/
 /.smp-cache/
 /.smp-tools/
+
+# Private admin trial data (credentials, sessions and unpublished files).
+/.smp-admin-data/
+/.smp-admin-backups/

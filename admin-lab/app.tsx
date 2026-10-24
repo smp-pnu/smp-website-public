@@ -1,3 +1,4 @@
+import { serverMode } from "./mode"
 import { useState } from "react"
 import { ArrowUpRight, CheckCheck, FileText, FlaskConical, FolderOpen, HardDrive, Plus, RefreshCw, Search, ShieldCheck, Trash2, Upload } from "lucide-react"
 import { DraftEditor } from "./editor"
@@ -15,7 +16,7 @@ function DraftRow({ draft, selected, onSelect }: { draft: Draft; selected: boole
   </button>
 }
 
-export function App() {
+export function App({ username, onLogout }: { username?: string; onLogout?: () => Promise<void> }) {
   const lab = useLab()
   const confirm = useConfirmation()
   const [filter, setFilter] = useState<Filter>("all")
@@ -53,11 +54,11 @@ export function App() {
       <div className="brand"><span>SMP</span><small>RESEARCH DESK</small></div>
       <div className="workspace"><span className="workspace-dot"/> PDF 관리자 <small>시험 공간</small></div>
       <nav aria-label="리포트 상태">{menus.map(({ id, text, Icon, count }) => <button key={id} className={filter === id ? "active" : ""} aria-current={filter === id ? "page" : undefined} onClick={async () => { if (await changeSelection(null)) setFilter(id) }}><Icon size={17}/>{text}<span>{count}</span></button>)}</nav>
-      <div className="storage-card"><HardDrive size={17}/><strong>브라우저 저장 공간</strong><p>{sizeLabel(stored)} <span>/ {sizeLabel(limits.totalBytes)}</span></p><progress value={stored} max={limits.totalBytes} aria-label="시험 자료 저장 용량"/><small>휴지통의 파일도 포함됩니다.</small></div>
+      <div className="storage-card"><HardDrive size={17}/><strong>{serverMode ? "서버 저장 공간" : "브라우저 저장 공간"}</strong><p>{sizeLabel(stored)} <span>/ {sizeLabel(limits.totalBytes)}</span></p><progress value={stored} max={limits.totalBytes} aria-label="시험 자료 저장 용량"/><small>휴지통의 파일도 포함됩니다.</small></div>
       <div className="sidebar-foot"><ShieldCheck size={17}/><p>운영 환경과 분리됨<br/><small>Notion · Drive 연결 없음</small></p></div>
     </aside>
     <main>
-      <div className="lab-banner"><FlaskConical size={16}/><strong>로컬 시험판</strong><span>파일은 이 브라우저에만 저장됩니다. 실제 로그인·게시 기능은 연결되지 않았습니다.</span></div>
+      <div className="lab-banner"><FlaskConical size={16}/><strong>{serverMode ? "로그인·서버 저장 시험판" : "로컬 시험판"}</strong><span>{serverMode ? "자료는 이 Mac의 시험 서버에 저장됩니다. 운영 게시 연결은 없습니다." : "파일은 이 브라우저에만 저장됩니다. 실제 로그인·게시 기능은 연결되지 않았습니다."}</span>{onLogout && <button className="secondary session-button" disabled={busy} onClick={async () => { if (dirty && !await confirm("저장하지 않은 변경을 버리고 로그아웃할까요?")) return; try { await onLogout() } catch (error) { setRefreshError((error as Error).message) } }}>{username} · 로그아웃</button>}</div>
       <header className="page-heading"><div><p className="eyebrow">CONTENT WORKSPACE</p><h1>리포트 관리<span>.</span></h1><p>PDF를 올리고, 내용을 확인하고, 게시할 준비를 마치세요.</p></div><div className="header-actions"><button className="secondary" disabled={busy} onClick={() => ingest([samplePdf(0), samplePdf(1)])}>예시 PDF 2개로 테스트 <ArrowUpRight size={15}/></button></div></header>
       <section className={`upload-zone ${dragging ? "dragging" : ""} ${busy ? "is-busy" : ""}`} aria-label="PDF 추가"
         onDragOver={e => { e.preventDefault(); if (!busy) setDragging(true) }} onDragLeave={() => setDragging(false)}
@@ -77,10 +78,10 @@ export function App() {
         {selected ? <DraftEditor key={`${selected.id}:${selected.revision}:${selected.approvedAt}`} draft={selected} locked={busy} onDirty={setDirty} onSave={lab.save} onApprove={lab.approve} onTrash={lab.trash} onRemove={lab.remove} onReanalyze={lab.reanalyze}/> : <section className="welcome">
           <div className="welcome-icon"><FileText size={32}/></div><p className="eyebrow">A SIMPLER PUBLISHING FLOW</p><h2>리포트 하나로,<br/>게시 준비까지.</h2><p>파일을 올리면 표지와 입력 후보를 준비합니다.<br/>관리자는 내용을 확인하는 데 집중하세요.</p>
           <ol><li><span>01</span><div><strong>PDF 추가</strong><p>표지 생성과 원문 분석</p></div></li><li><span>02</span><div><strong>내용 검토</strong><p>자동 입력 후보 확인과 수정</p></div></li><li><span>03</span><div><strong>시험 승인</strong><p>운영 게시 없이 흐름 확인</p></div></li></ol>
-          <div className="local-note">브라우저 데이터를 지우면 시험 자료도 사라집니다.<br/>원본 파일은 따로 보관해 주세요.</div>
+          <div className="local-note">{serverMode ? "시험 자료는 서버 폴더에 보관됩니다. 서버 폴더 삭제 전에는 백업해 주세요." : "브라우저 데이터를 지우면 시험 자료도 사라집니다."}<br/>원본 파일은 따로 보관해 주세요.</div>
         </section>}
       </div>
-      <footer className="page-foot">SMP · 부산대학교 금융투자학회 <span>PDF ADMIN LAB · LOCAL ONLY</span></footer>
+      <footer className="page-foot">SMP · 부산대학교 금융투자학회 <span>{serverMode ? "PDF ADMIN · PRIVATE SERVER TRIAL" : "PDF ADMIN LAB · LOCAL ONLY"}</span></footer>
     </main>
   </div>
 }

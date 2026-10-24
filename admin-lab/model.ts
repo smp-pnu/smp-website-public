@@ -58,3 +58,21 @@ export function trashDraft(draft: Draft, trashed: boolean, now: string): Draft {
 export function reportSummary(fields: Fields) {
   return [fields.targetYear && `타겟년도: ${fields.targetYear}`, fields.notRated ? "Not Rated" : fields.targetPrice && `Target price: ${fields.targetPrice}`, !fields.notRated && fields.upside && `상승여력: ${fields.upside}`].filter(Boolean).join(" · ")
 }
+
+export type DraftCommand =
+  | { type: "edit"; fields: Fields }
+  | { type: "approve"; reviewed: boolean }
+  | { type: "trash"; trashed: boolean }
+  | { type: "remove" }
+  | { type: "reanalyze"; fields: Fields; evidence: Evidence[]; warnings: string[] }
+export function applyCommand(draft: Draft, command: DraftCommand, now: string): Draft | null {
+  if (draft.trashedAt && ["edit", "reanalyze"].includes(command.type)) throw Error("휴지통에서 먼저 복원해 주세요.")
+  switch (command.type) {
+    case "edit": return editDraft(draft, command.fields, now)
+    case "approve": return approveDraft(draft, command.reviewed, now)
+    case "trash": return trashDraft(draft, command.trashed, now)
+    case "remove": if (!draft.trashedAt) throw Error("휴지통에서만 영구 삭제할 수 있어요."); return null
+    case "reanalyze": return { ...draft, fields: command.fields, evidence: command.evidence, warnings: command.warnings,
+      revision: draft.revision + 1, approvedRevision: null, approvedAt: null, updatedAt: now }
+  }
+}

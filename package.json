@@ -22,7 +22,9 @@
     "seed:free:fixture": "node --import tsx --conditions=react-server free/jobs/seed-fixture.ts",
     "test:free:http": "node tests/free-http.mjs",
     "dev:next": "next dev",
-    "build:next": "next build"
+    "build:next": "next build",
+    "build:admin:server": "node scripts/admin-server.mjs build",
+    "start:admin:server": "node --import tsx scripts/admin-server.mjs start"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

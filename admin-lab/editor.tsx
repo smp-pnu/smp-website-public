@@ -1,3 +1,4 @@
+import { serverMode, storageLabel } from "./mode"
 import { useEffect, useState } from "react"
 import { Check, Download, FileCheck2, RotateCcw, Save, Trash2 } from "lucide-react"
 import { wicsSectors } from "../lib/wics"
@@ -75,7 +76,7 @@ export function DraftEditor({ draft, locked, onDirty, onSave, onApprove, onTrash
     </article> : <form onSubmit={e => { e.preventDefault(); void action(() => onSave(draft, fields)) }}>
       <div className="review-intro">
         <div className="cover-paper">{cover ? <img src={cover} alt="업로드한 PDF 첫 페이지" /> : <span>표지 준비 중</span>}</div>
-        <div><h3>자동 입력은 초안이에요.</h3><p>첫 3페이지와 파일명에서 찾은 내용입니다. 원문과 대조하고 빠진 항목을 채워 주세요.</p><small>PDF와 초안은 이 브라우저에만 저장됩니다.</small></div>
+        <div><h3>자동 입력은 초안이에요.</h3><p>첫 3페이지와 파일명에서 찾은 내용입니다. 원문과 대조하고 빠진 항목을 채워 주세요.</p><small>PDF와 초안은 {storageLabel}에 저장됩니다.</small></div>
       </div>
       <fieldset disabled={busy || !!draft.trashedAt}>
         <legend>01 <span>기본 정보</span></legend>
@@ -105,19 +106,19 @@ export function DraftEditor({ draft, locked, onDirty, onSave, onApprove, onTrash
       </details>
       {!draft.trashedAt && <div className="review-actions">
         <button className="secondary" type="submit" disabled={busy || !dirty}><Save size={16}/>{busy ? "처리 중…" : "초안 저장"}</button>
-        <span>{dirty ? "변경한 내용을 먼저 저장해 주세요." : "브라우저에 저장된 초안입니다."}</span>
+        <span>{dirty ? "변경한 내용을 먼저 저장해 주세요." : `${storageLabel}에 저장된 초안입니다.`}</span>
       </div>}
     </form>}
     {error && <p className="error-panel" role="alert">{error}</p>}
     <footer className="approval">
-      {draft.trashedAt ? <><p>이 브라우저의 시험 자료만 변경됩니다.</p><div className="button-row"><button className="primary" disabled={busy} onClick={() => action(() => onTrash(draft, false))}><RotateCcw size={16}/> 복원</button><button className="danger" disabled={busy} onClick={async () => { if (await confirm("이 브라우저에서 PDF와 초안을 영구 삭제할까요?")) void action(() => onRemove(draft)) }}>영구 삭제</button></div></> : <>
+      {draft.trashedAt ? <><p>{storageLabel}의 시험 자료만 변경됩니다.</p><div className="button-row"><button className="primary" disabled={busy} onClick={() => action(() => onTrash(draft, false))}><RotateCcw size={16}/> 복원</button><button className="danger" disabled={busy} onClick={async () => { if (await confirm(`${storageLabel}에서 PDF와 초안을 영구 삭제할까요?`)) void action(() => onRemove(draft)) }}>영구 삭제</button></div></> : <>
         {approved && !dirty ? <p className="approved-message"><Check size={17}/> 이 버전은 시험 승인을 완료했어요. 실제 게시 연결은 아직 없습니다.</p> : <>
           <label className="check-row"><input type="checkbox" checked={reviewed} disabled={dirty || busy || missing.length > 0} onChange={e => setReviewed(e.target.checked)}/><span>PDF 원문과 입력 내용을 확인했어요.</span></label>
           {missing.length > 0 && <p className="validation" role="status">{missing[0]} {missing.length > 1 ? `외 ${missing.length - 1}개 항목 확인 필요` : ""}</p>}
         </>}
         <div className="button-row"><button className="primary" disabled={busy || dirty || !reviewed || !!missing.length || approved} onClick={() => action(() => onApprove(draft, reviewed))}><Check size={17}/>{approved ? "시험 승인 완료" : "검토 완료 · 시험 승인"}</button>
           <button className="icon-button" aria-label="휴지통으로 이동" title="휴지통으로 이동" disabled={busy} onClick={async () => { if (!dirty || await confirm("저장하지 않은 변경을 버리고 휴지통으로 옮길까요?")) void action(() => onTrash(draft, true)) }}><Trash2 size={17}/></button>
-        </div><small>시험 승인은 로컬 상태만 바꿉니다. Notion·Drive·운영 사이트에 전송하지 않습니다.</small>
+        </div><small>시험 승인은 {serverMode ? "시험 서버의" : "로컬"} 상태만 바꿉니다. Notion·Drive·운영 사이트에 전송하지 않습니다.</small>
       </>}
     </footer>
   </section>
