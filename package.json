@@ -4,6 +4,9 @@
   "private": true,
   "packageManager": "pnpm@12.3.4",
   "scripts": {
+    "dev:admin": "node scripts/admin-lab.mjs dev",
+    "build:admin": "node scripts/admin-lab.mjs build",
+    "preview:admin": "node scripts/admin-lab.mjs preview",
     "dev": "node scripts/dev-free.mjs",
     "prebuild": "node scripts/prepare-pdf.mjs && node scripts/prepare-backgrounds.mjs",
     "build": "next build",

@@ -1,0 +1,124 @@
+import { useEffect, useState } from "react"
+import { Check, Download, FileCheck2, RotateCcw, Save, Trash2 } from "lucide-react"
+import { wicsSectors } from "../lib/wics"
+import { reviewErrors, reportSummary, sizeLabel, statusOf, type Draft, type Fields } from "./model"
+import { downloadOriginal, useCover } from "./use-lab"
+import { useConfirmation } from "./confirm"
+
+type Props = {
+  draft: Draft; locked: boolean; onDirty: (dirty: boolean) => void;
+  onSave: (draft: Draft, fields: Fields) => Promise<void>; onApprove: (draft: Draft, reviewed: boolean) => Promise<void>;
+  onTrash: (draft: Draft, trashed: boolean) => Promise<void>; onRemove: (draft: Draft) => Promise<void>;
+  onReanalyze: (draft: Draft) => Promise<void>;
+}
+const labels: Record<keyof Fields, string> = {
+  title: "리포트 제목", company: "기업명", ticker: "종목코드", date: "발표일", semester: "학기", author: "작성자 · 팀",
+  industry: "업종", reportType: "리포트 분류", targetYear: "목표연도", targetPrice: "목표주가", upside: "상승여력", notRated: "Not Rated",
+}
+
+export function DraftEditor({ draft, locked, onDirty, onSave, onApprove, onTrash, onRemove, onReanalyze }: Props) {
+  const confirm = useConfirmation()
+  const [fields, setFields] = useState(draft.fields)
+  const [reviewed, setReviewed] = useState(false)
+  const [actionBusy, setBusy] = useState(false)
+  const busy = actionBusy || locked
+  const [error, setError] = useState("")
+  const [tab, setTab] = useState<"edit" | "preview">("edit")
+  const cover = useCover(draft.id)
+  const dirty = JSON.stringify(fields) !== JSON.stringify(draft.fields)
+  const missing = reviewErrors(fields)
+  const approved = draft.approvedRevision === draft.revision
+  useEffect(() => { onDirty(dirty); return () => onDirty(false) }, [dirty, onDirty])
+  useEffect(() => {
+    if (!dirty) return
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = "" }
+    window.addEventListener("beforeunload", warn)
+    return () => window.removeEventListener("beforeunload", warn)
+  }, [dirty])
+  const update = <K extends keyof Fields>(key: K, value: Fields[K]) => {
+    setFields(previous => key === "notRated" && value ? { ...previous, notRated: true, targetPrice: "", upside: "" } : { ...previous, [key]: value })
+    setReviewed(false); setError("")
+  }
+  const action = async (work: () => Promise<void>) => {
+    if (busy) return
+    setBusy(true); setError("")
+    try { await work() } catch (e) { setError(e instanceof Error ? e.message : "변경에 실패했어요.") }
+    finally { setBusy(false) }
+  }
+  const input = (name: Exclude<keyof Fields, "notRated" | "reportType" | "industry">, type = "text", placeholder = "") => (
+    <label className={name === "title" ? "span-2" : ""} key={name}>
+      <span>{labels[name]}</span>
+      <input name={name} value={fields[name]} type={type} placeholder={placeholder} maxLength={name === "title" ? 200 : 100}
+        onChange={e => update(name, e.target.value)} disabled={busy || !!draft.trashedAt} autoComplete="off" />
+    </label>
+  )
+  return <section className="editor" aria-label="리포트 검토">
+    <header className="editor-heading">
+      <div><span className="eyebrow">REPORT REVIEW</span><h2>{draft.trashedAt ? "휴지통의 리포트" : "리포트 검토"}</h2></div>
+      <span className={`status ${approved ? "approved" : ""}`}>{dirty ? "저장 전 변경" : statusOf(draft)}</span>
+    </header>
+    <div className="file-strip"><FileCheck2 size={17}/><span title={draft.filename}>{draft.filename}</span><small>{draft.pages}쪽 · {sizeLabel(draft.fileBytes)}</small></div>
+    <div className="editor-tabs" aria-label="검토 화면">
+      <button aria-pressed={tab === "edit"} onClick={() => setTab("edit")}>내용 편집</button>
+      <button aria-pressed={tab === "preview"} onClick={() => setTab("preview")}>게시물 미리보기</button>
+      <button className="download" disabled={busy} onClick={() => action(() => downloadOriginal(draft))}><Download size={15}/> 원본 PDF</button>
+    </div>
+    {tab === "preview" ? <article className="article-preview">
+      <div className="preview-note">미리보기 · 실제 웹사이트에는 게시되지 않습니다</div>
+      <p className="eyebrow">SMP RESEARCH · {fields.semester || "학기 미입력"}</p>
+      <h1>{fields.title || "제목을 입력해 주세요"}</h1>
+      <p className="article-meta">{fields.company} {fields.ticker && `(${fields.ticker})`} · {fields.date || "발표일 미입력"} · {fields.author || "작성자 미입력"}</p>
+      <div className="article-tags"><span>{fields.reportType}</span>{fields.industry && <span>{fields.industry}</span>}</div>
+      <p className="summary">{reportSummary(fields) || "목표주가 또는 Not Rated를 검토해 주세요."}</p>
+      {cover ? <img className="article-cover" src={cover} alt={`${fields.title} 첫 페이지`} /> : <p>표지를 불러오는 중…</p>}
+      <p className="muted">시험판에서는 첫 페이지만 미리 보여 줍니다. 전체 원문은 위의 ‘원본 PDF’로 확인할 수 있습니다.</p>
+    </article> : <form onSubmit={e => { e.preventDefault(); void action(() => onSave(draft, fields)) }}>
+      <div className="review-intro">
+        <div className="cover-paper">{cover ? <img src={cover} alt="업로드한 PDF 첫 페이지" /> : <span>표지 준비 중</span>}</div>
+        <div><h3>자동 입력은 초안이에요.</h3><p>첫 3페이지와 파일명에서 찾은 내용입니다. 원문과 대조하고 빠진 항목을 채워 주세요.</p><small>PDF와 초안은 이 브라우저에만 저장됩니다.</small></div>
+      </div>
+      <fieldset disabled={busy || !!draft.trashedAt}>
+        <legend>01 <span>기본 정보</span></legend>
+        <div className="field-grid">
+          {input("title", "text", "첫 페이지의 소개 문구를 포함한 제목")}
+          {input("company", "text", "예: 인바디")}{input("ticker", "text", "앞자리 0을 포함한 6자리")}
+          {input("date", "date")}{input("semester", "text", "예: 2026-2")}
+          {input("author", "text", "예: 리서치 1팀")}
+          <label><span>리포트 분류</span><select value={fields.reportType} onChange={e => update("reportType", e.target.value as Fields["reportType"])}><option>기업분석</option><option>산업분석</option></select></label>
+          <label className="span-2"><span>업종 <small>기존 분류표 · 직접 확인</small></span><select value={fields.industry} onChange={e => update("industry", e.target.value)}><option value="">미지정</option>{wicsSectors.map(sector => <optgroup label={sector.name} key={sector.name}>{sector.industries.map(industry => <option key={industry}>{industry}</option>)}</optgroup>)}</select></label>
+        </div>
+      </fieldset>
+      <fieldset disabled={busy || !!draft.trashedAt}>
+        <legend>02 <span>리포트 요약</span></legend>
+        <label className="check-row"><input type="checkbox" checked={fields.notRated} onChange={e => update("notRated", e.target.checked)}/><span>Not Rated <small>목표주가를 제시하지 않은 리포트</small></span></label>
+        <div className="field-grid">
+          {input("targetYear", "text", "예: 2027")}
+          {!fields.notRated && <>{input("targetPrice", "text", "예: 50,000원")}{input("upside", "text", "예: 25.0%")}</>}
+        </div>
+        <div className="summary-preview"><small>웹사이트에 표시될 요약</small><p>{reportSummary(fields) || "입력한 내용으로 요약이 준비됩니다."}</p></div>
+      </fieldset>
+      <details className="evidence"><summary>자동 입력 근거와 확인 사항 <span>{draft.evidence.length}개 근거</span></summary>
+        <p className="muted">업로드 시점의 추출 기록입니다. 이후 직접 수정한 값은 이 기록과 다를 수 있어요.</p>
+        {draft.warnings.length > 0 && <ul className="warnings">{draft.warnings.map(warning => <li key={warning}>{warning}</li>)}</ul>}
+        <dl>{draft.evidence.map((item, i) => <div key={`${item.field}-${i}`}><dt>{labels[item.field]} <small>{item.page ? `${item.page}쪽 · ` : ""}{item.source}</small></dt><dd>{item.excerpt}</dd></div>)}</dl>
+        {!draft.trashedAt && <button type="button" className="secondary" disabled={busy} onClick={async () => { if (await confirm("직접 수정한 입력값을 PDF에서 다시 추출한 후보로 바꿀까요? 시험 승인도 해제됩니다. 원본 PDF와 표지는 유지됩니다.")) void action(() => onReanalyze(draft)) }}><RotateCcw size={15}/> 입력 후보 다시 추출</button>}
+      </details>
+      {!draft.trashedAt && <div className="review-actions">
+        <button className="secondary" type="submit" disabled={busy || !dirty}><Save size={16}/>{busy ? "처리 중…" : "초안 저장"}</button>
+        <span>{dirty ? "변경한 내용을 먼저 저장해 주세요." : "브라우저에 저장된 초안입니다."}</span>
+      </div>}
+    </form>}
+    {error && <p className="error-panel" role="alert">{error}</p>}
+    <footer className="approval">
+      {draft.trashedAt ? <><p>이 브라우저의 시험 자료만 변경됩니다.</p><div className="button-row"><button className="primary" disabled={busy} onClick={() => action(() => onTrash(draft, false))}><RotateCcw size={16}/> 복원</button><button className="danger" disabled={busy} onClick={async () => { if (await confirm("이 브라우저에서 PDF와 초안을 영구 삭제할까요?")) void action(() => onRemove(draft)) }}>영구 삭제</button></div></> : <>
+        {approved && !dirty ? <p className="approved-message"><Check size={17}/> 이 버전은 시험 승인을 완료했어요. 실제 게시 연결은 아직 없습니다.</p> : <>
+          <label className="check-row"><input type="checkbox" checked={reviewed} disabled={dirty || busy || missing.length > 0} onChange={e => setReviewed(e.target.checked)}/><span>PDF 원문과 입력 내용을 확인했어요.</span></label>
+          {missing.length > 0 && <p className="validation" role="status">{missing[0]} {missing.length > 1 ? `외 ${missing.length - 1}개 항목 확인 필요` : ""}</p>}
+        </>}
+        <div className="button-row"><button className="primary" disabled={busy || dirty || !reviewed || !!missing.length || approved} onClick={() => action(() => onApprove(draft, reviewed))}><Check size={17}/>{approved ? "시험 승인 완료" : "검토 완료 · 시험 승인"}</button>
+          <button className="icon-button" aria-label="휴지통으로 이동" title="휴지통으로 이동" disabled={busy} onClick={async () => { if (!dirty || await confirm("저장하지 않은 변경을 버리고 휴지통으로 옮길까요?")) void action(() => onTrash(draft, true)) }}><Trash2 size={17}/></button>
+        </div><small>시험 승인은 로컬 상태만 바꿉니다. Notion·Drive·운영 사이트에 전송하지 않습니다.</small>
+      </>}
+    </footer>
+  </section>
+}
