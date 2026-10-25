@@ -5,6 +5,13 @@ export const storageLabel = serverMode ? "시험 서버" : "이 브라우저"
 export function allowedTrialOrigin(origin: string, mode = import.meta.env?.MODE) {
   const url = new URL(origin)
   return mode === "admin-cloud"
-    ? url.origin === "https://smp-pdf-admin-trial.smp-website.workers.dev"
+    ? url.origin === "https://admin.pnusmp.com"
     : ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)
+}
+
+// Old bookmarks move without transferring cookies, query strings or setup keys.
+// API access is independently restricted to the new exact origin by the Worker.
+export function legacyAdminDestination(origin: string, mode = import.meta.env?.MODE) {
+  return mode === "admin-cloud" && origin === "https://smp-pdf-admin-trial.smp-website.workers.dev"
+    ? "https://admin.pnusmp.com/" : null
 }

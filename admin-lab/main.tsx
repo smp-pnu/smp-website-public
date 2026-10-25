@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client"
 import "./style.css"
 import { CloudAuthGate } from "./cloud-auth"
 import { AuthGate } from "./auth"
-import { cloudMode, serverMode, storageLabel, allowedTrialOrigin } from "./mode"
+import { cloudMode, serverMode, storageLabel, allowedTrialOrigin, legacyAdminDestination } from "./mode"
 import { App } from "./app"
 import { ConfirmationProvider } from "./confirm"
 
@@ -16,4 +16,6 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean
 }
 // Build isolation only; the API independently verifies passkeys and sessions.
 const allowed = allowedTrialOrigin(location.origin)
+const destination = legacyAdminDestination(location.origin)
+if (destination) location.replace(destination)
 createRoot(document.getElementById("root")!).render(allowed ? <ErrorBoundary><ConfirmationProvider>{cloudMode ? <CloudAuthGate>{(session, logout, security) => <App username={session.username} onLogout={logout} onSecurity={security}/>}</CloudAuthGate> : serverMode ? <AuthGate>{(session, logout) => <App username={session.username} onLogout={logout}/>}</AuthGate> : <App/>}</ConfirmationProvider></ErrorBoundary> : <main className="fatal"><h1>허용된 시험 주소에서 열어 주세요.</h1><p>이 빌드는 현재 주소에서 실행할 수 없습니다.</p></main>)

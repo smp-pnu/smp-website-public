@@ -11,7 +11,7 @@ import { emptyFields } from '../admin-lab/model.ts'
 const require = createRequire(import.meta.url)
 const wranglerRequire = createRequire(require.resolve('wrangler/package.json'))
 const { Miniflare, convertV4MiniflareOptions } = wranglerRequire('miniflare')
-const origin = 'https://smp-pdf-admin-trial.smp-website.workers.dev'
+const origin = 'https://admin.pnusmp.com'
 const setupToken = 'b'.repeat(64)
 const bundle = await build({entryPoints:['admin-cloud/worker.ts'],bundle:true,write:false,format:'esm',platform:'neutral',mainFields:['module','main'],external:['node:*'],target:'es2022'})
 const mf = new Miniflare(convertV4MiniflareOptions({

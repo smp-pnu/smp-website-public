@@ -8,15 +8,16 @@ import { chunkBytes, fileIdentity } from "../admin-cloud/protocol"
 import { emptyFields, limits } from "../admin-lab/model"
 import { samplePdf } from "../admin-lab/sample"
 import { validateCover } from "../admin-cloud/files"
-import { allowedTrialOrigin } from "../admin-lab/mode"
+import { allowedTrialOrigin, legacyAdminDestination } from "../admin-lab/mode"
 import type { Database, Statement } from "../cloudflare/bindings"
 
 import { sha256 } from "../admin-cloud/protocol"
 import { authenticator, cookieJar } from "./admin-passkey-fixture.mjs"
-const origin = "https://smp-pdf-admin-trial.smp-website.workers.dev"
+const origin = "https://admin.pnusmp.com"
+const oldOrigin = "https://smp-pdf-admin-trial.smp-website.workers.dev"
 const setupToken = "b".repeat(64)
 const fields = { ...emptyFields(), title: "시험 보고서", company: "HPSP", ticker: "403870", date: "2026-10-25", semester: "2026-2", author: "리서치 1팀", targetPrice: "50,000원" }
-async function fixture() {
+async function fixture(initialOrigin = origin) {
   const db = new DatabaseSync(":memory:"); db.exec(await readFile(new URL("../admin-cloud/schema.sql", import.meta.url), "utf8"))
   const adapter: Database = {
     prepare(sql: string) {
@@ -36,27 +37,27 @@ async function fixture() {
   }
   let now = Date.now(), token = "", csrf = ""
   const jar = cookieJar(), device = authenticator()
-  const env: Env = { ADMIN_DB: adapter, ASSETS: { async fetch() { return new Response("static") } }, ORIGIN: origin,
+  const env: Env = { ADMIN_DB: adapter, ASSETS: { async fetch() { return new Response("static") } }, ORIGIN: initialOrigin,
     SESSION_SIGNING_KEY: "a".repeat(64), SETUP_TOKEN_HASH: await sha256(new TextEncoder().encode(setupToken)) }
   const handler = createHandler(() => now)
   const call = async (path: string, method = "GET", body?: unknown, extra: Record<string, string> = {}) => {
-    const headers: Record<string, string> = { Origin: origin, Cookie: token || jar.read(), "X-CSRF-Token": csrf, ...extra }
+    const headers: Record<string, string> = { Origin: env.ORIGIN, Cookie: token || jar.read(), "X-CSRF-Token": csrf, ...extra }
     let data: BodyInit | undefined
     if (body instanceof Uint8Array) { headers["Content-Type"] = "application/octet-stream"; data = body as Uint8Array<ArrayBuffer> }
     else if (body !== undefined) { headers["Content-Type"] = "application/json"; data = JSON.stringify(body) }
-    const response = await handler(new Request(origin + path, { method, headers, body: data }), env)
+    const response = await handler(new Request(env.ORIGIN + path, { method, headers, body: data }), env)
     jar.set(response); return response
   }
   const login = async () => {
     token = ""
     if (!db.prepare("SELECT value FROM admin_config").get()) {
       const options = await (await call("/api/auth/register/options", "POST", {mode:"setup",token:setupToken})).json()
-      const response = await call("/api/auth/register/verify", "POST", {response:device.register(options, origin),label:"Test key"})
+      const response = await call("/api/auth/register/verify", "POST", {response:device.register(options, env.ORIGIN),label:"Test key"})
       assert.equal(response.status, 200, response.status === 200 ? "" : await response.text())
       csrf = (await response.json()).session.csrf
     } else {
       const options = await (await call("/api/auth/login/options", "POST", {})).json()
-      const response = await call("/api/auth/login/verify", "POST", {response:device.authenticate(options, origin)})
+      const response = await call("/api/auth/login/verify", "POST", {response:device.authenticate(options, env.ORIGIN)})
       assert.equal(response.status, 200, response.status === 200 ? "" : await response.text()); csrf = (await response.json()).session.csrf
     }
   }
@@ -164,7 +165,10 @@ test("cloud staging is bounded, expires and cleans up; rate cap and capacity are
 })
 test("cloud build and entry point cannot import production or local credential storage", async () => {
   assert.equal(allowedTrialOrigin(origin, "admin-cloud"), true)
-  for (const url of ["https://pnusmp.com", "https://smp-website-free.smp-website.workers.dev", "http://smp-pdf-admin-trial.smp-website.workers.dev", "https://smp-pdf-admin-trial.smp-website.workers.dev.evil.example"]) assert.equal(allowedTrialOrigin(url, "admin-cloud"), false)
+  for (const url of [oldOrigin, "https://pnusmp.com", "https://smp-website-free.smp-website.workers.dev", "http://admin.pnusmp.com", "https://admin.pnusmp.com.evil.example"]) assert.equal(allowedTrialOrigin(url, "admin-cloud"), false)
+  assert.equal(legacyAdminDestination(oldOrigin, "admin-cloud"), origin + "/")
+  for (const url of [origin, "https://pnusmp.com", oldOrigin + ".evil.example"]) assert.equal(legacyAdminDestination(url, "admin-cloud"), null)
+  assert.equal(legacyAdminDestination(oldOrigin, "admin-server"), null)
   for (const mode of ["admin-server", "development"]) {
     assert.equal(allowedTrialOrigin(origin, mode), false)
     assert.equal(allowedTrialOrigin("http://127.0.0.1:3013", mode), true)
@@ -230,6 +234,39 @@ test("recovery replaces keys and sessions atomically, preserves drafts and rotat
     assert.equal((await (await f.call("/api/drafts")).json())[0].id, draft.id)
     assert.equal((await f.call("/api/auth/register/options", "POST", {mode:"recover",token:first.recoveryCode})).status, 403)
     f.setToken(oldCookie); assert.equal((await f.call("/api/drafts")).status, 401)
+  } finally { f.close() }
+})
+test("admin domain migration keeps stored PDFs and only replaces the old key after valid new-domain recovery", async () => {
+  const f = await fixture(oldOrigin)
+  try {
+    const setup = await (await f.call("/api/auth/register/options", "POST", {mode:"setup",token:setupToken})).json()
+    const first = await (await f.call("/api/auth/register/verify", "POST", {response:f.device.register(setup, oldOrigin)})).json()
+    await f.login(); const draft = await f.upload()
+    const stored = f.db.prepare("SELECT * FROM chunks ORDER BY object_id,kind,part").all()
+    f.env.ORIGIN = origin; f.setToken("") // A new hostname has its own cookie jar.
+    assert.equal((await f.call("/api/auth/status").then(r => r.json())).setupRequired, false)
+    assert.equal((await f.call("/api/auth/register/options", "POST", {mode:"setup",token:setupToken})).status, 403)
+    assert.equal((await createHandler()(new Request(oldOrigin + "/api/drafts"), f.env)).status, 403)
+    assert.equal((await f.call("/api/drafts")).status, 401)
+    const login = await (await f.call("/api/auth/login/options", "POST", {})).json()
+    assert.equal(login.rpId, "admin.pnusmp.com")
+    const oldProof = f.device.authenticate({...login,rpId:new URL(oldOrigin).hostname}, oldOrigin)
+    assert.equal((await f.call("/api/auth/login/verify", "POST", {response:oldProof})).status, 403)
+    const nextDevice = authenticator()
+    const recover = () => f.call("/api/auth/register/options", "POST", {mode:"recover",token:first.recoveryCode}).then(r => r.json())
+    const invalid = await recover(); assert.equal(invalid.rp.id, "admin.pnusmp.com")
+    assert.equal((await f.call("/api/auth/register/verify", "POST", {response:nextDevice.register(invalid, oldOrigin)})).status, 403)
+    assert.equal(f.db.prepare("SELECT id FROM admin_credentials").get()!.id, f.device.id)
+    const options = await recover()
+    const response = await f.call("/api/auth/register/verify", "POST", {response:nextDevice.register(options, origin)})
+    assert.equal(response.status, 200)
+    assert.notEqual((await response.json()).recoveryCode, first.recoveryCode)
+    assert.equal(f.db.prepare("SELECT id FROM admin_credentials").get()!.id, nextDevice.id)
+    assert.deepEqual(f.db.prepare("SELECT * FROM chunks ORDER BY object_id,kind,part").all(), stored)
+    f.setToken("")
+    const signIn = await (await f.call("/api/auth/login/options", "POST", {})).json()
+    assert.equal((await f.call("/api/auth/login/verify", "POST", {response:nextDevice.authenticate(signIn, origin)})).status, 200)
+    assert.equal((await (await f.call("/api/drafts")).json())[0].id, draft.id)
   } finally { f.close() }
 })
 test("additional passkeys require live admin CSRF, last key is protected and removal revokes sessions", async () => {

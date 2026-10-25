@@ -4,7 +4,7 @@
 
 ## 로그인
 
-Zero Trust 가입·카드 청구 동의 없이 WebAuthn 패스키로 로그인한다. SimpleWebAuthn의 검증을 사용하며 RP ID와 HTTPS origin을 이 시험 호스트로 고정한다. ES256, 사용자 확인 필수, discoverable credential, attestation none이다. 생체정보·개인 키는 기기/패스키 제공자에 있고 서버에는 공개 키만 저장한다. 외부 인증서 검증·메타데이터 서비스를 호출하지 않는다.
+Zero Trust 가입·카드 청구 동의 없이 WebAuthn 패스키로 로그인한다. SimpleWebAuthn의 검증을 사용하며 RP ID를 `admin.pnusmp.com`, HTTPS origin을 `https://admin.pnusmp.com`으로 고정한다. ES256, 사용자 확인 필수, discoverable credential, attestation none이다. 생체정보·개인 키는 기기/패스키 제공자에 있고 서버에는 공개 키만 저장한다. 외부 인증서 검증·메타데이터 서비스를 호출하지 않는다.
 
 최초 1회는 임의의 256비트 초기 설정 키로 패스키 등록을 시작한다. 설정 키의 SHA-256만 시험 Worker Secret에 둔다. 등록 완료 후 DB의 초기화 상태가 재등록을 차단한다. 추가 기기는 로그인 후 ‘로그인 기기 관리’에서 등록한다(최대 5개). 해제한 키의 로그인 세션은 즉시 무효다. 마지막 패스키는 삭제할 수 없다. 패스키를 동기화할지는 사용자 기기 설정에 따른다.
 
@@ -39,7 +39,7 @@ Worker는 PDF 전체 구조 검사나 표지 재인코딩을 하지 않는다. �
 
 Git 제외 파일 `.smp-tools/admin-cloud-target.json`에는 시험 `databaseId`만 둔다. `SESSION_SIGNING_KEY`(256비트 난수)와 `SETUP_TOKEN_HASH`는 정확히 이 Worker의 Secrets에만 설정한다. 설정 키 원문·복구 코드·세션·PDF는 Git/로그에 넣지 않는다. 스키마는 시험 D1에만 적용한다.
 
-`pnpm build:admin:cloud`, `node scripts/admin-cloud.mjs dry-run`, `pnpm deploy:admin:cloud` 순서다. 배포 도구는 시험 Worker·계정·DB ID/원격 이름을 검증하고 운영·기존 미리보기 DB 및 도메인/스케줄/다른 서비스 연결을 거절한다. 운영으로 자동 병합하거나 배포하는 워크플로는 추가하지 않는다.
+`pnpm build:admin:cloud`, `node scripts/admin-cloud.mjs dry-run`, `pnpm deploy:admin:cloud` 순서다. 배포 도구는 시험 Worker·계정·DB ID/원격 이름을 검증하고 운영·기존 미리보기 DB 및 승인된 `admin.pnusmp.com` 이외의 도메인/스케줄/다른 서비스 연결을 거절한다. 운영으로 자동 병합하거나 배포하는 워크플로는 추가하지 않는다.
 
 다음 관리자에게는 새 기기의 패스키를 먼저 등록하고 로그인 시험 후 이전 키를 해제한다. 복구 코드를 공유하는 경우 그 코드는 계정 전체를 교체할 수 있는 비밀이므로 안전하게 전달한다. 복구가 완료되면 기존 코드 대신 새 코드를 보관한다. 중단 시 시험 Worker만 비활성화하고 D1은 확인 없이 삭제하지 않는다.
 
@@ -52,13 +52,13 @@ Git 제외 파일 `.smp-tools/admin-cloud-target.json`에는 시험 `databaseId`
 공식 근거: [SimpleWebAuthn](https://simplewebauthn.dev/docs/packages/server), [패스키](https://simplewebauthn.dev/docs/advanced/passkeys), [Workers 요금](https://developers.cloudflare.com/workers/platform/pricing/), [D1 요금](https://developers.cloudflare.com/d1/platform/pricing/), [D1 제한](https://developers.cloudflare.com/d1/platform/limits/).
 
 
-## 관리자 화면과 정식 주소 제안
+## 관리자 화면과 별도 주소
 
 2026-10-25 화면은 콘텐츠 목록과 상세 편집을 분리했다. 리포트 목록에는 검색·상태·정렬을 모으고, 저장되지 않은 편집은 메뉴 이동 때 확인한다. 로그인·인수인계는 같은 관리자 메뉴 안에서 안내한다. 대형 소개 문구, 장식용 지표와 애니메이션은 사용하지 않으며 시스템 글꼴을 사용한다. 클라이언트의 정렬과 화면 전환에 서버 API를 추가하지 않았다.
 
-정식 운영은 `admin.pnusmp.com`처럼 공식 홈페이지와 별도 배포·호스트를 쓰고, 필요하면 공식 홈페이지 하단에 관리자 링크만 두는 구성을 권장한다. 같은 호스트의 `/admin`도 가능하지만 운영 사이트의 배포와 접근 제어가 더 강하게 묶인다. 주소를 분리하는 것 자체가 인증을 대신하지 않으며 자료 API의 인증은 유지해야 한다. 아직 DNS, 도메인, 운영 사이트 링크는 변경하지 않았다.
+정식 운영은 `admin.pnusmp.com`처럼 공식 홈페이지와 별도 배포·호스트를 쓰고, 필요하면 공식 홈페이지 하단에 관리자 링크만 두는 구성을 권장한다. 같은 호스트의 `/admin`도 가능하지만 운영 사이트의 배포와 접근 제어가 더 강하게 묶인다. 주소를 분리하는 것 자체가 인증을 대신하지 않으며 자료 API의 인증은 유지해야 한다. 2026-10-25 사용자 요청으로 `admin.pnusmp.com`을 기존 시험 Worker에 연결한다. 루트·www의 운영 Worker 연결과 운영 사이트 링크는 변경하지 않는다. 기존 workers.dev 주소의 정적 화면은 새 주소로 이동하며 API는 차단한다. 주소 이동에는 쿠키·쿼리·초기 설정 키를 전달하지 않는다.
 
-현재 패스키의 RP ID는 시험 호스트에 고정되어 있다. 정식 관리자 주소로 옮기면 기존 패스키는 새 호스트에서 사용할 수 없으므로 관리자가 새 주소에서 패스키를 다시 등록하는 전환 절차가 필요하다.
+기존 workers.dev 패스키는 새 호스트에서 사용할 수 없다. 새 주소의 `/#handoff`에서 사용자가 보관한 복구 코드를 직접 입력하고 새 패스키를 등록한다. 기존 DB의 초기화 상태는 유지되어 초기 설정 키로 재등록할 수 없다. 유효한 새 패스키 등록이 완료될 때만 기존 패스키·세션을 교체하며 PDF와 초안의 바이트는 유지한다. 새 복구 코드를 보관한 뒤 로그아웃·로그인까지 확인한다. 전환 실패 시 기존 Worker 버전으로 되돌릴 수 있으며, 등록 성공 후에는 새 복구 코드로 다시 복구해야 한다.
 
 한 학기당 관리자 1명인 인수인계에는, 다음 담당자가 자신의 기기에서 기존 복구 코드로 패스키를 교체하는 현재 절차를 쓸 수 있다. 새 등록이 완료되기 전에는 기존 권한이 유지되며, 완료 순간 기존 패스키·세션과 복구 코드가 무효가 된다. 다음 담당자가 새 복구 코드를 직접 보관한다. 단순히 새 패스키를 추가하고 이전 키만 해제하는 방식은 이전 담당자가 알고 있는 복구 코드까지 폐기하지 않으므로 완전한 인수인계로 설명하지 않는다. 실제 인수인계나 기존 관리자 권한 해제는 이번 디자인 작업에서 실행하지 않았다.
 
