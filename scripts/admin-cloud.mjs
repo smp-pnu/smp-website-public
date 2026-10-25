@@ -24,7 +24,7 @@ if (mode === 'build') {
     workers_dev: true, preview_urls: false,
     assets: { directory: './assets', binding: 'ASSETS', run_worker_first: ['/api/*', '/robots.txt'], not_found_handling: 'none' },
     d1_databases: [{ binding: 'ADMIN_DB', database_name: name, database_id: target.databaseId ?? '00000000-0000-4000-8000-000000000000' }],
-    vars: { ORIGIN: 'https://smp-pdf-admin-trial.smp-website.workers.dev', ...(target.accessAud ? { ACCESS_AUD: target.accessAud, ACCESS_TEAM_DOMAIN: target.accessTeam } : {}) },
+    vars: { ORIGIN: 'https://smp-pdf-admin-trial.smp-website.workers.dev' },
     observability: { enabled: false },
   }
   await writeFile(configPath, JSON.stringify(config, null, 2) + '\n')

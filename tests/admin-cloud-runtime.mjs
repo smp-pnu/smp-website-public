@@ -5,39 +5,40 @@ import { readFile } from 'node:fs/promises'
 import { build } from 'esbuild'
 import sharp from 'sharp'
 import { fileIdentity, chunkBytes } from '../admin-cloud/protocol.ts'
+import { authenticator, cookieJar } from './admin-passkey-fixture.mjs'
+import { createHash } from 'node:crypto'
 import { emptyFields } from '../admin-lab/model.ts'
 const require = createRequire(import.meta.url)
 const wranglerRequire = createRequire(require.resolve('wrangler/package.json'))
 const { Miniflare, convertV4MiniflareOptions } = wranglerRequire('miniflare')
 const origin = 'https://smp-pdf-admin-trial.smp-website.workers.dev'
-const pair = await crypto.subtle.generateKey({name:'RSASSA-PKCS1-v1_5',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['sign','verify'])
-const jwk = {...await crypto.subtle.exportKey('jwk',pair.publicKey),kid:'runtime-key'}
-const bundle = await build({entryPoints:['admin-cloud/worker.ts'],bundle:true,write:false,format:'esm',platform:'neutral',external:['node:*'],target:'es2022'})
+const setupToken = 'b'.repeat(64)
+const bundle = await build({entryPoints:['admin-cloud/worker.ts'],bundle:true,write:false,format:'esm',platform:'neutral',mainFields:['module','main'],external:['node:*'],target:'es2022'})
 const mf = new Miniflare(convertV4MiniflareOptions({
   modules:true,script:bundle.outputFiles[0].text,compatibilityDate:'2026-10-01',compatibilityFlags:['nodejs_compat'],
   cf:false,host:'127.0.0.1',port:0,d1Databases:{ADMIN_DB:'test-admin'},
-  bindings:{ORIGIN:origin,ACCESS_TEAM_DOMAIN:'runtime-test.cloudflareaccess.com',ACCESS_AUD:'runtime-test',ADMIN_EMAIL:'admin@example.com'},
-  outboundService:async request => {
-    assert.equal(request.url,'https://runtime-test.cloudflareaccess.com/cdn-cgi/access/certs')
-    return Response.json({keys:[jwk]})
-  },
+  bindings:{ORIGIN:origin,SESSION_SIGNING_KEY:'a'.repeat(64),SETUP_TOKEN_HASH:createHash('sha256').update(setupToken).digest('hex')},
 }))
 try {
   const db = await mf.getD1Database('ADMIN_DB')
   const schema = await readFile(new URL('../admin-cloud/schema.sql',import.meta.url),'utf8')
   await db.batch(schema.split(';').filter(s=>s.trim()).map(s=>db.prepare(s)))
   assert.equal((await mf.dispatchFetch(origin+'/api/drafts')).status,401)
-  const enc = value => Buffer.from(JSON.stringify(value)).toString('base64url')
-  const body = enc({alg:'RS256',kid:'runtime-key'})+'.'+enc({iss:'https://runtime-test.cloudflareaccess.com',aud:['runtime-test'],sub:'test',email:'admin@example.com',iat:Math.floor(Date.now()/1000),exp:Math.floor(Date.now()/1000)+3600})
-  const token = body+'.'+Buffer.from(await crypto.subtle.sign('RSASSA-PKCS1-v1_5',pair.privateKey,new TextEncoder().encode(body))).toString('base64url')
+  const jar = cookieJar(), device = authenticator()
   let csrf = ''
   const call = async (path,method='GET',data) => {
     const binary = data instanceof Uint8Array
-    const response = await mf.dispatchFetch(origin+path,{method,headers:{Origin:origin,'Cf-Access-Jwt-Assertion':token,'X-CSRF-Token':csrf,...(data?{'Content-Type':binary?'application/octet-stream':'application/json'}:{})},body:data?(binary?data:JSON.stringify(data)):undefined})
+    const response = await mf.dispatchFetch(origin+path,{method,headers:{Origin:origin,Cookie:jar.read(),'X-CSRF-Token':csrf,...(data?{'Content-Type':binary?'application/octet-stream':'application/json'}:{})},body:data?(binary?data:JSON.stringify(data)):undefined})
     assert.equal(response.status<300,true,`${method} ${path}: ${response.status} ${response.status>=300?await response.text():''}`)
-    return response
+    jar.set(response); return response
   }
-  csrf = (await (await call('/api/session')).json()).session.csrf
+  const options = await (await call('/api/auth/register/options','POST',{mode:'setup',token:setupToken})).json()
+  const registered = await (await call('/api/auth/register/verify','POST',{response:device.register(options,origin)})).json()
+  assert.match(registered.recoveryCode,/^[a-f0-9]{64}$/)
+  csrf = registered.session.csrf
+  await call('/api/logout','POST')
+  const login = await (await call('/api/auth/login/options','POST',{})).json()
+  csrf = (await (await call('/api/auth/login/verify','POST',{response:device.authenticate(login,origin)})).json()).session.csrf
   // Optional real PDF path permits a local end-to-end transport check without publishing it.
   const source = process.argv[2] ? new Uint8Array(await readFile(process.argv[2])) : new Uint8Array(32*1024*1024).fill(32)
   if (!process.argv[2]) { source.set(new TextEncoder().encode('%PDF-1.7\n'));source.set(new TextEncoder().encode('\n%%EOF\n'),source.length-7) }

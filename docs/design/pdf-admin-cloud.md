@@ -1,51 +1,52 @@
 # PDF 관리자 온라인 시험판
 
-`feature/pdf-admin-cloud-trial-20261025`에서만 작업한다. 운영 `main`으로 병합하거나 기존 운영 Worker, Notion, Drive와 연결하지 않는다. 별도 Worker와 별도 D1에만 배포한다. 운영 게시 기능은 없으며 ‘시험 승인’은 초안의 검토 완료 상태다.
+`feature/pdf-admin-cloud-trial-20261025`의 별도 Worker `smp-pdf-admin-trial`과 별도 D1만 사용한다. 운영 main, pnusmp.com, 운영 Worker, Notion, Drive와 연결하지 않는다. ‘시험 승인’은 시험 초안의 상태만 바꾼다. 로컬 아이디·비밀번호 서버도 유지한다.
 
-## 구성
+## 로그인
 
-- 관리자 화면: 별도 정적 Vite 빌드. PDF.js는 PDF를 선택할 때 불러온다.
-- 인증: Cloudflare Access에서 지정한 관리자 이메일만 허용한다. Access가 전체 시험 호스트를 보호하고, Worker도 JWT의 서명·발급처·대상·만료·이메일을 독립 검증한다. 설정이 없거나 확인에 실패하면 자료 API를 닫는다.
-- 로컬 서버의 비밀번호·사용자·자료를 자동 이전하지 않는다. 로컬의 scrypt와 파일 시스템 구현은 변경하지 않는다.
-- 파일 처리: 브라우저에서 첫 3페이지 입력 후보·표지를 만들고, 256KiB씩 순차 전송한다. 서버는 조각의 실제 SHA-256과 전체 조각 목록의 해시를 확인한다. 해시는 일반적인 원본 SHA-256과 다른, 버전이 명시된 콘텐츠 식별자다.
-- 저장: 제한된 시험 자료만 D1의 조각 테이블에 보관한다. 파일 조각은 base64 TEXT이며 최종 검증이 끝나야 목록에서 보인다. 저장 도중 끊기면 취소하거나 30분 뒤 다음 업로드 때 정리한다.
-- 다운로드: 로그인 후 최대 3개 조각을 병렬 요청하고 전체 파일 식별자를 재검증한다. 원본과 표지는 정적 공개 폴더에 넣지 않는다.
-- 초안 변경: 버전 충돌, 수정 후 승인 해제, 휴지통·복원·삭제를 서버에서 검사한다. 자료를 영구 삭제하면 관련 파일 조각도 DB 트랜잭션에서 삭제한다.
+Zero Trust 가입·카드 청구 동의 없이 WebAuthn 패스키로 로그인한다. SimpleWebAuthn의 검증을 사용하며 RP ID와 HTTPS origin을 이 시험 호스트로 고정한다. ES256, 사용자 확인 필수, discoverable credential, attestation none이다. 생체정보·개인 키는 기기/패스키 제공자에 있고 서버에는 공개 키만 저장한다. 외부 인증서 검증·메타데이터 서비스를 호출하지 않는다.
 
-온라인 Worker는 PDF 전체 구조 검사나 표지 재인코딩을 하지 않는다. 헤더·끝 표시·바이트 수·내용 해시·표지 크기를 검증하며, 페이지 수와 추출 내용은 브라우저 분석 결과를 관리자가 검토한다. 원본은 첨부파일로 내려받으며 임의 HTML을 실행하지 않는다. 이 차이를 로컬의 서버 구조 검사와 혼동하지 않는다.
+최초 1회는 임의의 256비트 초기 설정 키로 패스키 등록을 시작한다. 설정 키의 SHA-256만 시험 Worker Secret에 둔다. 등록 완료 후 DB의 초기화 상태가 재등록을 차단한다. 추가 기기는 로그인 후 ‘로그인 기기 관리’에서 등록한다(최대 5개). 해제한 키의 로그인 세션은 즉시 무효다. 마지막 패스키는 삭제할 수 없다. 패스키를 동기화할지는 사용자 기기 설정에 따른다.
 
-## 무료 한도와 운영 경계
+최초 등록과 복구 완료 시 새로운 256비트 복구 코드를 화면에서 한 번만 제공한다. 관리자는 파일을 내려받아 별도 안전한 곳에 보관해야 한다. 분실 시 로그인 화면의 ‘기기를 잃었나요?’에서 복구 코드를 입력하고 새 패스키 등록을 완료한다. 하나의 DB 트랜잭션으로 기존 패스키·세션을 해제하고 복구 코드를 교체한다. PDF와 초안은 유지된다. 기존 코드는 재사용할 수 없다. 패스키와 복구 코드를 모두 잃으면 학회 Cloudflare 계정 관리자의 별도 복구 작업이 필요하다.
 
-2026-10-25 공식 문서 기준 Workers Free는 계정 전체 하루 10만 요청·호출당 CPU 10ms, D1 Free는 하루 500만 행 읽기·10만 행 쓰기·계정 저장 5GB·DB당 500MB다. 정적 파일은 Worker를 거치지 않는 별도 자산 경로로 전달한다. 기존 운영 사이트와 플랫폼의 계정 총량은 공유한다.
+챌린지는 5분·1회용이고 HttpOnly 흐름 쿠키에 결합된다. 로그인은 서버 저장 세션 + HMAC 서명 쿠키이며 30분 미사용/최대 8시간 후 만료된다. Cookie는 Secure·HttpOnly·SameSite=Strict·__Host 접두사를 사용한다. 변경 요청은 정확한 Origin과 세션 CSRF를 검증한다. 서명이 없는 자료 요청은 DB 조회 전에 차단한다. 공개 가입·비밀번호 인증·이메일 발송은 없다. 정적 로그인 화면은 공개지만 초안/PDF/표지는 인증 후에만 받을 수 있다. 검색 색인은 차단한다.
 
-시험판 자체 제한:
+## 저장 흐름
 
-| 항목 | 제한 |
+브라우저가 PDF를 분석해 표지와 입력 후보를 만든다. PDF 원문과 표지는 256KiB 조각으로 순차 전송하고 서버는 실제 조각 해시·완성 매니페스트를 검사한다. 완성 전 업로드는 목록에 나오지 않는다. 새로고침해도 완성된 자료는 별도 D1에 남는다. 다운로드 시 브라우저는 병렬 3개로 조각을 받고 내용을 검증한다.
+
+Worker는 PDF 전체 구조 검사나 표지 재인코딩을 하지 않는다. 헤더·끝 표시·바이트 수·내용 해시·표지 크기를 검증하며, 페이지 수와 추출 내용은 브라우저 분석 결과를 관리자가 검토한다. 원본은 첨부파일로 내려받으며 임의 HTML을 실행하지 않는다. 업로드는 1건만 예약할 수 있고 30분 후 다음 작업에서 정리된다. 영구 삭제하면 파일 조각도 같은 트랜잭션으로 제거한다.
+
+## 무료 한도와 경계
+
+2026-10-25 공식 문서 기준 Workers Free는 계정 전체 하루 10만 요청·호출당 CPU 10ms, D1 Free는 하루 500만 행 읽기·10만 행 쓰기·계정 저장 5GB·DB당 500MB다. 정적 파일은 Worker를 거치지 않는 자산 경로를 사용한다. 플랫폼 계정 총량은 기존 운영 사이트와 공유한다.
+
+| 시험판 자체 제한 | 값 |
 | --- | --- |
-| 원본 PDF | 32MiB, 브라우저 분석 120페이지 이하 |
-| 파일·표지 총량 | 200MiB / 50개, 휴지통·예약 업로드 포함 |
+| PDF 파일당 | 32MiB / 브라우저 분석 120페이지 |
+| 총 저장 | 200MiB / 50개, 휴지통·예약 업로드 포함 |
 | 표지 | 1MiB 이하 정적 WebP, 각 변 최대 2048px |
-| API 요청 | 인증된 관리자 전체 하루 5,000회, 분당 600회 |
-| 동시 업로드 | 1건, 브라우저에서 파일 순차 처리 |
+| 인증된 자료 API | 전체 하루 5,000회, 분당 600회 |
+| 공개 인증 POST | 전체 하루 200회, 분당 40회(등록·로그인 옵션/검증 각각 1회) |
+| 동시 업로드 | 1건, 여러 파일은 순차 처리 |
 
-base64로 약 33% 커지는 점을 포함해 200MiB 원문은 약 267MiB가 된다. DB 메타데이터·인덱스 여유를 두었지만 실제 D1 크기도 점검한다. 이 구성은 소규모 관리자 시험용이며 수백 개 PDF를 쌓는 운영 저장소가 아니다. 운영 전에는 파일 저장 어댑터·백업·복원·관리자 인수인계 및 권한 회수 절차를 별도 검증한다.
+200MiB 원문은 base64 저장 시 약 267MiB다. 메타데이터·인덱스 여유를 두되 실제 D1 크기도 확인한다. 소규모 관리자 시험용이며 수백 개 PDF를 쌓는 운영 저장소가 아니다. 악의적인 반복 접근은 인증 한도 때문에 로그인을 일시 막을 수 있고, 무인증 요청도 Workers 계정 요청 수를 사용한다. 앱 제한이 외부 장애·공격·다른 서비스의 사용량까지 막지는 않는다. 이상 사용 시 시험 Worker를 중단한다.
 
-Workers Free와 D1 Free는 초과 시 요청이 실패할 수 있다. 앱 제한이 외부 서비스의 장애나 계정 전체 한도 초과까지 방지하지는 않는다. 유료 전환·R2 구독·AI·주기 작업을 사용하지 않는다. Access Free 가입은 별도 약관과 결제 정보 확인 절차가 있을 수 있으며 사용자 확인 후 진행한다. 정기 비용이나 유료 플랜으로 자동 변경되도록 설정하지 않는다.
+이 구성은 Workers/D1 Free만 사용하고 R2·Access·AI·유료 전환·주기 작업을 추가하지 않는다. 무료 한도 초과 시 실패/일시 중단될 수 있으며 자동 과금이 아니라 한도 내 사용이 전제다. 운영 전에는 별도 파일 저장 어댑터, 백업·복원, 기기 인수인계를 검증한다.
 
-## 배포와 중단
+## 배포·인수인계
 
-승인된 시험 자원 정보는 Git에서 제외된 `.smp-tools/admin-cloud-target.json`에 둔다. `databaseId`, `accessTeam`, `accessAud`를 지정하고 관리자 이메일은 해당 시험 Worker의 `ADMIN_EMAIL` secret에만 설정한다. 자격증명·초안·PDF를 Git에 넣지 않는다.
+Git 제외 파일 `.smp-tools/admin-cloud-target.json`에는 시험 `databaseId`만 둔다. `SESSION_SIGNING_KEY`(256비트 난수)와 `SETUP_TOKEN_HASH`는 정확히 이 Worker의 Secrets에만 설정한다. 설정 키 원문·복구 코드·세션·PDF는 Git/로그에 넣지 않는다. 스키마는 시험 D1에만 적용한다.
 
-`pnpm build:admin:cloud`는 `dist/admin-cloud/`만 만든다. `node scripts/admin-cloud.mjs dry-run`으로 묶음을 확인한다. `pnpm deploy:admin:cloud`는 정확한 시험 Worker 이름·계정·DB ID·원격 DB 이름을 검증하고 운영·기존 미리보기 DB 및 도메인/스케줄/다른 서비스 연결이 있으면 거절한다. 스키마는 새 시험 D1에만 적용한다.
+`pnpm build:admin:cloud`, `node scripts/admin-cloud.mjs dry-run`, `pnpm deploy:admin:cloud` 순서다. 배포 도구는 시험 Worker·계정·DB ID/원격 이름을 검증하고 운영·기존 미리보기 DB 및 도메인/스케줄/다른 서비스 연결을 거절한다. 운영으로 자동 병합하거나 배포하는 워크플로는 추가하지 않는다.
 
-온라인 사용 전 Access에서 **전체 시험 호스트**에 지정한 이메일만 허용하는 정책이 있어야 한다. API 서명 검사만으로 전체 호스트의 접근 제어를 대체하지 않는다. 새 브라우저에서 무인증 차단·정상 로그인·PDF 업로드·새로고침 후 유지·원본 다운로드를 확인한다.
-
-시험 중단은 해당 Access 앱을 차단 상태로 바꾸거나 시험 Worker만 비활성화한다. D1은 별도로 남겨 복구 가능하게 하고, 확인 없이 삭제하지 않는다. 운영 사이트에는 이 시험판으로 바꿀 연결 자체가 없다. 원본은 관리자의 별도 보관본을 유지한다.
+다음 관리자에게는 새 기기의 패스키를 먼저 등록하고 로그인 시험 후 이전 키를 해제한다. 복구 코드를 공유하는 경우 그 코드는 계정 전체를 교체할 수 있는 비밀이므로 안전하게 전달한다. 복구가 완료되면 기존 코드 대신 새 코드를 보관한다. 중단 시 시험 Worker만 비활성화하고 D1은 확인 없이 삭제하지 않는다.
 
 ## 검증
 
-`pnpm test`, `pnpm typecheck`, `pnpm build:admin:cloud`, `pnpm test:admin:cloud`를 실행한다. 마지막 명령은 실제 workerd와 **로컬 임시 D1**에서 최대 32MiB 업로드·완성 처리·다운로드 바이트 일치·무인증 차단을 검사한다. Cloudflare 자격증명이나 배포 서버를 사용하지 않는다. 선택적으로 로컬 PDF 경로를 인자로 받아 같은 검증을 할 수 있다.
+`pnpm test`, `pnpm typecheck`, `pnpm build:admin:cloud`, `pnpm test:admin:cloud`. 마지막 명령은 실제 workerd·로컬 임시 D1에서 암호학적으로 유효한 WebAuthn 등록/로그인, 최대 32MiB PDF 업로드·다운로드 바이트 일치, 무인증 차단을 검사한다. 선택적으로 실제 로컬 PDF 경로를 받는다. 테스트 인증기는 테스트 코드에만 있고 배포에는 포함되지 않는다.
 
-인증, 요청 출처/CSRF, 위조 JWT, 잘못된 파일, PDF EOF 경계, 중복·부분 업로드, 상태 충돌, 휴지통, 예약 용량, 요청 제한을 자동 테스트한다. Cloudflare의 실제 무료 CPU 한도는 배포 후 대표 파일로 추가 확인한다. 로컬 실행 시간은 Cloudflare CPU 시간이나 인터넷 전송 속도의 측정값이 아니다.
+테스트는 위조/만료 세션, 다른 origin, 사용자 확인 없는 증명, 잘못된 서명, 챌린지 재사용, 기기 추가·해제, 복구 코드 교체, CSRF, 부분 업로드·용량 제한·상태 충돌·휴지통을 포함한다. 사용자 패스키 등록 및 실제 온라인 PDF 저장은 배포 후 별도로 확인한다. 로컬 실행 시간은 Cloudflare CPU 시간이나 인터넷 전송 속도의 측정값이 아니다.
 
-공식 근거: [Workers 요금](https://developers.cloudflare.com/workers/platform/pricing/), [D1 요금](https://developers.cloudflare.com/d1/platform/pricing/), [D1 제한](https://developers.cloudflare.com/d1/platform/limits/), [Workers Access 보호](https://developers.cloudflare.com/workers/configuration/cloudflare-access/), [Zero Trust 가입](https://developers.cloudflare.com/learning-paths/clientless-access/initial-setup/create-zero-trust-org/).
+공식 근거: [SimpleWebAuthn](https://simplewebauthn.dev/docs/packages/server), [패스키](https://simplewebauthn.dev/docs/advanced/passkeys), [Workers 요금](https://developers.cloudflare.com/workers/platform/pricing/), [D1 요금](https://developers.cloudflare.com/d1/platform/pricing/), [D1 제한](https://developers.cloudflare.com/d1/platform/limits/).

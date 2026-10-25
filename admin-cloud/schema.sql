@@ -25,3 +25,26 @@ CREATE TABLE IF NOT EXISTS usage (
   expires INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS usage_expiry ON usage(expires);
+CREATE TABLE IF NOT EXISTS admin_sessions (
+  hash TEXT PRIMARY KEY,
+  username TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  expires INTEGER NOT NULL,
+  idle_expires INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS admin_config (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS admin_credentials (
+  id TEXT PRIMARY KEY,
+  public_key TEXT NOT NULL,
+  counter INTEGER NOT NULL,
+  label TEXT NOT NULL,
+  created INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS admin_challenges (
+  hash TEXT PRIMARY KEY,
+  kind TEXT NOT NULL,
+  authority TEXT NOT NULL,
+  challenge TEXT NOT NULL,
+  expires INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS admin_challenge_expiry ON admin_challenges(expires);

@@ -1,46 +1,151 @@
-import { HttpError } from "../admin-server/validation"
+import { Buffer } from "node:buffer"
+import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from "@simplewebauthn/server"
+import { decodeAttestationObject } from "@simplewebauthn/server/helpers"
+import type { RegistrationResponseJSON, AuthenticationResponseJSON } from "@simplewebauthn/server"
+import { HttpError, object } from "../admin-server/validation"
+import { Sessions, cookie, randomToken, secureCookie, type SessionEnv } from "./session"
 import { sha256 } from "./protocol"
 
-export type AccessConfig = { ACCESS_TEAM_DOMAIN?: string; ACCESS_AUD?: string; ADMIN_EMAIL?: string }
-type Key = JsonWebKey & { kid?: string }
-const keyCache = new Map<string, { expires: number; keys: Key[] }>()
-const decode = (part: string) => {
-  if (!/^[A-Za-z0-9_-]+$/.test(part)) throw Error("Invalid JWT encoding")
-  return Uint8Array.from(atob(part.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0))
+export type AuthEnv = SessionEnv & { ORIGIN: string; SETUP_TOKEN_HASH?: string }
+type Credential = { id: string; public_key: string; counter: number; label: string; created: number }
+type Flow = { challenge: string; kind: string; authority: string; expires: number }
+const flowCookie = "__Host-smp_auth_flow"
+const userID = new TextEncoder().encode("smp-pdf-admin-trial")
+const username = "smp-admin"
+const digest = (text: string) => sha256(new TextEncoder().encode(text))
+const denied = () => new HttpError(403, "인증을 확인하지 못했어요. 처음부터 다시 시도해 주세요.")
+const tokenPattern = /^[a-f0-9]{64}$/
+const responseJSON = (data: unknown, cookies: string[] = []) => {
+  const response = Response.json(data)
+  for (const value of cookies) response.headers.append("Set-Cookie", value)
+  return response
 }
-export function accessConfigured(env: AccessConfig) {
-  return !!env.ACCESS_AUD && /^[a-z0-9][a-z0-9-]*\.cloudflareaccess\.com$/.test(env.ACCESS_TEAM_DOMAIN ?? "") && /^[^\s@]+@[^\s@]+$/.test(env.ADMIN_EMAIL ?? "")
-}
-export async function identity(request: Request, env: AccessConfig, fetcher = fetch, now = Date.now()) {
-  if (!accessConfigured(env)) throw new HttpError(503, "시험 사이트의 관리자 접근 설정을 준비 중입니다.")
-  const token = request.headers.get("Cf-Access-Jwt-Assertion") ?? ""
-  if (!token || token.length > 16_384) throw new HttpError(401, "관리자 이메일로 로그인해 주세요.")
-  try {
-    const [headerPart, bodyPart, signaturePart, extra] = token.split(".")
-    if (extra !== undefined || !signaturePart) throw Error("Invalid JWT")
-    const header = JSON.parse(new TextDecoder().decode(decode(headerPart)))
-    const claims = JSON.parse(new TextDecoder().decode(decode(bodyPart)))
-    const issuer = `https://${env.ACCESS_TEAM_DOMAIN}`
-    if (header.alg !== "RS256" || typeof header.kid !== "string" || header.kid.length > 200) throw Error("Invalid algorithm")
-    if (claims.iss !== issuer || !Array.isArray(claims.aud) || !claims.aud.includes(env.ACCESS_AUD)
-      || typeof claims.exp !== "number" || claims.exp <= now / 1000 || typeof claims.iat !== "number" || claims.iat > now / 1000 + 60
-      || (claims.nbf !== undefined && (typeof claims.nbf !== "number" || claims.nbf > now / 1000 + 60))
-      || typeof claims.sub !== "string" || typeof claims.email !== "string" || claims.email.toLowerCase() !== env.ADMIN_EMAIL!.toLowerCase()) throw Error("Invalid claims")
-    let cached = keyCache.get(issuer)
-    if (!cached || cached.expires < now) {
-      const response = await fetcher(`${issuer}/cdn-cgi/access/certs`, { signal: AbortSignal.timeout(5000), redirect: "manual" })
-      if (!response.ok) throw Error("Unavailable keys")
-      const text = await response.text()
-      if (text.length > 64_000) throw Error("Invalid keys")
-      const jwks = JSON.parse(text)
-      if (!Array.isArray(jwks.keys) || jwks.keys.length > 10) throw Error("Invalid keys")
-      cached = { keys: jwks.keys, expires: now + 5 * 60_000 }
-      keyCache.set(issuer, cached)
+export class Passkeys {
+  readonly sessions: Sessions
+  readonly rpID: string
+  constructor(readonly env: AuthEnv, readonly now = Date.now()) {
+    if (!tokenPattern.test(env.SESSION_SIGNING_KEY ?? "") || !tokenPattern.test(env.SETUP_TOKEN_HASH ?? "")) throw new HttpError(503, "로그인 설정을 준비 중입니다.")
+    this.sessions = new Sessions(env, now); this.rpID = new URL(env.ORIGIN).hostname
+  }
+  private async state() { return (await this.env.ADMIN_DB.prepare("SELECT value FROM admin_config WHERE key='recovery'").first<{value: string}>())?.value ?? "" }
+  private async budget() {
+    for (const [key, max, expires] of [[`auth-day:${Math.floor(this.now / 86400000)}`, 200, this.now + 86400000], [`auth-minute:${Math.floor(this.now / 60000)}`, 40, this.now + 60000]] as const) {
+      const row = await this.env.ADMIN_DB.prepare("INSERT INTO usage(key,hits,expires) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET hits=hits+1 WHERE hits<? RETURNING hits").bind(key, expires, max).first()
+      if (!row) throw new HttpError(429, "로그인 시도 한도에 도달했어요. 잠시 후 또는 다음 날 다시 시도해 주세요.")
     }
-    const jwk = cached.keys.find(k => k.kid === header.kid && k.kty === "RSA")
-    if (!jwk) throw Error("Unknown key")
-    const key = await crypto.subtle.importKey("jwk", jwk, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"])
-    if (!await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, decode(signaturePart), new TextEncoder().encode(`${headerPart}.${bodyPart}`))) throw Error("Bad signature")
-    return { username: claims.email as string, csrf: await sha256(new TextEncoder().encode(`smp-admin-cloud-csrf:${token}`)) }
-  } catch { throw new HttpError(401, "로그인 인증을 확인하지 못했어요. 다시 로그인해 주세요.") }
+  }
+  private async authorize(request: Request) {
+    const session = await this.sessions.identity(request)
+    if (request.headers.get("x-csrf-token") !== session.csrf) throw denied()
+    return session
+  }
+  private async flow(kind: string, authority: string, challenge: string) {
+    const token = randomToken()
+    await this.env.ADMIN_DB.batch([
+      this.env.ADMIN_DB.prepare("DELETE FROM admin_challenges WHERE expires<=?").bind(this.now),
+      this.env.ADMIN_DB.prepare("DELETE FROM usage WHERE expires<=?").bind(this.now),
+      this.env.ADMIN_DB.prepare("INSERT INTO admin_challenges(hash,kind,authority,challenge,expires) VALUES(?,?,?,?,?)").bind(await digest(token), kind, authority, challenge, this.now + 5 * 60000),
+    ])
+    return secureCookie(flowCookie, token, 300)
+  }
+  private async consume(request: Request) {
+    const token = cookie(request, flowCookie)
+    if (!tokenPattern.test(token)) throw denied()
+    const row = await this.env.ADMIN_DB.prepare("DELETE FROM admin_challenges WHERE hash=? RETURNING challenge,kind,authority,expires").bind(await digest(token)).first<Flow>()
+    if (!row || row.expires <= this.now) throw denied()
+    return row
+  }
+  private async complete(id: string, recoveryCode?: string) {
+    const result = await this.sessions.create(username, id)
+    return responseJSON({ session: result.session, ...(recoveryCode ? { recoveryCode } : {}) }, [result.cookie, secureCookie(flowCookie, "", 0)])
+  }
+  async handle(request: Request, body: () => Promise<unknown>): Promise<Response | null> {
+    const path = new URL(request.url).pathname, method = request.method
+    if (path === "/api/auth/status" && method === "GET") {
+      if (!this.env.SESSION_SIGNING_KEY || !this.env.SETUP_TOKEN_HASH) throw new HttpError(503, "로그인 설정을 준비 중입니다.")
+      return responseJSON({ setupRequired: !await this.state() })
+    }
+    if (path === "/api/logout" && method === "POST") {
+      await this.authorize(request)
+      return responseJSON({ ok: true }, [await this.sessions.logout(request)])
+    }
+    if (path === "/api/auth/keys" && method === "GET") {
+      await this.sessions.identity(request)
+      return responseJSON((await this.env.ADMIN_DB.prepare("SELECT id,label,created FROM admin_credentials ORDER BY created").all()).results)
+    }
+    if (!path.startsWith("/api/auth/")) return null
+    if (method !== "POST" || !["/api/auth/register/options", "/api/auth/register/verify", "/api/auth/login/options", "/api/auth/login/verify", "/api/auth/keys/remove"].includes(path)) throw new HttpError(404, "요청한 기능이 없어요.")
+    await this.budget()
+    const data = object(await body())
+    if (path === "/api/auth/register/options") {
+      const state = await this.state(), mode = data.mode
+      if (mode === "setup") {
+        if (state || typeof data.token !== "string" || !tokenPattern.test(data.token) || await digest(data.token) !== this.env.SETUP_TOKEN_HASH) throw denied()
+      } else if (mode === "recover") {
+        if (!state || typeof data.token !== "string" || !tokenPattern.test(data.token) || await digest(data.token) !== state) throw denied()
+      } else if (mode === "add") { await this.authorize(request); if (!state) throw denied() }
+      else throw denied()
+      const existing = (await this.env.ADMIN_DB.prepare("SELECT id FROM admin_credentials").all<{id: string}>()).results ?? []
+      if (mode === "add" && existing.length >= 5) throw new HttpError(409, "패스키는 최대 5개까지 등록할 수 있어요.")
+      const options = await generateRegistrationOptions({ rpName: "SMP PDF 관리자 시험판", rpID: this.rpID, userName: username, userID, attestationType: "none", supportedAlgorithmIDs: [-7], timeout: 60000,
+        authenticatorSelection: { residentKey: "required", userVerification: "required" }, excludeCredentials: mode === "recover" ? [] : existing.map(c => ({ id: c.id })) })
+      return responseJSON(options, [await this.flow(String(mode), state, options.challenge)])
+    }
+    if (path === "/api/auth/register/verify") {
+      const flow = await this.consume(request)
+      if (!["setup", "recover", "add"].includes(flow.kind) || await this.state() !== flow.authority) throw denied()
+      if (flow.kind === "add") await this.authorize(request)
+      let result
+      try {
+        const proof = data.response as RegistrationResponseJSON
+        const attestation = decodeAttestationObject(new Uint8Array(Buffer.from(proof.response.attestationObject, "base64url")))
+        // This trial does not accept device certificates or contact metadata/CRL services.
+        if (attestation.get("fmt") !== "none" || attestation.get("attStmt").size !== 0) throw denied()
+        result = await verifyRegistrationResponse({ response: data.response as RegistrationResponseJSON, expectedChallenge: flow.challenge, expectedOrigin: this.env.ORIGIN, expectedRPID: this.rpID, requireUserVerification: true, supportedAlgorithmIDs: [-7] }) }
+      catch { throw denied() }
+      if (!result.verified || !result.registrationInfo) throw denied()
+      const credential = result.registrationInfo.credential
+      if (credential.id.length > 1024 || credential.publicKey.length > 4096) throw denied()
+      const label = typeof data.label === "string" ? data.label.trim().slice(0, 60) : "관리자 기기"
+      const recoveryCode = flow.kind === "add" ? undefined : randomToken()
+      const db = this.env.ADMIN_DB, id = credential.id
+      // One transaction: the stored recovery epoch must still match. A second setup,
+      // concurrent recovery, or stale add-key flow cannot change the winning account.
+      const statements = [db.prepare("INSERT INTO admin_credentials(id,public_key,counter,label,created) SELECT ?,?,?,?,? WHERE COALESCE((SELECT value FROM admin_config WHERE key='recovery'),'')=? AND (?!='add' OR (SELECT count(*) FROM admin_credentials)<5)").bind(id, Buffer.from(credential.publicKey).toString("base64url"), credential.counter, label || "관리자 기기", this.now, flow.authority, flow.kind)]
+      if (flow.kind === "recover") statements.push(
+        db.prepare("DELETE FROM admin_sessions WHERE EXISTS(SELECT 1 FROM admin_credentials WHERE id=?)").bind(id),
+        db.prepare("DELETE FROM admin_credentials WHERE id<>? AND EXISTS(SELECT 1 FROM admin_credentials WHERE id=?)").bind(id, id),
+      )
+      if (recoveryCode) statements.push(db.prepare("INSERT INTO admin_config(key,value) SELECT 'recovery',? WHERE EXISTS(SELECT 1 FROM admin_credentials WHERE id=?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").bind(await digest(recoveryCode), id))
+      try { await db.batch(statements) } catch { throw denied() }
+      if (!await db.prepare("SELECT id FROM admin_credentials WHERE id=?").bind(id).first()) throw denied()
+      return this.complete(id, recoveryCode)
+    }
+    if (path === "/api/auth/login/options") {
+      if (!await this.state()) throw denied()
+      const options = await generateAuthenticationOptions({ rpID: this.rpID, userVerification: "required", timeout: 60000 })
+      return responseJSON(options, [await this.flow("login", await this.state(), options.challenge)])
+    }
+    if (path === "/api/auth/login/verify") {
+      const flow = await this.consume(request)
+      if (flow.kind !== "login" || flow.authority !== await this.state()) throw denied()
+      const response = data.response as AuthenticationResponseJSON
+      if (!response || typeof response.id !== "string" || response.id.length > 1024 || response.response?.userHandle && response.response.userHandle !== Buffer.from(userID).toString("base64url")) throw denied()
+      const row = await this.env.ADMIN_DB.prepare("SELECT * FROM admin_credentials WHERE id=?").bind(response.id).first<Credential>()
+      if (!row) throw denied()
+      let result
+      try { result = await verifyAuthenticationResponse({ response, expectedChallenge: flow.challenge, expectedOrigin: this.env.ORIGIN, expectedRPID: this.rpID, requireUserVerification: true, credential: { id: row.id, publicKey: new Uint8Array(Buffer.from(row.public_key, "base64url")), counter: row.counter } }) }
+      catch { throw denied() }
+      if (!result.verified) throw denied()
+      const updated = await this.env.ADMIN_DB.prepare("UPDATE admin_credentials SET counter=? WHERE id=? AND counter=? RETURNING id").bind(result.authenticationInfo.newCounter, row.id, row.counter).first()
+      if (!updated) throw denied()
+      return this.complete(row.id)
+    }
+    await this.authorize(request)
+    if (typeof data.id !== "string" || data.id.length > 1024) throw denied()
+    const removed = await this.env.ADMIN_DB.prepare("DELETE FROM admin_credentials WHERE id=? AND (SELECT count(*) FROM admin_credentials)>1 RETURNING id").bind(data.id).first()
+    if (!removed) throw new HttpError(409, "마지막 패스키는 삭제할 수 없어요. 새 패스키를 먼저 등록해 주세요.")
+    await this.env.ADMIN_DB.prepare("DELETE FROM admin_sessions WHERE subject=?").bind(data.id).run()
+    return responseJSON({ ok: true })
+  }
 }

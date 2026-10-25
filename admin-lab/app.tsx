@@ -16,7 +16,7 @@ function DraftRow({ draft, selected, onSelect }: { draft: Draft; selected: boole
   </button>
 }
 
-export function App({ username, onLogout }: { username?: string; onLogout?: () => Promise<void> }) {
+export function App({ username, onLogout, onSecurity }: { username?: string; onLogout?: () => Promise<void>; onSecurity?: () => void }) {
   const lab = useLab()
   const confirm = useConfirmation()
   const [filter, setFilter] = useState<Filter>("all")
@@ -58,7 +58,7 @@ export function App({ username, onLogout }: { username?: string; onLogout?: () =
       <div className="sidebar-foot"><ShieldCheck size={17}/><p>운영 환경과 분리됨<br/><small>Notion · Drive 연결 없음</small></p></div>
     </aside>
     <main>
-      <div className="lab-banner"><FlaskConical size={16}/><strong>{cloudMode ? "온라인 관리자 시험판" : serverMode ? "로그인·서버 저장 시험판" : "로컬 시험판"}</strong><span>{cloudMode ? "자료는 별도 시험 저장소에 보관됩니다. 운영 사이트에는 게시되지 않습니다." : serverMode ? "자료는 이 Mac의 시험 서버에 저장됩니다. 운영 게시 연결은 없습니다." : "파일은 이 브라우저에만 저장됩니다. 실제 로그인·게시 기능은 연결되지 않았습니다."}</span>{onLogout && <button className="secondary session-button" disabled={busy} onClick={async () => { if (dirty && !await confirm("저장하지 않은 변경을 버리고 로그아웃할까요?")) return; try { await onLogout() } catch (error) { setRefreshError((error as Error).message) } }}>{username} · 로그아웃</button>}</div>
+      <div className="lab-banner"><FlaskConical size={16}/><strong>{cloudMode ? "온라인 관리자 시험판" : serverMode ? "로그인·서버 저장 시험판" : "로컬 시험판"}</strong><span>{cloudMode ? "자료는 별도 시험 저장소에 보관됩니다. 운영 사이트에는 게시되지 않습니다." : serverMode ? "자료는 이 Mac의 시험 서버에 저장됩니다. 운영 게시 연결은 없습니다." : "파일은 이 브라우저에만 저장됩니다. 실제 로그인·게시 기능은 연결되지 않았습니다."}</span>{onSecurity && <button className="secondary" disabled={busy} onClick={async () => { if (dirty && !await confirm("저장하지 않은 변경을 버리고 로그인 기기 관리로 이동할까요?")) return; onSecurity() }}>로그인 기기 관리</button>}{onLogout && <button className="secondary session-button" disabled={busy} onClick={async () => { if (dirty && !await confirm("저장하지 않은 변경을 버리고 로그아웃할까요?")) return; try { await onLogout() } catch (error) { setRefreshError((error as Error).message) } }}>{username} · 로그아웃</button>}</div>
       <header className="page-heading"><div><p className="eyebrow">CONTENT WORKSPACE</p><h1>리포트 관리<span>.</span></h1><p>PDF를 올리고, 내용을 확인하고, 게시할 준비를 마치세요.</p></div><div className="header-actions"><button className="secondary" disabled={busy} onClick={() => ingest([samplePdf(0), samplePdf(1)])}>예시 PDF 2개로 테스트 <ArrowUpRight size={15}/></button></div></header>
       <section className={`upload-zone ${dragging ? "dragging" : ""} ${busy ? "is-busy" : ""}`} aria-label="PDF 추가"
         onDragOver={e => { e.preventDefault(); if (!busy) setDragging(true) }} onDragLeave={() => setDragging(false)}

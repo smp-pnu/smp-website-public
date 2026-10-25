@@ -11,9 +11,10 @@ import { validateCover } from "../admin-cloud/files"
 import { allowedTrialOrigin } from "../admin-lab/mode"
 import type { Database, Statement } from "../cloudflare/bindings"
 
-const keys = crypto.subtle.generateKey({ name: "RSASSA-PKCS1-v1_5", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" }, true, ["sign", "verify"])
+import { sha256 } from "../admin-cloud/protocol"
+import { authenticator, cookieJar } from "./admin-passkey-fixture.mjs"
 const origin = "https://smp-pdf-admin-trial.smp-website.workers.dev"
-const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64url")
+const setupToken = "b".repeat(64)
 const fields = { ...emptyFields(), title: "시험 보고서", company: "HPSP", ticker: "403870", date: "2026-10-25", semester: "2026-2", author: "리서치 1팀", targetPrice: "50,000원" }
 async function fixture() {
   const db = new DatabaseSync(":memory:"); db.exec(await readFile(new URL("../admin-cloud/schema.sql", import.meta.url), "utf8"))
@@ -34,24 +35,31 @@ async function fixture() {
     },
   }
   let now = Date.now(), token = "", csrf = ""
+  const jar = cookieJar(), device = authenticator()
   const env: Env = { ADMIN_DB: adapter, ASSETS: { async fetch() { return new Response("static") } }, ORIGIN: origin,
-    ACCESS_TEAM_DOMAIN: "smp-test.cloudflareaccess.com", ACCESS_AUD: "test-audience", ADMIN_EMAIL: "admin@example.com" }
-  const jwk = { ...await crypto.subtle.exportKey("jwk", (await keys).publicKey), kid: "test-key" }
-  const handler = createHandler(async (input) => { assert.equal(input, "https://smp-test.cloudflareaccess.com/cdn-cgi/access/certs"); return Response.json({ keys: [jwk] }) }, () => now)
-  const sign = async (changes: Record<string, unknown> = {}, headerChanges: Record<string, unknown> = {}) => {
-    const head = encode({ alg: "RS256", kid: "test-key", ...headerChanges })
-    const payload = encode({ iss: "https://smp-test.cloudflareaccess.com", aud: ["test-audience"], sub: "admin-sub", email: "admin@example.com", iat: Math.floor(now / 1000), exp: Math.floor(now / 1000) + 3600, ...changes })
-    const signed = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", (await keys).privateKey, new TextEncoder().encode(`${head}.${payload}`))
-    return `${head}.${payload}.${Buffer.from(signed).toString("base64url")}`
-  }
-  const call = (path: string, method = "GET", body?: unknown, extra: Record<string, string> = {}) => {
-    const headers: Record<string, string> = { Origin: origin, ...(token ? { "Cf-Access-Jwt-Assertion": token } : {}), "X-CSRF-Token": csrf, ...extra }
+    SESSION_SIGNING_KEY: "a".repeat(64), SETUP_TOKEN_HASH: await sha256(new TextEncoder().encode(setupToken)) }
+  const handler = createHandler(() => now)
+  const call = async (path: string, method = "GET", body?: unknown, extra: Record<string, string> = {}) => {
+    const headers: Record<string, string> = { Origin: origin, Cookie: token || jar.read(), "X-CSRF-Token": csrf, ...extra }
     let data: BodyInit | undefined
     if (body instanceof Uint8Array) { headers["Content-Type"] = "application/octet-stream"; data = body as Uint8Array<ArrayBuffer> }
     else if (body !== undefined) { headers["Content-Type"] = "application/json"; data = JSON.stringify(body) }
-    return handler(new Request(origin + path, { method, headers, body: data }), env)
+    const response = await handler(new Request(origin + path, { method, headers, body: data }), env)
+    jar.set(response); return response
   }
-  const login = async () => { token = await sign(); const response = await call("/api/session"); assert.equal(response.status, 200); csrf = (await response.json()).session.csrf }
+  const login = async () => {
+    token = ""
+    if (!db.prepare("SELECT value FROM admin_config").get()) {
+      const options = await (await call("/api/auth/register/options", "POST", {mode:"setup",token:setupToken})).json()
+      const response = await call("/api/auth/register/verify", "POST", {response:device.register(options, origin),label:"Test key"})
+      assert.equal(response.status, 200, response.status === 200 ? "" : await response.text())
+      csrf = (await response.json()).session.csrf
+    } else {
+      const options = await (await call("/api/auth/login/options", "POST", {})).json()
+      const response = await call("/api/auth/login/verify", "POST", {response:device.authenticate(options, origin)})
+      assert.equal(response.status, 200, response.status === 200 ? "" : await response.text()); csrf = (await response.json()).session.csrf
+    }
+  }
   const pdf = new Uint8Array(await samplePdf(0).arrayBuffer())
   const cover = new Uint8Array(await sharp({ create: { width: 50, height: 70, channels: 3, background: "white" } }).webp().toBuffer())
   const meta = async (bytes = pdf, overrides: Record<string, unknown> = {}) => ({ hash: await fileIdentity(bytes), filename: "sample.pdf", fileBytes: bytes.length, coverBytes: cover.length, pages: 3, fields, evidence: [], warnings: [], ...overrides })
@@ -63,21 +71,24 @@ async function fixture() {
     }
   }
   const upload = async (bytes = pdf) => { const { id } = await begin(bytes); await parts(id, bytes); const r = await call(`/api/uploads/${id}/finish`, "POST"); assert.equal(r.status, 200, r.status === 200 ? "" : await r.text()); return r.json() }
-  return { db, env, call, login, sign, pdf, cover, meta, begin, parts, upload, setToken: (value: string) => { token = value }, time: (ms: number) => { now += ms }, get now() { return now }, close: () => db.close() }
+  return { db, env, call, login, jar, device, pdf, cover, meta, begin, parts, upload, setToken: (value: string) => { jar.clear(); token = value }, time: (ms: number) => { now += ms }, get now() { return now }, close: () => db.close() }
 }
-test("cloud trial fails closed without Access; validates signature, issuer, audience, expiry and exact admin", async () => {
+test("cloud signed sessions reject forgery, expiry and revoked passkeys", async () => {
   const f = await fixture()
   try {
     assert.equal((await f.call("/api/drafts")).status, 401)
-    assert.equal((await f.call("/api/session", "GET", undefined, { "Cf-Access-Authenticated-User-Email": "admin@example.com" })).status, 401)
-    for (const changes of [{ email: "someone@example.com" }, { aud: ["other-app"] }, { iss: "https://evil.example" }, { exp: 0 }, { nbf: f.now / 1000 + 1000 }]) {
-      f.setToken(await f.sign(changes)); assert.equal((await f.call("/api/drafts")).status, 401)
-    }
-    f.setToken(await f.sign({}, { alg: "none" })); assert.equal((await f.call("/api/session")).status, 401)
-    const token = await f.sign(); const parts = token.split("."); parts[1] = encode({ email: "admin@example.com" }); f.setToken(parts.join("."))
-    assert.equal((await f.call("/api/session")).status, 401)
     await f.login(); assert.equal((await f.call("/api/drafts")).status, 200)
-    f.env.ACCESS_AUD = ""; assert.equal((await f.call("/api/drafts")).status, 503)
+    const saved = f.jar.read()
+    f.setToken("__Host-smp_admin=" + "a".repeat(64) + "." + "b".repeat(64))
+    assert.equal((await f.call("/api/drafts")).status, 401)
+    f.setToken(saved); f.time(31 * 60000)
+    assert.equal((await f.call("/api/drafts")).status, 401)
+    await f.login()
+    assert.equal((await f.call("/api/logout", "POST")).status, 200)
+    assert.equal((await f.call("/api/drafts")).status, 401)
+    await f.login(); f.db.prepare("DELETE FROM admin_credentials").run()
+    assert.equal((await f.call("/api/drafts")).status, 401)
+    f.env.SESSION_SIGNING_KEY = ""; assert.equal((await f.call("/api/drafts")).status, 503)
   } finally { f.close() }
 })
 test("cloud upload commits only complete verified chunks; download matches bytes; duplicate, revisions and trash work", async () => {
@@ -180,5 +191,65 @@ test("cloud EOF verification crosses chunk boundaries; malformed/oversized anima
     assert.throws(() => validateCover(animated, animated.length))
     f.time(120_000); await f.login()
     assert.equal(f.db.prepare("SELECT count(*) AS n FROM usage WHERE expires<?").get(f.now)!.n, 0)
+  } finally { f.close() }
+})
+
+test("passkeys bind proof to challenge, origin and user verification; setup cannot be reused", async () => {
+  const f = await fixture()
+  try {
+    assert.equal((await f.call("/api/auth/register/options", "POST", {mode:"setup",token:"f".repeat(64)})).status, 403)
+    const options = await (await f.call("/api/auth/register/options", "POST", {mode:"setup",token:setupToken})).json()
+    assert.equal((await f.call("/api/auth/register/verify", "POST", {response:f.device.register(options, "https://evil.example")})).status, 403)
+    assert.equal((await f.call("/api/auth/register/verify", "POST", {response:f.device.register(options, origin)})).status, 403)
+    await f.login()
+    assert.equal((await f.call("/api/auth/register/options", "POST", {mode:"setup",token:setupToken})).status, 403)
+    for (const type of ["wrong-origin", "no-uv", "bad-signature", "expired"]) {
+      const next = await (await f.call("/api/auth/login/options", "POST", {})).json()
+      const proof = f.device.authenticate(next, type === "wrong-origin" ? "https://evil.example" : origin, type === "no-uv" ? 1 : 5)
+      if (type === "bad-signature") proof.response.signature = "YQ"
+      if (type === "expired") f.time(6 * 60000)
+      assert.equal((await f.call("/api/auth/login/verify", "POST", {response:proof})).status, 403, type)
+    }
+    f.db.prepare("UPDATE usage SET hits=200 WHERE key LIKE 'auth-day:%'").run()
+    assert.equal((await f.call("/api/auth/login/options", "POST", {})).status, 429)
+  } finally { f.close() }
+})
+test("recovery replaces keys and sessions atomically, preserves drafts and rotates its secret", async () => {
+  const f = await fixture()
+  try {
+    const options = await (await f.call("/api/auth/register/options", "POST", {mode:"setup",token:setupToken})).json()
+    const first = await (await f.call("/api/auth/register/verify", "POST", {response:f.device.register(options, origin)})).json()
+    assert.match(first.recoveryCode, /^[a-f0-9]{64}$/)
+    await f.login(); const draft = await f.upload(), oldCookie = f.jar.read()
+    const second = authenticator()
+    const next = await (await f.call("/api/auth/register/options", "POST", {mode:"recover",token:first.recoveryCode})).json()
+    const result = await f.call("/api/auth/register/verify", "POST", {response:second.register(next, origin)})
+    assert.equal(result.status, 200)
+    const recovered = await result.json(); assert.notEqual(first.recoveryCode, recovered.recoveryCode)
+    assert.equal(f.db.prepare("SELECT count(*) AS n FROM admin_credentials").get()!.n, 1)
+    assert.equal((await (await f.call("/api/drafts")).json())[0].id, draft.id)
+    assert.equal((await f.call("/api/auth/register/options", "POST", {mode:"recover",token:first.recoveryCode})).status, 403)
+    f.setToken(oldCookie); assert.equal((await f.call("/api/drafts")).status, 401)
+  } finally { f.close() }
+})
+test("additional passkeys require live admin CSRF, last key is protected and removal revokes sessions", async () => {
+  const f = await fixture()
+  try {
+    assert.equal((await f.call("/api/auth/register/options", "POST", {mode:"add"})).status, 401)
+    await f.login()
+    assert.equal((await f.call("/api/auth/register/options", "POST", {mode:"add"}, {"X-CSRF-Token":"bad"})).status, 403)
+    assert.equal((await f.call("/api/auth/login/options", "POST", {}, {Origin:"https://evil.example"})).status, 403)
+    assert.equal((await f.call("/api/auth/keys/remove", "POST", {id:f.device.id})).status, 409)
+    const options = await (await f.call("/api/auth/register/options", "POST", {mode:"add"})).json()
+    const second = authenticator()
+    assert.equal((await f.call("/api/auth/register/verify", "POST", {response:second.register(options, origin),label:"Second key"})).status, 200)
+    await f.login()
+    assert.equal((await (await f.call("/api/auth/keys")).json()).length, 2)
+    assert.equal((await f.call("/api/auth/keys/remove", "POST", {id:second.id})).status, 200)
+    const proofOptions = await (await f.call("/api/auth/login/options", "POST", {})).json()
+    assert.equal((await f.call("/api/auth/login/verify", "POST", {response:second.authenticate(proofOptions,origin)})).status, 403)
+    const nowCookie = f.jar.read()
+    f.time(7 * 60 * 60000); await f.login(); f.setToken(nowCookie)
+    assert.equal((await f.call("/api/drafts")).status, 401)
   } finally { f.close() }
 })
