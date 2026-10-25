@@ -1,0 +1,47 @@
+// Separate trial build/deploy. Never loads .env or the production deployment config.
+import path from 'node:path'
+import { cp, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
+import { spawnSync } from 'node:child_process'
+const root = path.resolve(import.meta.dirname, '..')
+const mode = process.argv[2]
+if (!['build', 'deploy', 'dry-run'].includes(mode) || process.argv.length !== 3) throw Error('Use build, deploy, or dry-run only')
+const configPath = path.join(root, 'dist/admin-cloud/wrangler.json')
+const name = 'smp-pdf-admin-trial'
+const account = 'f4dcd5f46e5ca4400e2b3449ea5e4497'
+let target = {}
+try { target = JSON.parse(await readFile(path.join(root, '.smp-tools/admin-cloud-target.json'), 'utf8')) } catch (e) { if (e.code !== 'ENOENT') throw e }
+if (mode === 'build') {
+  const require = createRequire(import.meta.url), pdfRoot = path.dirname(require.resolve('pdfjs-dist/package.json'))
+  const assets = path.join(root, 'dist/admin-lab-assets/pdfjs')
+  await mkdir(assets, { recursive: true })
+  for (const folder of ['cmaps', 'standard_fonts', 'wasm']) await cp(path.join(pdfRoot, folder), path.join(assets, folder), { recursive: true })
+  for (const file of ['build/pdf.worker.min.mjs', 'LICENSE']) await cp(path.join(pdfRoot, file), path.join(assets, path.basename(file)))
+  const { build } = await import('vite')
+  await build({ configFile: path.join(root, 'admin-cloud/vite.config.ts'), mode: 'admin-cloud' })
+  const config = {
+    name, account_id: account, main: '../../admin-cloud/worker.ts', compatibility_date: '2026-10-01', compatibility_flags: ['nodejs_compat'],
+    workers_dev: true, preview_urls: false,
+    assets: { directory: './assets', binding: 'ASSETS', run_worker_first: ['/api/*', '/robots.txt'], not_found_handling: 'none' },
+    d1_databases: [{ binding: 'ADMIN_DB', database_name: name, database_id: target.databaseId ?? '00000000-0000-4000-8000-000000000000' }],
+    vars: { ORIGIN: 'https://smp-pdf-admin-trial.smp-website.workers.dev', ...(target.accessAud ? { ACCESS_AUD: target.accessAud, ACCESS_TEAM_DOMAIN: target.accessTeam } : {}) },
+    observability: { enabled: false },
+  }
+  await writeFile(configPath, JSON.stringify(config, null, 2) + '\n')
+  await writeFile(path.join(root, 'dist/admin-cloud/assets/_headers'), '/*\n  X-Robots-Tag: noindex, nofollow, noarchive\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: no-referrer\n  Cache-Control: no-store\n  Content-Security-Policy: default-src \'self\'; script-src \'self\' \'wasm-unsafe-eval\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\' blob: data:; font-src \'self\' data:; connect-src \'self\'; worker-src \'self\' blob:; object-src \'none\'; frame-src \'none\'; base-uri \'none\'; frame-ancestors \'none\'\n')
+} else {
+  const config = JSON.parse(await readFile(configPath, 'utf8'))
+  const db = config.d1_databases
+  if (config.name !== name || config.account_id !== account || config.routes || config.triggers || config.services || config.r2_buckets || config.kv_namespaces
+    || db?.length !== 1 || db[0].binding !== 'ADMIN_DB' || db[0].database_name !== name || db[0].database_id !== target.databaseId || !target.databaseId
+    || ['00000000-0000-4000-8000-000000000000', '16cf8db5-1f95-48f3-af68-b32cfa7f7908', 'c09abb5e-02cd-4277-8b19-0af0642f7cae'].includes(target.databaseId)
+    || config.vars.ORIGIN !== 'https://smp-pdf-admin-trial.smp-website.workers.dev' || config.preview_urls !== false) throw Error('Refusing a deployment outside the isolated PDF admin trial')
+  if (mode === 'deploy') {
+    const info = spawnSync(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'd1', 'info', name, '--json', '--config', configPath], { cwd: root, encoding: 'utf8', env: { ...process.env, WRANGLER_SEND_METRICS: 'false' } })
+    if (info.status !== 0) throw Error('Could not verify the remote trial database; refusing deployment')
+    const remote = JSON.parse(info.stdout)
+    if (remote.name !== name || remote.uuid !== target.databaseId) throw Error('Remote database does not match the isolated trial')
+  }
+  const result = spawnSync(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'deploy', '--config', configPath, ...(mode === 'dry-run' ? ['--dry-run'] : [])], { cwd: root, stdio: 'inherit', env: { ...process.env, WRANGLER_SEND_METRICS: 'false' } })
+  process.exitCode = result.status ?? 1
+}

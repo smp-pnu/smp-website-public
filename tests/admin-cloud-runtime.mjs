@@ -1,0 +1,56 @@
+// Real workerd + local D1. No Cloudflare credentials, live endpoints or auth bypasses.
+import assert from 'node:assert/strict'
+import { createRequire } from 'node:module'
+import { readFile } from 'node:fs/promises'
+import { build } from 'esbuild'
+import sharp from 'sharp'
+import { fileIdentity, chunkBytes } from '../admin-cloud/protocol.ts'
+import { emptyFields } from '../admin-lab/model.ts'
+const require = createRequire(import.meta.url)
+const wranglerRequire = createRequire(require.resolve('wrangler/package.json'))
+const { Miniflare, convertV4MiniflareOptions } = wranglerRequire('miniflare')
+const origin = 'https://smp-pdf-admin-trial.smp-website.workers.dev'
+const pair = await crypto.subtle.generateKey({name:'RSASSA-PKCS1-v1_5',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['sign','verify'])
+const jwk = {...await crypto.subtle.exportKey('jwk',pair.publicKey),kid:'runtime-key'}
+const bundle = await build({entryPoints:['admin-cloud/worker.ts'],bundle:true,write:false,format:'esm',platform:'neutral',external:['node:*'],target:'es2022'})
+const mf = new Miniflare(convertV4MiniflareOptions({
+  modules:true,script:bundle.outputFiles[0].text,compatibilityDate:'2026-10-01',compatibilityFlags:['nodejs_compat'],
+  cf:false,host:'127.0.0.1',port:0,d1Databases:{ADMIN_DB:'test-admin'},
+  bindings:{ORIGIN:origin,ACCESS_TEAM_DOMAIN:'runtime-test.cloudflareaccess.com',ACCESS_AUD:'runtime-test',ADMIN_EMAIL:'admin@example.com'},
+  outboundService:async request => {
+    assert.equal(request.url,'https://runtime-test.cloudflareaccess.com/cdn-cgi/access/certs')
+    return Response.json({keys:[jwk]})
+  },
+}))
+try {
+  const db = await mf.getD1Database('ADMIN_DB')
+  const schema = await readFile(new URL('../admin-cloud/schema.sql',import.meta.url),'utf8')
+  await db.batch(schema.split(';').filter(s=>s.trim()).map(s=>db.prepare(s)))
+  assert.equal((await mf.dispatchFetch(origin+'/api/drafts')).status,401)
+  const enc = value => Buffer.from(JSON.stringify(value)).toString('base64url')
+  const body = enc({alg:'RS256',kid:'runtime-key'})+'.'+enc({iss:'https://runtime-test.cloudflareaccess.com',aud:['runtime-test'],sub:'test',email:'admin@example.com',iat:Math.floor(Date.now()/1000),exp:Math.floor(Date.now()/1000)+3600})
+  const token = body+'.'+Buffer.from(await crypto.subtle.sign('RSASSA-PKCS1-v1_5',pair.privateKey,new TextEncoder().encode(body))).toString('base64url')
+  let csrf = ''
+  const call = async (path,method='GET',data) => {
+    const binary = data instanceof Uint8Array
+    const response = await mf.dispatchFetch(origin+path,{method,headers:{Origin:origin,'Cf-Access-Jwt-Assertion':token,'X-CSRF-Token':csrf,...(data?{'Content-Type':binary?'application/octet-stream':'application/json'}:{})},body:data?(binary?data:JSON.stringify(data)):undefined})
+    assert.equal(response.status<300,true,`${method} ${path}: ${response.status} ${response.status>=300?await response.text():''}`)
+    return response
+  }
+  csrf = (await (await call('/api/session')).json()).session.csrf
+  // Optional real PDF path permits a local end-to-end transport check without publishing it.
+  const source = process.argv[2] ? new Uint8Array(await readFile(process.argv[2])) : new Uint8Array(32*1024*1024).fill(32)
+  if (!process.argv[2]) { source.set(new TextEncoder().encode('%PDF-1.7\n'));source.set(new TextEncoder().encode('\n%%EOF\n'),source.length-7) }
+  const cover = new Uint8Array(await sharp({create:{width:1177,height:1700,channels:3,background:'white'}}).webp().toBuffer())
+  const started = performance.now()
+  const {id} = await (await call('/api/uploads','POST',{hash:await fileIdentity(source),filename:'runtime-test.pdf',fileBytes:source.length,coverBytes:cover.length,pages:27,fields:emptyFields(),evidence:[],warnings:[]})).json()
+  for (const [kind,bytes] of [['pdf',source],['cover',cover]]) for(let offset=0;offset<bytes.length;offset+=chunkBytes) await call(`/api/uploads/${id}/${kind}/${offset/chunkBytes}`,'PUT',bytes.slice(offset,offset+chunkBytes))
+  await call(`/api/uploads/${id}/finish`,'POST')
+  assert.equal((await (await call('/api/drafts')).json()).length,1)
+  const manifest = await (await call(`/api/drafts/${id}/pdf`)).json(), downloaded=[]
+  for(let i=0;i<manifest.parts;i++) downloaded.push(Buffer.from(await (await call(`/api/drafts/${id}/pdf/${i}`)).arrayBuffer()))
+  assert.deepEqual(Buffer.concat(downloaded),Buffer.from(source))
+  assert.deepEqual(Buffer.from(await (await call(`/api/drafts/${id}/cover`)).arrayBuffer()),Buffer.from(cover))
+  assert.equal((await mf.dispatchFetch(origin+`/api/drafts/${id}/pdf/0`)).status,401)
+  console.log(JSON.stringify({result:'pass',runtime:'workerd',storage:'isolated local D1',pdfBytes:source.length,chunks:manifest.parts,roundTripMs:Math.round(performance.now()-started),downloadBytesMatch:true}))
+} finally { await mf.dispose() }

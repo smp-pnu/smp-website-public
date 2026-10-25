@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react"
 import { LockKeyhole, ShieldCheck } from "lucide-react"
 import { api, setApiSession, type Session } from "./server-storage"
+import { cloudMode } from "./mode"
 export function AuthGate({ children }: { children: (session: Session, logout: () => Promise<void>) => ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [setup, setSetup] = useState(false)
@@ -20,9 +21,19 @@ export function AuthGate({ children }: { children: (session: Session, logout: ()
     window.addEventListener("admin-session-expired", expired)
     return () => { active = false; window.removeEventListener("admin-session-expired", expired) }
   }, [])
-  const logout = async () => { await api("/logout", { method: "POST" }); setApiSession(null); setSession(null); setError(""); setPassword("") }
+  const logout = async () => {
+    if (cloudMode) { window.location.assign("/cdn-cgi/access/logout"); return }
+    await api("/logout", { method: "POST" }); setApiSession(null); setSession(null); setError(""); setPassword("")
+  }
   if (loading) return <main className="auth-shell"><p>로그인 상태를 확인하고 있어요…</p></main>
   if (session) return children(session, logout)
+  if (cloudMode) return <main className="auth-shell"><section className="auth-card">
+    <div className="brand"><span>SMP</span><small>RESEARCH DESK</small></div>
+    <h1>시험 사이트 관리자 인증</h1><p>등록된 학회 이메일의 Cloudflare Access 인증이 필요합니다.</p>
+    {error && <p className="error-panel" role="alert">{error}</p>}
+    <a className="primary" href="/">관리자 로그인</a>
+    <p className="auth-note">기존 로컬 시험판의 아이디·비밀번호는 이 사이트로 전송하지 않습니다.</p>
+  </section></main>
   return <main className="auth-shell"><section className="auth-card">
     <div className="brand"><span>SMP</span><small>RESEARCH DESK</small></div>
     <div className="auth-heading"><LockKeyhole size={22}/><div><p className="eyebrow">PRIVATE TEST WORKSPACE</p><h1>{setup ? "첫 관리자 설정" : "관리자 로그인"}</h1></div></div>

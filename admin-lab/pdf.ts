@@ -1,12 +1,15 @@
 import type { PDFDocumentLoadingTask } from "pdfjs-dist"
 import { limits, validateFile } from "./model"
 import { extractFields } from "./extract"
+import { cloudMode } from "./mode"
+import { fileIdentity } from "../admin-cloud/protocol"
 
 export async function fingerprint(file: File, signal: AbortSignal) {
   validateFile(file)
   const bytes = new Uint8Array(await file.arrayBuffer())
   signal.throwIfAborted()
   if (!/^%PDF-\d\.\d/.test(new TextDecoder().decode(bytes.slice(0, 12)))) throw Error("PDF 헤더를 확인하지 못했어요. 파일 확장자만 바꾼 자료는 사용할 수 없어요.")
+  if (cloudMode) return { bytes, hash: await fileIdentity(bytes) }
   const digest = await crypto.subtle.digest("SHA-256", bytes)
   signal.throwIfAborted()
   return { bytes, hash: Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("") }
