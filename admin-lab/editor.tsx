@@ -55,7 +55,7 @@ export function DraftEditor({ draft, locked, onDirty, onSave, onApprove, onTrash
   )
   return <section className="editor" aria-label="리포트 검토">
     <header className="editor-heading">
-      <div><span className="eyebrow">REPORT REVIEW</span><h2>{draft.trashedAt ? "휴지통의 리포트" : "리포트 검토"}</h2></div>
+      <div><h1 tabIndex={-1}>{draft.trashedAt ? "휴지통의 리포트" : "리포트 편집"}</h1></div>
       <span className={`status ${approved ? "approved" : ""}`}>{dirty ? "저장 전 변경" : statusOf(draft)}</span>
     </header>
     <div className="file-strip"><FileCheck2 size={17}/><span title={draft.filename}>{draft.filename}</span><small>{draft.pages}쪽 · {sizeLabel(draft.fileBytes)}</small></div>
@@ -66,7 +66,7 @@ export function DraftEditor({ draft, locked, onDirty, onSave, onApprove, onTrash
     </div>
     {tab === "preview" ? <article className="article-preview">
       <div className="preview-note">미리보기 · 실제 웹사이트에는 게시되지 않습니다</div>
-      <p className="eyebrow">SMP RESEARCH · {fields.semester || "학기 미입력"}</p>
+      <p className="preview-category">리포트 · {fields.semester || "학기 미입력"}</p>
       <h1>{fields.title || "제목을 입력해 주세요"}</h1>
       <p className="article-meta">{fields.company} {fields.ticker && `(${fields.ticker})`} · {fields.date || "발표일 미입력"} · {fields.author || "작성자 미입력"}</p>
       <div className="article-tags"><span>{fields.reportType}</span>{fields.industry && <span>{fields.industry}</span>}</div>
@@ -76,10 +76,10 @@ export function DraftEditor({ draft, locked, onDirty, onSave, onApprove, onTrash
     </article> : <form onSubmit={e => { e.preventDefault(); void action(() => onSave(draft, fields)) }}>
       <div className="review-intro">
         <div className="cover-paper">{cover ? <img src={cover} alt="업로드한 PDF 첫 페이지" /> : <span>표지 준비 중</span>}</div>
-        <div><h3>자동 입력은 초안이에요.</h3><p>첫 3페이지와 파일명에서 찾은 내용입니다. 원문과 대조하고 빠진 항목을 채워 주세요.</p><small>PDF와 초안은 {storageLabel}에 저장됩니다.</small></div>
+        <div><h3>PDF에서 추출한 정보</h3><p>첫 3페이지와 파일명을 기준으로 입력했습니다. 저장 전 원문과 대조하세요.</p><small>표지와 원본은 같은 PDF를 사용합니다.</small></div>
       </div>
       <fieldset disabled={busy || !!draft.trashedAt}>
-        <legend>01 <span>기본 정보</span></legend>
+        <legend>기본 정보</legend>
         <div className="field-grid">
           {input("title", "text", "첫 페이지의 소개 문구를 포함한 제목")}
           {input("company", "text", "예: 인바디")}{input("ticker", "text", "앞자리 0을 포함한 6자리")}
@@ -90,7 +90,7 @@ export function DraftEditor({ draft, locked, onDirty, onSave, onApprove, onTrash
         </div>
       </fieldset>
       <fieldset disabled={busy || !!draft.trashedAt}>
-        <legend>02 <span>리포트 요약</span></legend>
+        <legend>투자 의견</legend>
         <label className="check-row"><input type="checkbox" checked={fields.notRated} onChange={e => update("notRated", e.target.checked)}/><span>Not Rated <small>목표주가를 제시하지 않은 리포트</small></span></label>
         <div className="field-grid">
           {input("targetYear", "text", "예: 2027")}

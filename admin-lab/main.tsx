@@ -1,6 +1,5 @@
 import { Component, type ReactNode } from "react"
 import { createRoot } from "react-dom/client"
-import "@fontsource-variable/noto-sans-kr"
 import "./style.css"
 import { CloudAuthGate } from "./cloud-auth"
 import { AuthGate } from "./auth"

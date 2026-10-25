@@ -3,7 +3,7 @@ import { startAuthentication, startRegistration } from "@simplewebauthn/browser"
 import { api, setApiSession, type Session } from "./server-storage"
 import { useConfirmation } from "./confirm"
 
-type Key = { id: string; label: string; created: number }
+import { SecuritySettings, type PasskeyItem } from "./security-settings"
 const post = async (path: string, data: unknown = {}) => (await api(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) })).json()
 const message = (error: unknown) => error instanceof Error && error.name === "NotAllowedError" ? "패스키 인증이 취소됐거나 시간이 지났어요. 다시 시도해 주세요." : error instanceof Error ? error.message : "인증을 마치지 못했어요."
 export function CloudAuthGate({ children }: { children: (session: Session, logout: () => Promise<void>, security: () => void) => ReactNode }) {
@@ -16,7 +16,7 @@ export function CloudAuthGate({ children }: { children: (session: Session, logou
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
   const [security, setSecurity] = useState(false)
-  const [keys, setKeys] = useState<Key[]>([])
+  const [keys, setKeys] = useState<PasskeyItem[]>([])
   const [recoveryCode, setRecoveryCode] = useState("")
   const [saved, setSaved] = useState(false)
   const confirm = useConfirmation()
@@ -30,6 +30,7 @@ export function CloudAuthGate({ children }: { children: (session: Session, logou
         const status = await (await api("/auth/status")).json()
         if (!active) return
         setSetup(status.setupRequired)
+        if (!status.setupRequired && location.hash === "#handoff") { setRecover(true); history.replaceState(null, "", location.pathname); return }
         // One-time setup key is never placed in a query string or sent to assets.
         if (status.setupRequired && location.hash.startsWith("#setup=")) {
           setToken(location.hash.slice(7)); history.replaceState(null, "", location.pathname)
@@ -59,34 +60,27 @@ export function CloudAuthGate({ children }: { children: (session: Session, logou
   const logout = async () => { await api("/logout", { method: "POST" }); accept(null); setSecurity(false); setError("") }
   if (loading) return <main className="auth-shell"><p>로그인 상태를 확인하고 있어요…</p></main>
   if (recoveryCode) return <main className="auth-shell"><section className="auth-card">
-    <h1>복구 코드를 보관해 주세요</h1><p>기기를 모두 잃었을 때 새 패스키로 교체하는 일회용 코드입니다. 서버에는 코드 원문이 저장되지 않아 이 화면을 닫으면 다시 볼 수 없습니다.</p>
-    <label>복구 코드<input readOnly value={recoveryCode} onFocus={e => e.target.select()} aria-label="복구 코드"/></label>
+    <h1>복구 코드를 보관해 주세요</h1><p>기기 분실 또는 관리자 인수인계에 쓰는 일회용 코드입니다. 이 화면을 닫으면 다시 확인할 수 없으므로 안전한 곳에 보관하세요.</p>
+    <label className="recovery-code">복구 코드<input readOnly value={recoveryCode} onFocus={e => e.target.select()} aria-label="복구 코드"/></label>
     <button className="secondary" onClick={() => {
-      const url = URL.createObjectURL(new Blob([`SMP PDF 관리자 시험판 복구 코드\n${location.origin}\n\n${recoveryCode}\n\n기기 분실 시 로그인 화면의 ‘기기를 잃었나요?’에서 사용하세요. 기존 패스키와 로그인은 해제되며 자료는 유지됩니다.\n`], { type: "text/plain;charset=utf-8" }))
+      const url = URL.createObjectURL(new Blob([`SMP PDF 관리자 시험판 복구 코드\n${location.origin}\n\n${recoveryCode}\n\n기기 분실 시 로그인 화면의 ‘복구·인수인계’에서 사용하세요. 기존 패스키와 로그인은 해제되며 자료는 유지됩니다.\n`], { type: "text/plain;charset=utf-8" }))
       const anchor = document.createElement("a"); anchor.href = url; anchor.download = "SMP-관리자-복구코드.txt"; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000)
     }}>복구 코드 파일 저장</button>
     <label className="auth-note"><input type="checkbox" checked={saved} onChange={e => setSaved(e.target.checked)}/> 다른 안전한 곳에 보관했습니다.</label>
     <button className="primary" disabled={!saved} onClick={() => setRecoveryCode("")}>관리자 화면으로</button>
   </section></main>
-  if (session && security) return <main className="auth-shell"><section className="auth-card">
-    <h1>로그인 기기 관리</h1><p>패스키는 최대 5개까지 등록할 수 있습니다. 다른 기기는 등록 창의 ‘다른 기기 사용’을 선택하세요.</p>
-    <ul>{keys.map(key => <li key={key.id}><strong>{key.label}</strong> · {new Date(key.created).toLocaleDateString("ko-KR")} <button className="secondary" disabled={busy || keys.length <= 1} onClick={() => void run(async () => {
-      if (!await confirm("이 패스키와 해당 기기의 로그인을 해제할까요?")) return
-      await post("/auth/keys/remove", { id: key.id }); setKeys(await (await api("/auth/keys")).json())
+  if (session && security) return <SecuritySettings keys={keys} busy={busy} label={label} error={error} onLabel={setLabel} onBack={() => setSecurity(false)} onRegister={() => void run(() => register("add"))}
+    onLogout={async () => { try { await logout() } catch (e) { setError(message(e)) } }}
+    onRemove={id => void run(async () => {
+      if (!await confirm("이 패스키와 해당 패스키로 로그인한 세션을 해제할까요?")) return
+      await post("/auth/keys/remove", { id }); setKeys(await (await api("/auth/keys")).json())
       try { await api("/session") } catch { accept(null); setSecurity(false) }
-    })}>해제</button></li>)}</ul>
-    <form onSubmit={e => { e.preventDefault(); void run(() => register("add")) }}><fieldset className="auth-fields" disabled={busy}>
-      <label>기기 이름<input value={label} onChange={e => setLabel(e.target.value)} placeholder="예: 학회 관리자 휴대폰" maxLength={60} required/></label>
-      <button className="primary" disabled={keys.length >= 5}>패스키 추가</button>
-    </fieldset></form>
-    {error && <p className="error-panel" role="alert">{error}</p>}
-    <button className="secondary" disabled={busy} onClick={() => setSecurity(false)}>리포트 관리로 돌아가기</button>
-  </section></main>
+    })}/>
   if (session) return children(session, logout, () => { setSecurity(true); void run(async () => setKeys(await (await api("/auth/keys")).json())) })
   return <main className="auth-shell"><section className="auth-card">
-    <div className="brand"><span>SMP</span><small>RESEARCH DESK</small></div>
-    <h1>{setup ? "첫 관리자 패스키 등록" : recover ? "관리자 로그인 복구" : "관리자 로그인"}</h1>
-    <p className="auth-intro">Touch ID 또는 휴대폰 잠금 해제로 로그인합니다. PDF는 별도 시험 서버에 저장되며 운영 사이트에는 게시되지 않습니다.</p>
+    <div className="admin-brand"><strong>SMP</strong><span>사이트 관리</span></div>
+    <h1>{setup ? "첫 관리자 패스키 등록" : recover ? "복구·인수인계" : "관리자 로그인"}</h1>
+    <p className="auth-intro">등록한 패스키로 로그인하세요. 이 시험 사이트의 변경 사항은 공식 홈페이지에 게시되지 않습니다.</p>
     <form onSubmit={e => { e.preventDefault(); void run(async () => {
       if (setup || recover) return register(setup ? "setup" : "recover")
       const optionsJSON = await post("/auth/login/options")
@@ -97,9 +91,9 @@ export function CloudAuthGate({ children }: { children: (session: Session, logou
       <label>기기 이름<input value={label} onChange={e => setLabel(e.target.value)} placeholder="예: 관리자 Mac" required maxLength={60}/></label></>}
       {recover && <p>복구를 완료하면 기존 패스키와 모든 로그인이 해제됩니다. 저장한 리포트는 유지됩니다.</p>}
       {error && <p className="error-panel" role="alert">{error}</p>}
-      <button className="primary">{busy ? "기기 인증을 기다리고 있어요…" : setup ? "패스키 등록하고 시작" : recover ? "새 패스키로 복구" : "패스키로 로그인"}</button>
+      <button className="primary">{busy ? "기기 인증을 기다리고 있어요…" : setup ? "패스키 등록하고 시작" : recover ? "새 관리자 패스키 등록" : "패스키로 로그인"}</button>
     </fieldset></form>
-    {!setup && <button className="secondary" disabled={busy} onClick={() => { setRecover(!recover); setToken(""); setError("") }}>{recover ? "로그인으로 돌아가기" : "기기를 잃었나요?"}</button>}
-    <p className="auth-note">추가 서비스 가입이나 카드 청구 동의가 필요 없습니다. 생체정보와 기기 잠금번호는 서버에 전달되지 않습니다.</p>
+    {!setup && <button className="secondary" disabled={busy} onClick={() => { setRecover(!recover); setToken(""); setError("") }}>{recover ? "로그인으로 돌아가기" : "복구·인수인계"}</button>}
+    <p className="auth-note">Touch ID·기기 잠금번호는 서버에 전달되지 않습니다.</p>
   </section></main>
 }

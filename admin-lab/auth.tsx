@@ -26,8 +26,8 @@ export function AuthGate({ children }: { children: (session: Session, logout: ()
   if (loading) return <main className="auth-shell"><p>로그인 상태를 확인하고 있어요…</p></main>
   if (session) return children(session, logout)
   return <main className="auth-shell"><section className="auth-card">
-    <div className="brand"><span>SMP</span><small>RESEARCH DESK</small></div>
-    <div className="auth-heading"><LockKeyhole size={22}/><div><p className="eyebrow">PRIVATE TEST WORKSPACE</p><h1>{setup ? "첫 관리자 설정" : "관리자 로그인"}</h1></div></div>
+    <div className="admin-brand"><strong>SMP</strong><span>사이트 관리</span></div>
+    <div className="auth-heading"><LockKeyhole size={22}/><div><h1>{setup ? "첫 관리자 설정" : "관리자 로그인"}</h1></div></div>
     <p className="auth-intro">PDF와 초안을 관리하는 별도 시험 서버입니다. 운영 사이트에는 게시되지 않습니다.</p>
     <form onSubmit={async e => {
       e.preventDefault(); if (busy) return
