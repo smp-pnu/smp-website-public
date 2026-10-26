@@ -53,9 +53,12 @@ export function extractFields(filename: string, pages: string[]) {
     if (validDate(normalized)) fields.date = normalized
   }
   fields.semester = title.match(/\b(20\d{2}-[12])\b/)?.[1] ?? ""
-  fields.author = add("author", /(?:^|\n)\s*(?:작성자|작성팀|리서치팀|Author|Team(?!['’]s\b))[ \t]*[:：]?[ \t]*([^\n]{1,70})/i)
-    || add("author", /(?:^|\n)[ \t]*([A-Za-z][A-Za-z\d .]{0,35}\bResearch[ \t]+Team[ \t]+\d+)[ \t]*(?:\n|$)/i)
-  if (fields.author) fields.author = publicReportAuthor(fields.author)
+  // Prefer an explicit team heading. Prose such as "리서치팀은 ..." and
+  // "Team's Opinion" is not an author label, even if PDF spacing splits it.
+  fields.author = add("author", /(?:^|\n)[ \t]*([A-Za-z][A-Za-z\d .]{0,35}\bResearch[ \t]+Team[ \t]+\d+)[ \t]*(?:\n|$)/i)
+    || add("author", /(?:^|\n)[ \t]*(?:작성자|작성팀|리서치팀|Author|Team)[ \t]*[:：][ \t]*([^\n]{1,70})/i)
+    || add("author", /(?:^|\n)[ \t]*(?:Team|작성팀|리서치팀)[ \t]+((?:SMP[ \t]*)?[RN][ \t]*\d+|(?:리서치|신입)[ \t]*\d+[ \t]*팀)[ \t]*(?:\n|$)/i)
+  if (fields.author) fields.author = publicReportAuthor(fields.author.replace(/[ \t]+/g, " "))
   fields.targetYear = add("targetYear", /(?:타겟\s*(?:년도|연도)|목표\s*연도|Target\s*year)\s*[:：]?\s*(20\d{2}(?:\s*[-~·]\s*20\d{2})?)/i)
   // PDF.js may separate "4 , 555 , 000" into several text runs. Match the
   // whole number, including spaced comma groups; never accept a numeric prefix.
