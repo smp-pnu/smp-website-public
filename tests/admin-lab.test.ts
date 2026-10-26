@@ -59,6 +59,9 @@ test("fragmented PDF currency values are complete and report headers supply attr
   assert.equal(title.fields.targetPrice, "79,500 원")
   assert.match(title.fields.title, /^\[인바디\] 미국 의료시장/)
   assert.equal(extractFields("test.pdf", ["목표주가 4 , 55 , 000 원"]).fields.targetPrice, "")
+  const team = extractFields("test.pdf", ["Team’s Opinion\nStock Price\nSRS 38th Research Team 1\nBUY"])
+  assert.equal(team.fields.author, "SRS 38th Research Team 1")
+  assert.equal(extractFields("test.pdf", ["Team's Opinion\nStock Price"]).fields.author, "")
 })
 test("approval requires manual review and complete fields; edits invalidate approval", () => {
   const original = fixture()
