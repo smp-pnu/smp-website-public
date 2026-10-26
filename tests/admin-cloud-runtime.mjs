@@ -25,6 +25,8 @@ try {
   const db = await mf.getD1Database('ADMIN_DB')
   const schema = await readFile(new URL('../admin-cloud/schema.sql',import.meta.url),'utf8')
   await db.batch(schema.split(';').filter(s=>s.trim()).map(s=>db.prepare(s)))
+  const guards = await readFile(new URL('../admin-cloud/history-budget.sql',import.meta.url),'utf8')
+  await db.batch(guards.split('-- statement').map(sql=>db.prepare(sql)))
   assert.equal((await mf.dispatchFetch(origin+'/api/drafts')).status,401)
   const jar = cookieJar(), device = authenticator()
   let csrf = ''
@@ -102,6 +104,7 @@ try {
   await call('/api/reports/batch','POST',{items:[{id,revision:4}],action:{type:'remove'}})
   assert.equal((await db.prepare('SELECT count(*) AS n FROM chunks').first()).n,0)
   assert.equal((await db.prepare('SELECT count(*) AS n FROM notice_assets').first()).n,0)
-  const remaining=await(await call('/api/library/status')).json();assert.equal(remaining.bytes,0)
+  const remaining=await(await call('/api/library/status')).json();assert.ok(remaining.bytes>=source.length+cover.length)
+  assert.equal((await db.prepare('SELECT rows FROM history_budget').first()).rows,0)
   console.log(JSON.stringify({managementFlows:'order/bulk/replace/notice/images/purge',result:'pass' ,runtime:'workerd',storage:'isolated local D1',pdfBytes:source.length,chunks:manifest.parts,coverType,recoveredLostResponses:2,roundTripMs:Math.round(performance.now()-started),downloadBytesMatch:true}))
 } finally { await mf.dispose() }

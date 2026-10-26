@@ -9,12 +9,16 @@ import { validateCover } from "./files"
 import { extractMetadata, type AiBinding } from "./ai-metadata"
 import { LibraryStore } from "./library"
 import { NoticeStore } from "./notices"
+import { ReportVersions } from "./report-versions"
+import { DriveConnection, type DriveFetch } from "./drive/connection"
+import { DriveUploads } from "./drive/uploads"
 
 export interface Env extends AuthEnv {
   ADMIN_DB: Database
   ASSETS: { fetch(request: Request): Promise<Response> }
   ORIGIN: string
   AI?: AiBinding
+  DRIVE_ACCOUNT_EMAIL?: string
 }
 export const headers = {
   "Cache-Control": "no-store",
@@ -59,7 +63,7 @@ async function jsonBody(request: Request) {
   }
 }
 const json = (data: unknown, status = 200) => Response.json(data, { status })
-export function createHandler(clock = Date.now) {
+export function createHandler(clock = Date.now, driveFetch: DriveFetch = fetch) {
   return async (request: Request, env: Env) => {
     let response: Response
     try {
@@ -77,11 +81,21 @@ export function createHandler(clock = Date.now) {
         if (mutation) throw new HttpError(404, "페이지를 찾지 못했어요.")
         response =
           url.pathname === "/robots.txt"
-            ? new Response("User-agent: *\nDisallow: /\n", { headers: { "Content-Type": "text/plain" } })
+            ? new Response("User-agent: *\nDisallow: /\n", {
+                headers: { "Content-Type": "text/plain" },
+              })
             : await env.ASSETS.fetch(request)
       } else {
         const now = clock(),
-          authResponse = await new Passkeys(env, now).handle(request, () => jsonBody(request))
+          connection = new DriveConnection(env, now, driveFetch),
+          drive = new DriveUploads(connection)
+        // OAuth redirects cannot carry our SameSite=Strict login cookie. The
+        // one-time PKCE state only creates a pending grant; a signed-in CSRF-
+        // protected confirmation is still required before any Drive writes.
+        const authResponse =
+          url.pathname === "/api/storage/drive/callback" && request.method === "GET"
+            ? await connection.callback(url)
+            : await new Passkeys(env, now).handle(request, () => jsonBody(request))
         if (authResponse) {
           response = authResponse
         } else {
@@ -92,7 +106,35 @@ export function createHandler(clock = Date.now) {
           await store.budget()
           const path = url.pathname,
             method = request.method
-          if (path === "/api/session" && method === "GET") {
+          if (path === "/api/storage/status" && method === "GET") {
+            response = json({
+              ...(await connection.status(session.username)),
+              ...(await env.ADMIN_DB.prepare(
+                `SELECT
+              (SELECT count(*) FROM report_files WHERE state='pending-delete')+(SELECT count(*) FROM abandoned_drive_files) AS pendingCleanup,
+              (SELECT count(*) FROM report_files WHERE state='pending-delete' AND last_error IS NOT NULL)+(SELECT count(*) FROM abandoned_drive_files WHERE last_error IS NOT NULL) AS cleanupErrors`,
+              ).first()),
+            })
+          } else if (path === "/api/storage/drive/configure" && method === "POST")
+            response = json(await connection.configure(await jsonBody(request)))
+          else if (path === "/api/storage/drive/start" && method === "POST")
+            response = json(await connection.start(session.username))
+          else if (path === "/api/storage/drive/confirm" && method === "POST")
+            response = json(await connection.confirm(session.username))
+          else if (path === "/api/storage/drive/quota" && method === "GET")
+            response = json(await connection.quota())
+          else if (path === "/api/storage/maintenance" && method === "POST") {
+            const lease = await env.ADMIN_DB.prepare(
+              "INSERT INTO usage(key,hits,expires) VALUES('drive-maintenance',1,?) ON CONFLICT(key) DO UPDATE SET expires=excluded.expires WHERE expires<=? RETURNING key",
+            )
+              .bind(now + 3600000, now)
+              .first()
+            response = json(
+              lease && (await connection.grant())?.folderId
+                ? await drive.cleanup(2)
+                : { removed: 0, failed: 0 },
+            )
+          } else if (path === "/api/session" && method === "GET") {
             await store.cleanup()
             response = json({ setupRequired: false, session })
           } else if (path === "/api/drafts" && method === "GET") {
@@ -104,7 +146,10 @@ export function createHandler(clock = Date.now) {
             await store.cleanup()
             response = json(await new NoticeStore(env.ADMIN_DB, now).list())
           } else if (path === "/api/notices" && method === "POST")
-            response = json(await new NoticeStore(env.ADMIN_DB, now).create(await jsonBody(request)), 201)
+            response = json(
+              await new NoticeStore(env.ADMIN_DB, now).create(await jsonBody(request)),
+              201,
+            )
           else if (/^\/api\/notice-assets\/[^/]+$/.test(path) && method === "GET") {
             const id = path.split("/")[3]
             if (!idPattern.test(id)) throw new HttpError(400, "사진 번호를 확인해 주세요.")
@@ -126,18 +171,81 @@ export function createHandler(clock = Date.now) {
           } else if (path === "/api/reports/order" && method === "GET")
             response = json(await new LibraryStore(env.ADMIN_DB, now).order())
           else if (path === "/api/reports/order" && method === "PUT")
-            response = json(await new LibraryStore(env.ADMIN_DB, now).reorder(await jsonBody(request)))
+            response = json(
+              await new LibraryStore(env.ADMIN_DB, now).reorder(await jsonBody(request)),
+            )
           else if (path === "/api/reports/batch" && method === "POST")
-            response = json(await new LibraryStore(env.ADMIN_DB, now).batch(await jsonBody(request)))
+            response = json(
+              await new LibraryStore(env.ADMIN_DB, now).batch(await jsonBody(request)),
+            )
           else if (path === "/api/metadata/extract" && method === "POST")
-            response = json(await extractMetadata(await jsonBody(request), env.ADMIN_DB, env.AI, now))
-          else if (path === "/api/uploads" && method === "POST")
-            response = json(await store.begin(await jsonBody(request), session.username), 201)
-          else {
+            response = json(
+              await extractMetadata(await jsonBody(request), env.ADMIN_DB, env.AI, now),
+            )
+          else if (path === "/api/uploads" && method === "POST") {
+            const input = await jsonBody(request),
+              connected = !!(await connection.grant())?.folderId
+            const started = await store.begin(input, session.username, connected)
+            if ("id" in started && started.id) {
+              const mode = await env.ADMIN_DB.prepare(
+                "SELECT provider FROM report_storage WHERE object_id=?",
+              )
+                .bind(started.id)
+                .first<{ provider: string }>()
+              if (mode?.provider === "drive")
+                await drive.begin(await store.stage(started.id, session.username), input)
+            }
+            response = json(started, 201)
+          } else if (
+            /^\/api\/drafts\/[^/]+\/release(?:\/(?:pdf|cover)(?:\/\d+)?)?$/.test(path) &&
+            method === "GET"
+          ) {
+            const [, , , id, , asset, partText] = path.split("/")
+            if (!idPattern.test(id)) throw new HttpError(404, "승인본을 찾지 못했어요.")
+            const versions = new ReportVersions(env.ADMIN_DB, now),
+              release = await versions.approved(id),
+              file = release.file
+            if (!asset) response = json({ draft: release.draft, publication: "trial-only" })
+            else if (asset === "cover" && partText === undefined) {
+              const cover = await versions.cover(file)
+              response = new Response(cover, {
+                headers: { "Content-Type": validateCover(cover, cover.length) },
+              })
+            } else if (asset === "pdf" && partText === undefined)
+              response = json({
+                parts: Math.ceil(file.pdf_bytes / chunkBytes),
+                bytes: file.pdf_bytes,
+                hash: file.identity,
+              })
+            else if (asset === "pdf" && partText !== undefined) {
+              const part = Number(partText)
+              if (
+                !Number.isSafeInteger(part) ||
+                part < 0 ||
+                part >= Math.ceil(file.pdf_bytes / chunkBytes)
+              )
+                throw new HttpError(404, "파일 조각이 없어요.")
+              const proof = (await versions.assetParts(file, "pdf", part))[0]
+              if (!proof) throw new HttpError(503, "원본 검증 정보가 없어요.")
+              const bytes =
+                file.provider === "drive"
+                  ? await drive.read(file, part)
+                  : new Uint8Array(Buffer.from(proof.data, "base64"))
+              if ((await sha256(bytes)) !== proof.hash)
+                throw new HttpError(503, "보관된 원본과 파일 내용이 달라요.")
+              response = new Response(bytes, {
+                headers: {
+                  "Content-Type": "application/octet-stream",
+                  "Content-Disposition": "attachment",
+                },
+              })
+            } else throw new HttpError(404, "요청한 기능이 없어요.")
+          } else {
             const match = path.match(
               /^\/api\/(uploads|drafts)\/([^/]+)(?:\/(finish|pdf|cover)(?:\/(\d+))?)?$/,
             )
-            if (!match || !idPattern.test(match[2])) throw new HttpError(404, "요청한 기능이 없어요.")
+            if (!match || !idPattern.test(match[2]))
+              throw new HttpError(404, "요청한 기능이 없어요.")
             const [, resource, id, asset, partText] = match
             if (resource === "uploads" && method === "DELETE" && !asset) {
               await store.cancel(id, session.username)
@@ -165,7 +273,8 @@ export function createHandler(clock = Date.now) {
               if (request.headers.get("content-type") !== "application/octet-stream")
                 throw new HttpError(415, "파일 전송 형식을 확인해 주세요.")
               const bytes = await bodyBytes(request, expected)
-              if (bytes.length !== expected) throw new HttpError(400, "전송된 파일 크기가 맞지 않아요.")
+              if (bytes.length !== expected)
+                throw new HttpError(400, "전송된 파일 크기가 맞지 않아요.")
               if (part === 0) {
                 const start = Buffer.from(bytes.subarray(0, 16)).toString("latin1")
                 if (kind === "pdf" && !/^%PDF-\d\.\d/.test(start))
@@ -175,7 +284,29 @@ export function createHandler(clock = Date.now) {
               const hash = await sha256(bytes)
               // Validate access expiry again before a mutation after reading the body.
               await new Sessions(env, clock()).identity(request)
-              await store.put(row, kind, part, Buffer.from(bytes).toString("base64"), bytes.length, hash)
+              const mode = await env.ADMIN_DB.prepare(
+                "SELECT provider FROM report_storage WHERE object_id=?",
+              )
+                .bind(id)
+                .first<{ provider: string }>()
+              if (kind === "pdf" && mode?.provider === "drive")
+                await drive.put(row, part, bytes, hash)
+              // Drive originals are not copied into D1; only bounded EOF proof
+              // tails, per-chunk hashes and covers are retained here.
+              const data =
+                kind === "pdf" && mode?.provider === "drive"
+                  ? part >= Math.max(0, Math.ceil(total / chunkBytes) - 2)
+                    ? bytes.slice(-2048)
+                    : new Uint8Array()
+                  : bytes
+              await store.put(
+                row,
+                kind,
+                part,
+                Buffer.from(data).toString("base64"),
+                bytes.length,
+                hash,
+              )
               response = json({ ok: true, hash })
             } else if (resource === "drafts" && method === "PATCH" && !asset) {
               const body = object(await jsonBody(request))
@@ -193,15 +324,26 @@ export function createHandler(clock = Date.now) {
                 })
               else {
                 const part = Number(partText)
-                if (!Number.isSafeInteger(part) || part < 0 || part >= Math.ceil(row.pdf_bytes / chunkBytes))
+                if (
+                  !Number.isSafeInteger(part) ||
+                  part < 0 ||
+                  part >= Math.ceil(row.pdf_bytes / chunkBytes)
+                )
                   throw new HttpError(404, "파일 조각이 없어요.")
                 const value = await env.ADMIN_DB.prepare(
-                  "SELECT data FROM chunks WHERE object_id=? AND kind='pdf' AND part=?",
+                  "SELECT data,hash FROM chunks WHERE object_id=? AND kind='pdf' AND part=?",
                 )
                   .bind(id, part)
-                  .first<{ data: string }>()
+                  .first<{ data: string; hash: string }>()
                 if (!value) throw new HttpError(503, "파일 조각을 확인하지 못했어요.")
-                response = new Response(new Uint8Array(Buffer.from(value.data, "base64")), {
+                const file = await new ReportVersions(env.ADMIN_DB, now).binding(id)
+                const bytes =
+                  file?.provider === "drive"
+                    ? await drive.read(file, part)
+                    : new Uint8Array(Buffer.from(value.data, "base64"))
+                if ((await sha256(bytes)) !== value.hash)
+                  throw new HttpError(503, "저장된 PDF 검증에 실패했어요. 파일을 확인해 주세요.")
+                response = new Response(bytes, {
                   headers: {
                     "Content-Type": "application/octet-stream",
                     "Content-Disposition": "attachment",
@@ -216,7 +358,9 @@ export function createHandler(clock = Date.now) {
             ) {
               await store.get(id)
               const parts = await store.parts(id, "cover", true)
-              const cover = new Uint8Array(Buffer.concat(parts.map((p) => Buffer.from(p.data, "base64"))))
+              const cover = new Uint8Array(
+                Buffer.concat(parts.map((p) => Buffer.from(p.data, "base64"))),
+              )
               response = new Response(cover, {
                 headers: { "Content-Type": validateCover(cover, cover.length) },
               })

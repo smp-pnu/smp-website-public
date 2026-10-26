@@ -4,6 +4,8 @@ import type { LibraryOrder } from "../admin-lab/library-model"
 import { applyCommand } from "../admin-lab/model"
 import { bad, HttpError, idPattern, object, text } from "../admin-server/validation"
 import { guardedBatch } from "./transaction"
+import { ReportVersions } from "./report-versions"
+import type { ObjectRow } from "./store"
 
 export class LibraryStore {
   constructor(
@@ -22,7 +24,10 @@ export class LibraryStore {
         .all<{ id: string }>()
     ).results.map((r) => r.id)
     const stored = (JSON.parse(row?.ids ?? "[]") as string[]).filter((id) => active.includes(id))
-    return { revision: row?.revision ?? 1, ids: [...active.filter((id) => !stored.includes(id)), ...stored] }
+    return {
+      revision: row?.revision ?? 1,
+      ids: [...active.filter((id) => !stored.includes(id)), ...stored],
+    }
   }
   async reorder(input: unknown) {
     const value = object(input),
@@ -30,7 +35,7 @@ export class LibraryStore {
     if (
       !Number.isInteger(value.revision) ||
       !Array.isArray(ids) ||
-      ids.length > 50 ||
+      ids.length > 500 ||
       ids.some((id) => typeof id !== "string" || !idPattern.test(id)) ||
       new Set(ids).size !== ids.length
     )
@@ -57,11 +62,12 @@ export class LibraryStore {
     const value = object(input),
       items = value.items,
       action = object(value.action)
-    if (!Array.isArray(items) || !items.length || items.length > 20)
-      return bad("한 번에 20개까지 처리할 수 있어요.")
+    if (!Array.isArray(items) || !items.length || items.length > 5)
+      return bad("안전한 파일 보관을 위해 한 번에 5개까지 처리할 수 있어요.")
     const expected = items.map((item) => {
       const v = object(item)
-      if (!idPattern.test(String(v.id)) || !Number.isInteger(v.revision) || Number(v.revision) < 1) bad()
+      if (!idPattern.test(String(v.id)) || !Number.isInteger(v.revision) || Number(v.revision) < 1)
+        bad()
       return { id: v.id as string, revision: v.revision as number }
     })
     if (new Set(expected.map((v) => v.id)).size !== expected.length) bad()
@@ -77,39 +83,52 @@ export class LibraryStore {
     const rows = (
       await this.db
         .prepare(
-          "SELECT id,revision,data FROM objects WHERE status='ready' AND id IN (SELECT json_extract(value,'$.id') FROM json_each(?))",
+          "SELECT * FROM objects WHERE status='ready' AND id IN (SELECT json_extract(value,'$.id') FROM json_each(?))",
         )
         .bind(JSON.stringify(expected))
-        .all<{ id: string; revision: number; data: string }>()
+        .all<ObjectRow>()
     ).results
     if (
       rows.length !== expected.length ||
       rows.some((row) => expected.find((v) => v.id === row.id)?.revision !== row.revision)
     )
       throw new HttpError(409, "선택한 자료가 변경됐어요. 새로고침해 주세요.")
-    const statements = rows.map((row) => {
-      const draft: Draft = JSON.parse(row.data)
-      if (action.type === "remove") {
-        if (!draft.trashedAt) bad("영구 삭제는 휴지통에서만 가능합니다.")
-        return this.db.prepare("DELETE FROM objects WHERE id=?").bind(row.id)
-      }
-      if (action.type === "classify" && draft.trashedAt) bad("휴지통 자료는 먼저 복원해 주세요.")
-      const next = applyCommand(
-        draft,
-        action.type === "classify"
-          ? { type: "edit", fields: { ...draft.fields, [field]: label } }
-          : { type: "trash", trashed: action.type === "trash" },
-        new Date(this.now).toISOString(),
-      )!
-      next.revision = row.revision + 1
-      next.updatedAt = new Date(this.now).toISOString()
-      next.approvedRevision = null
-      next.approvedAt = null
-      return this.db
-        .prepare("UPDATE objects SET data=?,revision=? WHERE id=?")
-        .bind(JSON.stringify(next), next.revision, row.id)
-    })
-    if (action.type === "remove") statements.push(this.db.prepare("DELETE FROM metadata_extractions"))
+    const versions = new ReportVersions(this.db, this.now)
+    const statements = (
+      await Promise.all(
+        rows.map(async (row) => {
+          const draft: Draft = JSON.parse(row.data)
+          if (action.type === "remove") {
+            if (!draft.trashedAt) bad("영구 삭제는 휴지통에서만 가능합니다.")
+            return versions.purgeStatements(row)
+          }
+          if (action.type === "classify" && draft.trashedAt)
+            bad("휴지통 자료는 먼저 복원해 주세요.")
+          const next = applyCommand(
+            draft,
+            action.type === "classify"
+              ? { type: "edit", fields: { ...draft.fields, [field]: label } }
+              : { type: "trash", trashed: action.type === "trash" },
+            new Date(this.now).toISOString(),
+          )!
+          next.revision = row.revision + 1
+          next.updatedAt = new Date(this.now).toISOString()
+          next.approvedRevision = null
+          next.approvedAt = null
+          const snapshot = await versions.snapshot(row)
+          return [
+            ...snapshot.statements,
+            this.db
+              .prepare("UPDATE objects SET data=?,revision=? WHERE id=?")
+              .bind(JSON.stringify(next), next.revision, row.id),
+            versions.versionStatement(next, snapshot.assetId),
+            ...versions.releaseStatements(next),
+          ]
+        }),
+      )
+    ).flat()
+    if (action.type === "remove")
+      statements.push(this.db.prepare("DELETE FROM metadata_extractions"))
     await guardedBatch(
       this.db,
       `(SELECT count(*) FROM objects o JOIN json_each(?) e ON o.id=json_extract(e.value,'$.id') AND o.revision=json_extract(e.value,'$.revision') WHERE o.status='ready')=?`,

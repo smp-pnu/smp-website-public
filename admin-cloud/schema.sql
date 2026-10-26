@@ -84,3 +84,96 @@ CREATE TABLE IF NOT EXISTS upload_receipts (
   owner TEXT NOT NULL,
   expires INTEGER NOT NULL
 );
+
+-- Immutable report files/versions. The public CMS is not connected to these tables.
+CREATE TABLE IF NOT EXISTS report_files (
+  id TEXT PRIMARY KEY,
+  provider TEXT NOT NULL CHECK(provider IN ('d1','drive')),
+  identity TEXT NOT NULL,
+  identity_algorithm TEXT NOT NULL DEFAULT 'smp-pdf-chunks-v1',
+  pdf_bytes INTEGER NOT NULL,
+  cover_bytes INTEGER NOT NULL,
+  file_id TEXT,
+  folder_id TEXT,
+  source_sha256 TEXT,
+  managed INTEGER NOT NULL DEFAULT 0 CHECK(managed IN (0,1)),
+  state TEXT NOT NULL DEFAULT 'ready' CHECK(state IN ('ready','pending-delete','deleted')),
+  created INTEGER NOT NULL,
+  delete_after INTEGER,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  last_error TEXT
+);
+CREATE TABLE IF NOT EXISTS report_file_bindings (
+  report_id TEXT PRIMARY KEY REFERENCES objects(id) ON DELETE CASCADE,
+  asset_id TEXT NOT NULL REFERENCES report_files(id)
+);
+CREATE TABLE IF NOT EXISTS report_versions (
+  report_id TEXT NOT NULL REFERENCES objects(id) ON DELETE CASCADE,
+  revision INTEGER NOT NULL,
+  asset_id TEXT NOT NULL REFERENCES report_files(id),
+  data TEXT NOT NULL,
+  created INTEGER NOT NULL,
+  PRIMARY KEY(report_id,revision)
+);
+CREATE INDEX IF NOT EXISTS report_versions_asset ON report_versions(asset_id);
+CREATE TABLE IF NOT EXISTS report_releases (
+  report_id TEXT PRIMARY KEY REFERENCES objects(id) ON DELETE CASCADE,
+  owner TEXT NOT NULL DEFAULT 'admin-trial' CHECK(owner='admin-trial'),
+  approved_revision INTEGER NOT NULL,
+  approved_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS report_jobs (
+  report_id TEXT NOT NULL REFERENCES objects(id) ON DELETE CASCADE,
+  revision INTEGER NOT NULL,
+  state TEXT NOT NULL CHECK(state IN ('waiting','cancelled')),
+  created INTEGER NOT NULL,
+  PRIMARY KEY(report_id,revision)
+);
+CREATE TABLE IF NOT EXISTS archived_report_chunks (
+  asset_id TEXT NOT NULL REFERENCES report_files(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK(kind IN ('pdf','cover')),
+  part INTEGER NOT NULL,
+  bytes INTEGER NOT NULL,
+  hash TEXT NOT NULL,
+  data TEXT NOT NULL,
+  PRIMARY KEY(asset_id,kind,part)
+);
+CREATE TABLE IF NOT EXISTS report_storage (
+  object_id TEXT PRIMARY KEY REFERENCES objects(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL CHECK(provider IN ('d1','drive'))
+);
+CREATE TABLE IF NOT EXISTS drive_uploads (
+  object_id TEXT PRIMARY KEY REFERENCES objects(id) ON DELETE CASCADE,
+  file_id TEXT NOT NULL,
+  folder_id TEXT NOT NULL,
+  session_secret TEXT,
+  offset INTEGER NOT NULL DEFAULT 0,
+  verified INTEGER NOT NULL DEFAULT 0,
+  source_sha256 TEXT,
+  expected_sha256 TEXT,
+  lease TEXT,
+  lease_expires INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS drive_upload_parts (
+  object_id TEXT NOT NULL REFERENCES objects(id) ON DELETE CASCADE,
+  part INTEGER NOT NULL,
+  bytes INTEGER NOT NULL,
+  hash TEXT NOT NULL,
+  PRIMARY KEY(object_id,part)
+);
+CREATE TABLE IF NOT EXISTS storage_secrets(key TEXT PRIMARY KEY, encrypted TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS drive_oauth (
+  state_hash TEXT PRIMARY KEY,
+  owner TEXT NOT NULL,
+  verifier_secret TEXT NOT NULL,
+  pending_secret TEXT,
+  expires INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS abandoned_drive_files (
+  file_id TEXT PRIMARY KEY,
+  folder_id TEXT NOT NULL,
+  upload_id TEXT NOT NULL,
+  delete_after INTEGER NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  last_error TEXT
+);

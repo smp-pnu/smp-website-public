@@ -2,9 +2,15 @@ import { Buffer } from "node:buffer"
 import type { Database } from "../cloudflare/bindings"
 import { HttpError, bad, idPattern, object, text } from "../admin-server/validation"
 import { limits, validDate } from "../admin-lab/model"
-import { noticeLimits, type Notice, type NoticeBlock, type NoticeSummary } from "../admin-lab/notice-model"
+import {
+  noticeLimits,
+  type Notice,
+  type NoticeBlock,
+  type NoticeSummary,
+} from "../admin-lab/notice-model"
 import { validateCover } from "./files"
 import { guardedBatch } from "./transaction"
+import { storageBytesSql } from "./report-versions"
 export function noticeFields(input: unknown) {
   const v = object(input),
     title = text(v.title, 200),
@@ -27,7 +33,8 @@ export function noticeFields(input: unknown) {
       !["paragraph", "heading", "bullet", "numbered", "quote", "divider", "image"].includes(type)
     )
       return bad()
-    if (type === "image" && !idPattern.test(String(b.assetId))) return bad("사진을 먼저 등록해 주세요.")
+    if (type === "image" && !idPattern.test(String(b.assetId)))
+      return bad("사진을 먼저 등록해 주세요.")
     const href = b.href ? text(b.href, 1000) : undefined
     if (href) {
       try {
@@ -89,10 +96,13 @@ export class NoticeStore {
       trashedAt: null,
     }
     const saved = await this.db
-      .prepare("INSERT INTO notices(id,data) SELECT ?,? WHERE (SELECT count(*) FROM notices)<? RETURNING id")
+      .prepare(
+        "INSERT INTO notices(id,data) SELECT ?,? WHERE (SELECT count(*) FROM notices)<? RETURNING id",
+      )
       .bind(n.id, JSON.stringify(n), noticeLimits.count)
       .first()
-    if (!saved) throw new HttpError(409, "시험 공지 한도 100개에 도달했어요. 휴지통을 정리해 주세요.")
+    if (!saved)
+      throw new HttpError(409, "시험 공지 한도 100개에 도달했어요. 휴지통을 정리해 주세요.")
     return n
   }
   async change(id: string, input: unknown) {
@@ -178,7 +188,7 @@ export class NoticeStore {
       .prepare(
         `INSERT INTO notice_assets(id,notice_id,bytes,mime,data,expires)
       SELECT ?,?,?,?,?,? WHERE (SELECT count(*) FROM notice_assets WHERE notice_id=?)<?
-      AND (SELECT coalesce(sum(pdf_bytes+cover_bytes),0) FROM objects)+(SELECT coalesce(sum(bytes),0) FROM notice_assets)+?<=?
+      AND ${storageBytesSql}+?<=?
       AND EXISTS(SELECT 1 FROM notices WHERE id=? AND json_extract(data,'$.trashedAt') IS NULL) RETURNING id`,
       )
       .bind(

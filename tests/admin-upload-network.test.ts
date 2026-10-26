@@ -38,7 +38,7 @@ test("network loss retries only the same upload chunk/finalization; binary bytes
   assert.equal(calls.filter(path => path.endsWith("/pdf/1")).length, 1)
   assert.ok(steps.includes("저장 확인 · 연결 재시도 2/2"))
 })
-test("upload retry budget is shared across the file and ends with a bounded cleanup", async t => {
+test("upload retry budget is shared across the file and preserves staging for later resume", async t => {
   let first = 0, second = 0, cleanup = 0
   t.mock.method(globalThis, "fetch", async (path: string, options: RequestInit) => {
     if (path === "/api/uploads") return Response.json({ id: "stage" })
@@ -48,7 +48,7 @@ test("upload retry budget is shared across the file and ends with a bounded clea
     throw new TypeError("Load failed")
   })
   await assert.rejects(insertDraft(draft, assets), /PDF 전송 2\/2: 서버 연결/)
-  assert.equal(first, 2); assert.equal(second, 2); assert.equal(cleanup, 1)
+  assert.equal(first, 2); assert.equal(second, 2); assert.equal(cleanup, 0)
 })
 test("validation and quota responses are never retried", async t => {
   let calls = 0

@@ -26,6 +26,6 @@ try {
  assert.ok(content.includes('&lt;script&gt;'));assert.ok(!content.includes('<script>'));assert.ok(!content.includes('javascript:'))
  assert.ok(content.includes('src="/api/notice-assets/test"'));assert.ok(content.includes('href="https://pnusmp.com/"'))
  assert.equal((listing.match(/class="report-link"/g)||[]).length,20)
- assert.ok(listing.includes('모든 학기'));assert.ok(listing.includes('현재 페이지 전체 선택'));assert.ok(listing.includes('1 / 2'))
+ assert.ok(listing.includes('모든 학기'));assert.ok(listing.includes('현재 페이지 앞 5개 선택'));assert.ok(listing.includes('1 / 2'))
  console.log(JSON.stringify({result:'pass',checks:['escaped notice text','safe links','authenticated image path','20-row pagination','order and selection controls']}))
 } finally {await rm(target,{force:true})}

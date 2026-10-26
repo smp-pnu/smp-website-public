@@ -18,6 +18,7 @@ import { useLab } from "./use-lab"
 import { useConfirmation } from "./confirm"
 import { cloudMode } from "./mode"
 import { Notices } from "./notices"
+import { StorageSettings } from "./storage-settings"
 
 export function App({
   username: _username,
@@ -30,11 +31,32 @@ export function App({
 }) {
   const lab = useLab(),
     confirm = useConfirmation()
-  const [section, setSection] = useState<"reports" | "notices">("reports")
+  const [section, setSection] = useState<"reports" | "notices" | "storage">(() =>
+    cloudMode && location.hash === "#storage" ? "storage" : "reports",
+  )
+  const [countLimit, setCountLimit] = useState<number>(50)
   const [noticeBusy, setNoticeBusy] = useState(false)
-  const [overview, setOverview] = useState<{ bytes: number; reports: number; pending: number } | null>(null)
+  const [overview, setOverview] = useState<{
+    bytes: number
+    reports: number
+    pending: number
+  } | null>(null)
   const [overviewTick, setOverviewTick] = useState(0)
   const refreshOverview = useCallback(() => setOverviewTick((n) => n + 1), [])
+  useEffect(() => {
+    if (!cloudMode) return
+    let active = true
+    void api("/storage/status")
+      .then((r) => r.json())
+      .then((v) => {
+        if (active) setCountLimit(v.reportLimit)
+      })
+      .catch(() => {})
+    void api("/storage/maintenance", { method: "POST" }).catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [overviewTick])
   useEffect(() => {
     if (!cloudMode || lab.loading) return
     let active = true
@@ -87,7 +109,10 @@ export function App({
       })
       .catch((e) => {
         if (active) setRefreshError(e.message)
-      }).finally(() => { if (active) setOrderLoading(false) })
+      })
+      .finally(() => {
+        if (active) setOrderLoading(false)
+      })
     return () => {
       active = false
     }
@@ -103,7 +128,10 @@ export function App({
           await api("/reports/order", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ revision: order.revision, ids: moveReport(order.ids, from, to) }),
+            body: JSON.stringify({
+              revision: order.revision,
+              ids: moveReport(order.ids, from, to),
+            }),
           })
         ).json(),
       )
@@ -118,7 +146,9 @@ export function App({
       busy ||
       !items.length ||
       !(await confirm(
-        `${items.length}개 자료를 ${action.type === "remove" ? "PDF·표지와 함께 영구 삭제" : action.type === "trash" ? "휴지통으로 이동" : action.type === "restore" ? "복원" : "일괄 수정"}할까요?`,
+        action.type === "remove"
+          ? `${items.length}개 자료를 목록에서 영구 삭제할까요? 원본 파일은 30일 보류 후 정리됩니다. 글은 이 화면에서 복원할 수 없습니다.`
+          : `${items.length}개 자료를 ${action.type === "trash" ? "휴지통으로 이동" : action.type === "restore" ? "복원" : "일괄 수정"}할까요?`,
       ))
     )
       return
@@ -128,7 +158,10 @@ export function App({
       await api("/reports/batch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: items.map(({ id, revision }) => ({ id, revision })), action }),
+        body: JSON.stringify({
+          items: items.map(({ id, revision }) => ({ id, revision })),
+          action,
+        }),
       })
       await lab.refresh()
     } catch (e) {
@@ -142,6 +175,7 @@ export function App({
       active={section}
       stored={cloudMode ? overview?.bytes : stored}
       count={overview?.reports ?? lab.drafts.length}
+      countLimit={countLimit}
       busy={busy}
       onReports={() => {
         void (async () => {
@@ -172,6 +206,18 @@ export function App({
             }
           : undefined
       }
+      onStorage={
+        cloudMode
+          ? () => {
+              void (async () => {
+                if (await canLeave()) {
+                  setSection("storage")
+                  lab.setSelected(null)
+                }
+              })()
+            }
+          : undefined
+      }
       onLogout={
         onLogout
           ? async () => {
@@ -185,7 +231,9 @@ export function App({
           : undefined
       }
     >
-      {section === "notices" ? (
+      {section === "storage" ? (
+        <StorageSettings onBusy={setNoticeBusy} onChange={refreshOverview} />
+      ) : section === "notices" ? (
         <Notices onDirty={setDirty} onBusy={setNoticeBusy} onChange={refreshOverview} />
       ) : (
         <div
@@ -214,7 +262,11 @@ export function App({
         >
           {selected ? (
             <div className="detail-navigation">
-              <button className="text-button" disabled={busy} onClick={() => void changeSelection(null)}>
+              <button
+                className="text-button"
+                disabled={busy}
+                onClick={() => void changeSelection(null)}
+              >
                 <ArrowLeft size={16} />
                 리포트 목록
               </button>
@@ -322,8 +374,8 @@ export function App({
               </div>
               {cloudMode && (
                 <p className="list-help">
-                  등록 시 앞 3쪽의 텍스트를 Cloudflare AI에 전달해 입력 후보를 보완합니다. 하루 최대 10건이며,
-                  같은 원문 결과는 재사용합니다. 자동 입력값은 원문과 확인해 주세요.
+                  등록 시 앞 3쪽의 텍스트를 Cloudflare AI에 전달해 입력 후보를 보완합니다. 하루 최대
+                  10건이며, 같은 원문 결과는 재사용합니다. 자동 입력값은 원문과 확인해 주세요.
                 </p>
               )}
             </>

@@ -65,7 +65,7 @@ export function useLab() {
             if (duplicate.trashedAt) failed.push(`${file.name}: 같은 파일이 휴지통에 있어요. 복원해 주세요.`)
             continue
           }
-          checkCapacity(current, file.size)
+          if(!cloudMode)checkCapacity(current, file.size)
           const extracted = await analyzePdf(file.name, bytes, run.signal, label)
           const analysis = cloudMode
             ? await prefillAi(extracted, hash, file.name, run.signal, label)
@@ -227,7 +227,7 @@ export function useLab() {
         trashed ? "시험 초안을 휴지통으로 옮겼어요." : "검토 대기 상태로 복원했어요.",
       ),
     remove: (draft: Draft) =>
-      change(draft, { type: "remove" }, `${storageLabel}에서 PDF와 초안을 삭제했어요.`),
+      change(draft, { type: "remove" }, cloudMode?'초안을 삭제했어요. 원본 파일은 30일 보류 후 참조 여부를 확인해 정리합니다.':`${storageLabel}에서 PDF와 초안을 삭제했어요.`),
   }
 }
 

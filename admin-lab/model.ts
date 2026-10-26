@@ -9,6 +9,7 @@ export type Draft = {
   fields: Fields; evidence: Evidence[]; warnings: string[];
   revision: number; approvedRevision: number | null; approvedAt: string | null; updatedAt: string;
   createdAt: string; trashedAt: string | null;
+  release?: { revision: number; at: string; title: string };
 }
 export type Assets = { id: string; pdf: Blob; cover: Blob }
 export const emptyFields = (): Fields => ({ title: "", company: "", ticker: "", date: "", semester: "", author: "", industry: "", reportType: "기업분석", targetYear: "", targetPrice: "", upside: "", notRated: false })

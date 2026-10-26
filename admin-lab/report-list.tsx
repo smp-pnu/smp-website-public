@@ -142,7 +142,7 @@ export function ReportList({
       )}
       {checked.length > 0 && (
         <div className="bulk-toolbar">
-          <strong>{checked.length}개 선택</strong>
+          <strong>{checked.length}개 선택 · 한 번에 최대 5개</strong>
           {criteria.filter === "trash" ? (
             <>
               <button disabled={loading} onClick={() => void batch({ type: "restore" })}>
@@ -188,10 +188,10 @@ export function ReportList({
                 <th className="select-column">
                   <input
                     type="checkbox"
-                    aria-label="현재 페이지 전체 선택"
+                    aria-label="현재 페이지 앞 5개 선택"
                     disabled={loading || !visible.length}
-                    checked={!!visible.length && checked.length === visible.length}
-                    onChange={(e) => setSelected(e.target.checked ? visible.map((d) => d.id) : [])}
+                    checked={!!visible.length && checked.length === Math.min(5,visible.length)}
+                    onChange={(e) => setSelected(e.target.checked ? visible.slice(0,5).map((d) => d.id) : [])}
                   />
                 </th>
               )}
@@ -235,7 +235,7 @@ export function ReportList({
                         checked={selected.includes(draft.id)}
                         onChange={(e) =>
                           setSelected((old) =>
-                            e.target.checked ? [...old, draft.id] : old.filter((id) => id !== draft.id),
+                            e.target.checked ? [...old, draft.id].slice(0,5) : old.filter((id) => id !== draft.id),
                           )
                         }
                       />

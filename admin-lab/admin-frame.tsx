@@ -1,18 +1,20 @@
 import type { ReactNode } from "react"
-import { FileText, KeyRound, ExternalLink, LogOut, Megaphone } from "lucide-react"
+import { FileText, KeyRound, ExternalLink, LogOut, Megaphone, HardDrive } from "lucide-react"
 import { cloudMode, serverMode } from "./mode"
 import { limits, sizeLabel } from "./model"
 
 type Props = {
   children: ReactNode
-  active: "reports" | "security" | "notices"
+  active: "reports" | "security" | "notices" | "storage"
   onReports?: () => void
   onNotices?: () => void
   onSecurity?: () => void
+  onStorage?: () => void
   onLogout?: () => Promise<void>
   busy?: boolean
   stored?: number
   count?: number
+  countLimit?: number
 }
 export function AdminFrame({
   children,
@@ -20,10 +22,12 @@ export function AdminFrame({
   onReports,
   onNotices,
   onSecurity,
+  onStorage,
   onLogout,
   busy,
   stored,
   count,
+  countLimit = limits.drafts,
 }: Props) {
   return (
     <div className="admin-shell">
@@ -67,6 +71,17 @@ export function AdminFrame({
               로그인·인수인계
             </button>
           )}
+          {onStorage && (
+            <button
+              className={active === "storage" ? "active" : ""}
+              aria-current={active === "storage" ? "page" : undefined}
+              disabled={busy}
+              onClick={onStorage}
+            >
+              <HardDrive size={17} />
+              파일 저장소
+            </button>
+          )}
         </nav>
         <div className="sidebar-bottom">
           {stored !== undefined && (
@@ -74,7 +89,7 @@ export function AdminFrame({
               <div>
                 <span>공유 시험 저장 공간</span>
                 <span>
-                  리포트 {count} / {limits.drafts}개
+                  리포트 {count} / {countLimit}개
                 </span>
               </div>
               <progress value={stored} max={limits.totalBytes} aria-label="시험 자료 저장 용량" />

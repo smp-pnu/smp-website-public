@@ -21,6 +21,8 @@ export async function guardedBatch(
       db.prepare("DELETE FROM mutation_checks WHERE token=?").bind(token),
     ])
   } catch (error) {
+    if (/SMP_HISTORY_LIMIT/i.test(String(error)))
+      throw new HttpError(409, "수정 이력의 시험 보관 한도에 도달했어요. 기존 자료는 유지되며, 이력 백업·정리 후 다시 저장할 수 있습니다.")
     if (/CHECK constraint|mutation_checks/i.test(String(error)))
       throw new HttpError(409, "다른 창에서 자료가 변경됐어요. 새로고침 후 다시 확인해 주세요.")
     throw error

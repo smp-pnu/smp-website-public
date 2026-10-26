@@ -1,6 +1,6 @@
 import { api, ApiConnectionError } from "./server-storage"
 import type { Assets, Draft } from "./model"
-import { chunkBytes, fileIdentity } from "../admin-cloud/protocol"
+import { chunkBytes, fileIdentity, sha256 } from "../admin-cloud/protocol"
 export { listDrafts, readCover, mutateDraft } from "./server-storage"
 function pause(signal?: AbortSignal) {
   return new Promise<void>((resolve, reject) => {
@@ -28,6 +28,7 @@ export async function insertDraft(
   // These upload endpoints are idempotent. Share two retries across the whole
   // file, rather than multiplying requests for every chunk or other mutations.
   let retries = 0
+  const rawSha256 = await sha256(new Uint8Array(await assets.pdf.arrayBuffer()))
   const request = async <T>(step: string, run: () => Promise<T>): Promise<T> => {
     while (true) {
       signal?.throwIfAborted()
@@ -56,6 +57,7 @@ export async function insertDraft(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           hash: draft.hash,
+          rawSha256,
           filename: draft.filename,
           fileBytes: assets.pdf.size,
           coverBytes: assets.cover.size,
@@ -95,13 +97,17 @@ export async function insertDraft(
       (await api(`/uploads/${id}/finish`, { method: "POST", signal })).json(),
     )
   } catch (e) {
-    // Best effort cancellation. A failed cleanup is covered by a bounded staging TTL.
-    await api(`/uploads/${id}`, { method: "DELETE", signal: AbortSignal.timeout(5000) }).catch(() => {})
+    // Explicit cancellation only. Network failures keep the 30-minute staging
+    // record so the same source can resume instead of creating another Drive file.
+    if (signal?.aborted)
+      await api(`/uploads/${id}`, { method: "DELETE", signal: AbortSignal.timeout(5000) }).catch(
+        () => {},
+      )
     throw e
   }
 }
-export async function readAssets(id: string): Promise<Assets> {
-  const url = `/drafts/${encodeURIComponent(id)}`
+export async function readAssets(id: string, approved = false): Promise<Assets> {
+  const url = `/drafts/${encodeURIComponent(id)}${approved ? "/release" : ""}`
   const manifest = await (await api(`${url}/pdf`)).json()
   if (
     !Number.isInteger(manifest.parts) ||

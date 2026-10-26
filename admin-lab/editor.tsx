@@ -5,6 +5,8 @@ import { wicsSectors } from "../lib/wics"
 import { reviewErrors, reportSummary, sizeLabel, statusOf, type Draft, type Fields } from "./model"
 import { downloadOriginal, useCover } from "./use-lab"
 import { useConfirmation } from "./confirm"
+import { api } from "./server-storage"
+import { readAssets as readCloudAssets } from "./cloud-storage"
 
 type Props = {
   draft: Draft
@@ -145,7 +147,7 @@ export function DraftEditor({
                 if (
                   file &&
                   (await confirm(
-                    "PDF와 표지를 새 파일로 교체할까요? 기존 제목·분류·순서는 유지하고 시험 승인은 해제합니다. 새 파일 저장이 완료된 후 기존 파일을 정리합니다.",
+                    "PDF와 표지를 새 파일로 교체할까요? 기존 제목·분류·순서는 유지합니다. 이전 승인본은 보관하며, 새 원문을 검토한 후 다시 승인할 수 있습니다.",
                   ))
                 )
                   void action(() => onReplace(draft, file))
@@ -153,31 +155,68 @@ export function DraftEditor({
             />
           </label>
         )}
-        <button className="download" disabled={busy} onClick={() => action(() => downloadOriginal(draft))}>
+        <button
+          className="download"
+          disabled={busy}
+          onClick={() => action(() => downloadOriginal(draft))}
+        >
           <Download size={15} /> 원본 PDF
         </button>
       </div>
+      {cloudMode && draft.release && !draft.trashedAt && (
+        <div className="settings-note">
+          <p>
+            <strong>보관된 승인본 · 버전 {draft.release.revision}</strong>
+            <br />
+            {draft.release.title}
+          </p>
+          {draft.release.revision !== draft.revision && (
+            <p>현재 초안과 별도로 보관합니다. 다시 승인하기 전까지 이 승인본은 바뀌지 않습니다.</p>
+          )}
+          <button
+            className="secondary"
+            disabled={busy}
+            onClick={() =>
+              void action(async () => {
+                const approved = await (await api(`/drafts/${draft.id}/release`)).json()
+                const assets = await readCloudAssets(draft.id, true),
+                  url = URL.createObjectURL(assets.pdf),
+                  a = document.createElement("a")
+                a.href = url
+                a.download = approved.draft.filename
+                a.click()
+                setTimeout(() => URL.revokeObjectURL(url), 60_000)
+              })
+            }
+          >
+            승인본 PDF 확인
+          </button>
+        </div>
+      )}
       {tab === "preview" ? (
         <article className="article-preview">
           <div className="preview-note">미리보기 · 실제 웹사이트에는 게시되지 않습니다</div>
           <p className="preview-category">리포트 · {fields.semester || "학기 미입력"}</p>
           <h1>{fields.title || "제목을 입력해 주세요"}</h1>
           <p className="article-meta">
-            {fields.company} {fields.ticker && `(${fields.ticker})`} · {fields.date || "발표일 미입력"} ·{" "}
-            {fields.author || "작성자 미입력"}
+            {fields.company} {fields.ticker && `(${fields.ticker})`} ·{" "}
+            {fields.date || "발표일 미입력"} · {fields.author || "작성자 미입력"}
           </p>
           <div className="article-tags">
             <span>{fields.reportType}</span>
             {fields.industry && <span>{fields.industry}</span>}
           </div>
-          <p className="summary">{reportSummary(fields) || "목표주가 또는 Not Rated를 검토해 주세요."}</p>
+          <p className="summary">
+            {reportSummary(fields) || "목표주가 또는 Not Rated를 검토해 주세요."}
+          </p>
           {cover ? (
             <img className="article-cover" src={cover} alt={`${fields.title} 첫 페이지`} />
           ) : (
             <p>표지를 불러오는 중…</p>
           )}
           <p className="muted">
-            시험판에서는 첫 페이지만 미리 보여 줍니다. 전체 원문은 위의 ‘원본 PDF’로 확인할 수 있습니다.
+            시험판에서는 첫 페이지만 미리 보여 줍니다. 전체 원문은 위의 ‘원본 PDF’로 확인할 수
+            있습니다.
           </p>
         </article>
       ) : (
@@ -220,11 +259,15 @@ export function DraftEditor({
                 <span>
                   업종 <small>기존 분류표 · 직접 확인</small>
                 </span>
-                <select value={fields.industry} onChange={(e) => update("industry", e.target.value)}>
+                <select
+                  value={fields.industry}
+                  onChange={(e) => update("industry", e.target.value)}
+                >
                   <option value="">미지정</option>
-                  {fields.industry && !wicsSectors.some((sector) => sector.industries.some((industry) => industry === fields.industry)) && (
-                    <option value={fields.industry}>{fields.industry} · 직접 입력</option>
-                  )}
+                  {fields.industry &&
+                    !wicsSectors.some((sector) =>
+                      sector.industries.some((industry) => industry === fields.industry),
+                    ) && <option value={fields.industry}>{fields.industry} · 직접 입력</option>}
                   {wicsSectors.map((sector) => (
                     <optgroup label={sector.name} key={sector.name}>
                       {sector.industries.map((industry) => (
@@ -315,7 +358,9 @@ export function DraftEditor({
                 {busy ? "처리 중…" : "초안 저장"}
               </button>
               <span>
-                {dirty ? "변경한 내용을 먼저 저장해 주세요." : `${storageLabel}에 저장된 초안입니다.`}
+                {dirty
+                  ? "변경한 내용을 먼저 저장해 주세요."
+                  : `${storageLabel}에 저장된 초안입니다.`}
               </span>
             </div>
           )}
@@ -331,14 +376,24 @@ export function DraftEditor({
           <>
             <p>{storageLabel}의 시험 자료만 변경됩니다.</p>
             <div className="button-row">
-              <button className="primary" disabled={busy} onClick={() => action(() => onTrash(draft, false))}>
+              <button
+                className="primary"
+                disabled={busy}
+                onClick={() => action(() => onTrash(draft, false))}
+              >
                 <RotateCcw size={16} /> 복원
               </button>
               <button
                 className="danger"
                 disabled={busy}
                 onClick={async () => {
-                  if (await confirm(`${storageLabel}에서 PDF와 초안을 영구 삭제할까요?`))
+                  if (
+                    await confirm(
+                      cloudMode
+                        ? "초안을 영구 삭제할까요? 파일은 30일 보류 후 다른 참조가 없을 때 정리합니다."
+                        : `${storageLabel}에서 PDF와 초안을 영구 삭제할까요?`,
+                    )
+                  )
                     void action(() => onRemove(draft))
                 }}
               >
@@ -350,7 +405,8 @@ export function DraftEditor({
           <>
             {approved && !dirty ? (
               <p className="approved-message">
-                <Check size={17} /> 이 버전은 시험 승인을 완료했어요. 실제 게시 연결은 아직 없습니다.
+                <Check size={17} /> 이 버전은 시험 승인을 완료했어요. 실제 게시 연결은 아직
+                없습니다.
               </p>
             ) : (
               <>
@@ -365,7 +421,8 @@ export function DraftEditor({
                 </label>
                 {missing.length > 0 && (
                   <p className="validation" role="status">
-                    {missing[0]} {missing.length > 1 ? `외 ${missing.length - 1}개 항목 확인 필요` : ""}
+                    {missing[0]}{" "}
+                    {missing.length > 1 ? `외 ${missing.length - 1}개 항목 확인 필요` : ""}
                   </p>
                 )}
               </>
@@ -393,8 +450,8 @@ export function DraftEditor({
               </button>
             </div>
             <small>
-              시험 승인은 {serverMode ? "시험 서버의" : "로컬"} 상태만 바꿉니다. Notion·Drive·운영 사이트에
-              전송하지 않습니다.
+              시험 승인은 {serverMode ? "시험 서버의" : "로컬"} 상태만 바꿉니다. Notion·Drive·운영
+              사이트에 전송하지 않습니다.
             </small>
           </>
         )}
