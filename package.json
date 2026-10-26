@@ -28,7 +28,8 @@
     "start:admin:server": "node --import tsx scripts/admin-server.mjs start",
     "build:admin:cloud": "node scripts/admin-cloud.mjs build",
     "deploy:admin:cloud": "node scripts/admin-cloud.mjs deploy",
-    "test:admin:cloud": "node --import tsx tests/admin-cloud-runtime.mjs"
+    "test:admin:cloud": "node --import tsx tests/admin-cloud-runtime.mjs",
+    "test:admin:drive": "node --import tsx tests/admin-drive-runtime.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

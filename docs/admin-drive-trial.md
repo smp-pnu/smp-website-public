@@ -26,6 +26,8 @@
 
 Google 앱이 External / Testing이면 Drive 갱신 토큰이 7일 뒤 만료된다. 테스트 사용자에 학회 계정을 추가하고 단기 검증할 수 있으나, 운영 전 앱의 게시 상태와 Google 요구사항을 확인해야 한다. Production으로 설정해도 권한 철회 등으로 연결은 만료될 수 있다. `drive.file`은 비민감 범위이며 앱이 만든 파일/명시적으로 허용된 파일에만 접근한다. 이 구현에는 기존 파일을 선택하는 Picker 기능이 없으므로 기존 Notion 원본에 접근 권한을 넓히지 않는다.
 
+연결 오류에 `Google 인증 교환` 또는 `Google 계정 확인`이 나오면 해당 단계와 HTTP 상태를 먼저 확인한다. 원문 오류 응답이나 OAuth 코드·토큰을 로그에 남기지 않는다. Cloudflare의 네이티브 `fetch`는 클래스 메서드처럼 바인딩해 호출하면 안 되며 `redirect: "error"`도 지원하지 않는다. 전역 함수로 호출하고 `manual`로 받은 리디렉션을 거부한다. 단, Drive의 위치 헤더 없는 HTTP 308 응답은 분할 업로드 수신 확인이므로 유지한다.
+
 서버의 허용 계정은 Git에 들어가지 않는 `.smp-tools/admin-cloud-target.json`의 `driveAccountEmail`에서 배포 변수로 전달된다. 연결 계정 이메일은 서버에서도 확인한다. OAuth 클라이언트 교체는 기존 파일 접근을 끊을 수 있어 화면에서 임의 교체할 수 없다.
 
 ## 보관·삭제 원칙
@@ -67,5 +69,7 @@ Google 비밀값은 기존 세션 서명 키에서 HKDF로 파생한 키로 AES-
 Drive 파일 등록 전에는 종전 Worker로 되돌려 D1 파일을 읽을 수 있다. **Drive 등록 이후 종전 Worker로 단순 롤백하면 Drive 원본을 읽지 못한다.** 장애 시 새 쓰기를 중단하고 Drive 호환 버전으로 복구한다. 배포 전 DB 백업을 복원할 때는 이후 생성된 파일·수정사항과 참조 관계를 먼저 대조한다. 운영 사이트 전환은 별도 승인 전까지 하지 않는다.
 
 검증 명령: `pnpm typecheck`, `pnpm test`, `node tests/admin-cms-render.mjs`, `pnpm test:admin:cloud`, `pnpm build:admin:cloud`. Drive API는 모의 제공자를 주입해 인증 실패·중단 후 재개·잘못된 체크섬·삭제 실패를 재현한다. workerd 테스트는 로컬 D1에서 32MiB 전체 전송·응답 유실·원본 일치·승인본·CRUD를 검증한다.
+
+`pnpm test:admin:drive`는 실제 workerd 네이티브 통신을 사용해 인증 교환·계정 확인·폴더 생성·용량 조회를 검증한다. 외부 요청은 로컬 모의 Google 서비스로만 전달하며, 실제 Google/Cloudflare 계정 데이터는 사용하지 않는다. Node 모의 테스트만으로 발견되지 않는 Workers 통신 호환성을 확인하기 위해 연결 코드 변경 시 함께 실행한다.
 
 공식 근거: [Drive 업로드](https://developers.google.com/workspace/drive/api/guides/manage-uploads), [Drive 권한](https://developers.google.com/workspace/drive/api/guides/api-specific-auth), [OAuth 만료](https://developers.google.com/identity/protocols/oauth2), [Drive 한도·요금](https://developers.google.com/workspace/drive/api/guides/limits), [D1 한도](https://developers.cloudflare.com/d1/platform/limits/), [D1 요금](https://developers.cloudflare.com/d1/platform/pricing/).

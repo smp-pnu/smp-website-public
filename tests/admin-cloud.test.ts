@@ -13,7 +13,7 @@ import type { Database, Statement } from "../cloudflare/bindings"
 
 import { sha256 } from "../admin-cloud/protocol"
 import { MockDrive } from "./admin-drive-fixture"
-import { StorageVault } from "../admin-cloud/drive/connection"
+import { DriveConnection, StorageVault } from "../admin-cloud/drive/connection"
 import { safeUploadUrl } from "../admin-cloud/drive/uploads"
 import { authenticator, cookieJar } from "./admin-passkey-fixture.mjs"
 const origin = "https://admin.pnusmp.com"
@@ -1144,6 +1144,50 @@ test("Drive OAuth is authenticated, state/PKCE protected, account restricted and
     assert.equal(f.db.prepare("SELECT count(*) AS n FROM drive_oauth").get()!.n, 0)
   } finally {
     f.close()
+  }
+})
+
+test("Drive transport keeps native fetch unbound, rejects redirects and retains resumable acknowledgements", async () => {
+  let calls = 0, status = 308, location = false
+  const connection = new DriveConnection({ ADMIN_DB: {} as Database, ORIGIN: origin }, Date.now(), async function (this: unknown, url, init) {
+    assert.equal(this, undefined)
+    assert.equal(init?.redirect, "manual")
+    calls++
+    return new Response(null, { status, headers: location ? { Location: "https://outside.invalid" } : { Range: "bytes=0-262143" } })
+  })
+  assert.equal((await connection.fetch("https://www.googleapis.com/upload/drive/v3/files", { method: "PUT" })).status, 308)
+  location = true
+  await assert.rejects(connection.fetch("https://www.googleapis.com/upload/drive/v3/files", { method: "PUT" }))
+  status = 302
+  await assert.rejects(connection.fetch("https://oauth2.googleapis.com/token"))
+  assert.equal(calls, 3, "redirect destinations must never be requested")
+})
+
+test("Drive OAuth failures identify the failing stage without exposing upstream credentials", async () => {
+  for (const [path, status, stage] of [
+    ["/token", 401, "인증 교환"],
+    ["/drive/v3/about", 403, "계정 확인"],
+  ] as const) {
+    const google = new MockDrive(), original = google.fetch
+    google.fetch = async (url, init) => new URL(url).pathname === path
+      ? Response.json({ error: "private upstream diagnostic", access_token: "DO-NOT-DISCLOSE" }, { status })
+      : original(url, init)
+    const f = await fixture(origin, google)
+    try {
+      await f.login()
+      await f.call("/api/storage/drive/configure", "POST", driveClient())
+      const { url } = await (await f.call("/api/storage/drive/start", "POST")).json()
+      const state = new URL(url).searchParams.get("state")
+      const response = await f.call(`/api/storage/drive/callback?state=${state}&code=mock-code`)
+      assert.equal(response.status, 503)
+      const body = await response.text()
+      assert.ok(body.includes(stage))
+      assert.ok(body.includes(`HTTP ${status}`))
+      assert.ok(!body.includes("DO-NOT-DISCLOSE"))
+      assert.ok(!body.includes("private upstream"))
+      assert.equal(f.db.prepare("SELECT count(*) AS n FROM drive_oauth").get()!.n, 0)
+      assert.equal(google.files.size, 0)
+    } finally { f.close() }
   }
 })
 

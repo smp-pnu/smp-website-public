@@ -109,18 +109,37 @@ export class DriveConnection {
   }
   async fetch(url: string, init: RequestInit = {}) {
     try {
-      return await this.fetcher(url, {
+      // workerd's global fetch rejects a class instance as its `this` value.
+      // Keep the injected function unbound, as it is when called globally.
+      const fetcher = this.fetcher
+      const response = await fetcher(url, {
         ...init,
-        redirect: "error",
+        // workerd does not implement redirect:"error". Never follow Google
+        // redirects with credentials: inspect and reject them ourselves.
+        redirect: "manual",
         signal: AbortSignal.timeout(20_000),
       })
+      // Drive also uses 308 without Location as a resumable-upload acknowledgement.
+      const resumeAcknowledgement = response.status === 308 && !response.headers.has("location")
+      if (response.status >= 300 && response.status < 400 && !resumeAcknowledgement) {
+        await response.body?.cancel()
+        throw transientError()
+      }
+      return response
     } catch {
       throw transientError()
     }
   }
-  async json<T>(response: Response): Promise<T> {
+  async json<T>(response: Response, stage?: "인증 교환" | "계정 확인"): Promise<T> {
     if (!response.ok) {
       await response.body?.cancel()
+      // Only expose our fixed stage and HTTP status, never upstream error bodies,
+      // which can contain OAuth codes or other private request values.
+      if (stage)
+        throw new HttpError(
+          503,
+          `Google ${stage}에 실패했어요 (HTTP ${response.status}). 저장소 메뉴에서 다시 연결해 주세요.`,
+        )
       throw transientError()
     }
     const reader = response.body?.getReader()
@@ -281,6 +300,7 @@ export class DriveConnection {
         await this.fetch(apiRoot + "/about?fields=user(emailAddress)", {
           headers: { Authorization: `Bearer ${token.access_token}` },
         }),
+        "계정 확인",
       )
       if (about.user?.emailAddress?.toLowerCase() !== this.env.DRIVE_ACCOUNT_EMAIL?.toLowerCase())
         throw new HttpError(403, "허용된 학회 Google 계정으로 다시 연결해 주세요.")
@@ -319,6 +339,7 @@ export class DriveConnection {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body,
       }),
+      "인증 교환",
     )
     if (
       !token.access_token ||
