@@ -8,6 +8,8 @@ import { fileIdentity, chunkBytes } from '../admin-cloud/protocol.ts'
 import { authenticator, cookieJar } from './admin-passkey-fixture.mjs'
 import { createHash } from 'node:crypto'
 import { emptyFields } from '../admin-lab/model.ts'
+import { insertDraft } from '../admin-lab/cloud-storage.ts'
+import { setApiSession } from '../admin-lab/server-storage.ts'
 const require = createRequire(import.meta.url)
 const wranglerRequire = createRequire(require.resolve('wrangler/package.json'))
 const { Miniflare, convertV4MiniflareOptions } = wranglerRequire('miniflare')
@@ -45,9 +47,25 @@ try {
   const cover = new Uint8Array(process.argv[3] ? await readFile(process.argv[3]) : await sharp({create:{width:1177,height:1700,channels:3,background:'white'}}).webp().toBuffer())
   const pages = process.argv[4] ? Number(process.argv[4]) : 27
   const started = performance.now()
-  const {id} = await (await call('/api/uploads','POST',{hash:await fileIdentity(source),filename:'runtime-test.pdf',fileBytes:source.length,coverBytes:cover.length,pages,fields:emptyFields(),evidence:[],warnings:[]})).json()
-  for (const [kind,bytes] of [['pdf',source],['cover',cover]]) for(let offset=0;offset<bytes.length;offset+=chunkBytes) await call(`/api/uploads/${id}/${kind}/${offset/chunkBytes}`,'PUT',bytes.slice(offset,offset+chunkBytes))
-  await call(`/api/uploads/${id}/finish`,'POST')
+  const hash = await fileIdentity(source), originalFetch = globalThis.fetch
+  let chunkResponseLost = false, finishResponseLost = false, saved
+  const draft = { id:'runtime-client',hash,filename:'runtime-test.pdf',fileBytes:source.length,storedBytes:source.length+cover.length,pages,fields:emptyFields(),evidence:[],warnings:[],revision:1,approvedRevision:null,approvedAt:null,createdAt:'',updatedAt:'',trashedAt:null }
+  setApiSession({ username:'smp-admin',csrf })
+  try {
+    globalThis.fetch = async (input,options) => {
+      if(typeof input!=='string' || !input.startsWith('/api/')) return originalFetch(input,options)
+      const headers = new Headers(options.headers); headers.set('Origin',origin); headers.set('Cookie',jar.read())
+      const response = await mf.dispatchFetch(origin+input,{...options,headers})
+      jar.set(response)
+      // The server committed the bytes, but the browser lost the response.
+      if(response.ok && input.endsWith('/pdf/0') && !chunkResponseLost) { chunkResponseLost=true; throw new TypeError('Load failed') }
+      if(response.ok && input.endsWith('/finish') && !finishResponseLost) { finishResponseLost=true; throw new TypeError('Load failed') }
+      return response
+    }
+    saved = await insertDraft(draft,{id:draft.id,pdf:new Blob([source]),cover:new Blob([cover])})
+  } finally { globalThis.fetch=originalFetch;setApiSession(null) }
+  assert.ok(chunkResponseLost && finishResponseLost)
+  const {id} = saved
   assert.equal((await (await call('/api/drafts')).json()).length,1)
   const manifest = await (await call(`/api/drafts/${id}/pdf`)).json(), downloaded=[]
   for(let i=0;i<manifest.parts;i++) downloaded.push(Buffer.from(await (await call(`/api/drafts/${id}/pdf/${i}`)).arrayBuffer()))
@@ -57,5 +75,5 @@ try {
   assert.equal(coverResponse.headers.get('Content-Type'),coverType)
   assert.deepEqual(Buffer.from(await coverResponse.arrayBuffer()),Buffer.from(cover))
   assert.equal((await mf.dispatchFetch(origin+`/api/drafts/${id}/pdf/0`)).status,401)
-  console.log(JSON.stringify({result:'pass',runtime:'workerd',storage:'isolated local D1',pdfBytes:source.length,chunks:manifest.parts,coverType,roundTripMs:Math.round(performance.now()-started),downloadBytesMatch:true}))
+  console.log(JSON.stringify({result:'pass',runtime:'workerd',storage:'isolated local D1',pdfBytes:source.length,chunks:manifest.parts,coverType,recoveredLostResponses:2,roundTripMs:Math.round(performance.now()-started),downloadBytesMatch:true}))
 } finally { await mf.dispose() }

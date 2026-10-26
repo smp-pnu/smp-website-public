@@ -1,22 +1,51 @@
-import { api } from "./server-storage"
+import { api, ApiConnectionError } from "./server-storage"
 import type { Assets, Draft } from "./model"
 import { chunkBytes, fileIdentity } from "../admin-cloud/protocol"
 export { listDrafts, readCover, mutateDraft } from "./server-storage"
-export async function insertDraft(draft: Draft, assets: Assets, signal?: AbortSignal): Promise<Draft> {
-  const started = await (await api("/uploads", { method: "POST", signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+function pause(signal?: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    signal?.throwIfAborted()
+    const finish = () => { signal?.removeEventListener("abort", abort); resolve() }
+    const timer = setTimeout(finish, 750)
+    const abort = () => { clearTimeout(timer); signal?.removeEventListener("abort", abort); reject(signal?.reason) }
+    signal?.addEventListener("abort", abort, { once: true })
+  })
+}
+export async function insertDraft(draft: Draft, assets: Assets, signal?: AbortSignal, progress?: (step: string) => void): Promise<Draft> {
+  // These upload endpoints are idempotent. Share two retries across the whole
+  // file, rather than multiplying requests for every chunk or other mutations.
+  let retries = 0
+  const request = async <T,>(step: string, run: () => Promise<T>): Promise<T> => {
+    while (true) {
+      signal?.throwIfAborted(); progress?.(step)
+      try { return await run() }
+      catch (error) {
+        signal?.throwIfAborted()
+        if ((error instanceof ApiConnectionError || error instanceof TypeError) && retries < 2) {
+          retries++; progress?.(`${step} · 연결 재시도 ${retries}/2`); await pause(signal); continue
+        }
+        throw Error(`${step}: ${error instanceof TypeError ? new ApiConnectionError().message : error instanceof Error ? error.message : "저장하지 못했어요."}`)
+      }
+    }
+  }
+  const started = await request("업로드 시작", async () => (await api("/uploads", { method: "POST", signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify({
     hash: draft.hash, filename: draft.filename, fileBytes: assets.pdf.size, coverBytes: assets.cover.size, pages: draft.pages,
     fields: draft.fields, evidence: draft.evidence, warnings: draft.warnings,
-  }) })).json()
+  }) })).json())
   if (started.draft) return started.draft
   const id = encodeURIComponent(started.id)
   try {
     for (const [kind, blob] of [["pdf", assets.pdf], ["cover", assets.cover]] as const) {
       for (let offset = 0; offset < blob.size; offset += chunkBytes) {
         signal?.throwIfAborted()
-        await api(`/uploads/${id}/${kind}/${offset / chunkBytes}`, { method: "PUT", body: blob.slice(offset, offset + chunkBytes), signal, headers: { "Content-Type": "application/octet-stream" } })
+        // Materialize only one bounded chunk. This avoids Safari's disk-backed
+        // File/Blob upload path and retains exactly the same bytes on a retry.
+        const body = await blob.slice(offset, offset + chunkBytes).arrayBuffer()
+        const step = `${kind === "pdf" ? "PDF" : "표지"} 전송 ${offset / chunkBytes + 1}/${Math.ceil(blob.size / chunkBytes)}`
+        await request(step, () => api(`/uploads/${id}/${kind}/${offset / chunkBytes}`, { method: "PUT", body, signal, headers: { "Content-Type": "application/octet-stream" } }))
       }
     }
-    return (await api(`/uploads/${id}/finish`, { method: "POST", signal })).json()
+    return await request("저장 확인", async () => (await api(`/uploads/${id}/finish`, { method: "POST", signal })).json())
   } catch (e) {
     // Best effort cancellation. A failed cleanup is covered by a bounded staging TTL.
     await api(`/uploads/${id}`, { method: "DELETE", signal: AbortSignal.timeout(5000) }).catch(() => {})

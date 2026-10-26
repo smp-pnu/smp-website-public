@@ -55,7 +55,7 @@ export function useLab() {
             revision: 1, approvedRevision: null, approvedAt: null, updatedAt: now, createdAt: now, trashedAt: null,
           }
           label(`${storageLabel}에 저장 중`)
-          const saved = await insertDraft(draft, { id: draft.id, pdf: file, cover: analysis.cover }, run.signal)
+          const saved = await insertDraft(draft, { id: draft.id, pdf: file, cover: analysis.cover }, run.signal, label)
           if (serverMode || saved.id === draft.id) added++; else reused++
           await refresh(); setSelected(saved.id)
         } catch (error) {
