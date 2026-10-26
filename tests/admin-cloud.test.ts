@@ -344,3 +344,126 @@ test("additional passkeys require live admin CSRF, last key is protected and rem
     assert.equal((await f.call("/api/drafts")).status, 401)
   } finally { f.close() }
 })
+
+test("report ordering and bulk edits persist and reject partial/stale mutations", async () => {
+  const f=await fixture()
+  try {
+    await f.login(); const first=await f.upload(), bytes=new Uint8Array(await samplePdf(1).arrayBuffer()), second=await f.upload(bytes)
+    const order=await(await f.call('/api/reports/order')).json()
+    const ids=[second.id,first.id]
+    assert.equal((await f.call('/api/reports/order','PUT',{revision:order.revision,ids})).status,200)
+    assert.deepEqual((await(await f.call('/api/reports/order')).json()).ids,ids)
+    assert.equal((await f.call('/api/reports/order','PUT',{revision:order.revision,ids:ids.toReversed()})).status,409)
+    assert.equal((await f.call('/api/reports/order','PUT',{revision:order.revision+1,ids:[first.id]})).status,409)
+    const batch=(items:unknown[],action:unknown)=>f.call('/api/reports/batch','POST',{items,action})
+    const items=[first,second].map(({id,revision})=>({id,revision}))
+    assert.equal((await batch(items,{type:'classify',field:'semester',value:'2027-1'})).status,200)
+    let list=await(await f.call('/api/drafts')).json()
+    assert.ok(list.every((d:any)=>d.fields.semester==='2027-1'&&d.revision===2))
+    const stale=[{id:first.id,revision:2},{id:second.id,revision:1}]
+    assert.equal((await batch(stale,{type:'trash'})).status,409)
+    list=await(await f.call('/api/drafts')).json();assert.ok(list.every((d:any)=>!d.trashedAt))
+    assert.equal((await batch(list.map(({id,revision}:any)=>({id,revision})),{type:'remove'})).status,400)
+    assert.equal((await batch(list.map(({id,revision}:any)=>({id,revision})),{type:'classify',field:'semester',value:'2027'})).status,400)
+    assert.equal((await batch(list.map(({id,revision}:any)=>({id,revision})),{type:'trash'})).status,200)
+    list=await(await f.call('/api/drafts')).json()
+    assert.equal((await batch([{id:first.id,revision:3}],{type:'restore'})).status,200)
+    assert.equal((await batch([{id:second.id,revision:3}],{type:'remove'})).status,200)
+    assert.equal(f.db.prepare('SELECT count(*) AS n FROM chunks WHERE object_id=?').get(second.id)!.n,0)
+    assert.ok(Number(f.db.prepare('SELECT count(*) AS n FROM chunks WHERE object_id=?').get(first.id)!.n)>0)
+    assert.deepEqual((await(await f.call('/api/reports/order')).json()).ids,[first.id])
+    assert.equal(f.db.prepare('SELECT count(*) AS n FROM mutation_checks').get()!.n,0)
+  } finally {f.close()}
+})
+
+test("PDF replacement is atomic, preserves ID/metadata/order, retries finish and retains the original on conflict", async()=>{
+  const f=await fixture()
+  try {
+    await f.login();const original=await f.upload(), bytes=new Uint8Array(await samplePdf(1).arrayBuffer())
+    const begin=await f.begin(bytes,{replace:{id:original.id,revision:original.revision}})
+    assert.deepEqual(new Uint8Array(await(await f.call(`/api/drafts/${original.id}/pdf/0`)).arrayBuffer()),f.pdf)
+    assert.equal((await f.call(`/api/uploads/${begin.id}/finish`,'POST')).status,409)
+    await f.parts(begin.id,bytes)
+    const complete=await f.call(`/api/uploads/${begin.id}/finish`,'POST');assert.equal(complete.status,200,await complete.clone().text())
+    const replaced=await complete.json();assert.equal(replaced.id,original.id);assert.equal(replaced.revision,2);assert.deepEqual(replaced.fields,original.fields);assert.equal(replaced.approvedRevision,null)
+    assert.equal((await f.call(`/api/uploads/${begin.id}/finish`,'POST')).status,200)
+    assert.deepEqual(new Uint8Array(await(await f.call(`/api/drafts/${original.id}/pdf/0`)).arrayBuffer()),bytes)
+    assert.equal(f.db.prepare('SELECT count(*) AS n FROM objects').get()!.n,1)
+    assert.equal(f.db.prepare('SELECT count(*) AS n FROM replacements').get()!.n,0)
+    const pending=await f.begin(f.pdf,{replace:{id:original.id,revision:2}});await f.parts(pending.id)
+    assert.equal((await f.call(`/api/drafts/${original.id}`,'PATCH',{revision:2,command:{type:'edit',fields:{...original.fields,title:'관리자가 수정한 제목'}}})).status,200)
+    assert.equal((await f.call(`/api/uploads/${pending.id}/finish`,'POST')).status,409)
+    assert.deepEqual(new Uint8Array(await(await f.call(`/api/drafts/${original.id}/pdf/0`)).arrayBuffer()),bytes)
+    await f.call(`/api/uploads/${pending.id}`,'DELETE')
+    assert.equal(f.db.prepare('SELECT count(*) AS n FROM objects').get()!.n,1)
+    assert.equal(f.db.prepare('SELECT count(*) AS n FROM mutation_checks').get()!.n,0)
+    assert.equal((await f.call('/api/uploads','POST',await f.meta(f.pdf,{replace:{id:original.id,revision:2}}))).status,409)
+  }finally{f.close()}
+})
+
+const noticeInput=()=>({title:'홈커밍 안내',category:'행사',date:'2026-10-26',pinned:true,blocks:[{id:crypto.randomUUID(),type:'paragraph',text:'본문 내용'}]})
+test("notice CRUD, image references, validation, revision protection and cascading deletion",async()=>{
+  const f=await fixture()
+  try {
+    assert.equal((await f.call('/api/notices')).status,401);await f.login()
+    const created=await f.call('/api/notices','POST',noticeInput());assert.equal(created.status,201,await created.clone().text())
+    let n=await created.json()
+    const asset=await f.call(`/api/notices/${n.id}/images`,'POST',f.cover);assert.equal(asset.status,201,await asset.clone().text())
+    const {id:assetId}=await asset.json()
+    const body={...n,blocks:[...n.blocks,{id:crypto.randomUUID(),type:'image',assetId,text:'행사 사진'}]}
+    const patch=(action:string,revision:number,fields?:unknown)=>f.call(`/api/notices/${n.id}`,'PATCH',{revision,action,fields,reviewed:true})
+    const saved=await patch('edit',1,body);assert.equal(saved.status,200,await saved.clone().text());n=await saved.json()
+    assert.equal(f.db.prepare('SELECT expires FROM notice_assets WHERE id=?').get(assetId)!.expires,null)
+    assert.equal((await patch('edit',1,{...body,title:'오래된 제목'})).status,409)
+    assert.equal((await patch('edit',2,{...body,blocks:[{...body.blocks[0],href:'javascript:alert(1)'}]})).status,400)
+    assert.equal((await patch('edit',2,{...body,blocks:[{...body.blocks[1],assetId:crypto.randomUUID()}]})).status,400)
+    assert.equal((await patch('edit',2,{...body,date:'2026-02-30'})).status,400)
+    const list=await(await f.call('/api/notices')).json();assert.equal(list[0].title,n.title);assert.equal(list[0].blocks,undefined);assert.match(list[0].excerpt,/본문/)
+    assert.deepEqual(new Uint8Array(await(await f.call(`/api/notice-assets/${assetId}`)).arrayBuffer()),f.cover)
+    const approved=await(await patch('approve',2)).json();assert.equal(approved.approvedRevision,3)
+    assert.equal((await patch('remove',3)).status,400)
+    assert.equal((await patch('trash',3)).status,200)
+    assert.equal((await patch('edit',4,body)).status,400)
+    assert.equal((await patch('restore',4)).status,200)
+    assert.equal((await patch('trash',5)).status,200)
+    assert.equal((await patch('remove',6)).status,200)
+    assert.equal(f.db.prepare('SELECT count(*) AS n FROM notice_assets').get()!.n,0)
+    assert.equal((await f.call(`/api/notice-assets/${assetId}`)).status,404)
+  }finally{f.close()}
+})
+
+test("notice image ownership, shared quota, auth and staged asset collection are enforced",async()=>{
+  const f=await fixture()
+  try{
+    await f.login();const n=await(await f.call('/api/notices','POST',noticeInput())).json(), other=await(await f.call('/api/notices','POST',noticeInput())).json()
+    const {id}=await(await f.call(`/api/notices/${n.id}/images`,'POST',f.cover)).json()
+    const image={id:crypto.randomUUID(),type:'image',assetId:id,text:'caption'}
+    assert.equal((await f.call(`/api/notices/${other.id}`,'PATCH',{revision:1,action:'edit',fields:{...other,blocks:[image]}})).status,400)
+    assert.equal((await f.call(`/api/notices/${n.id}/images`,'POST',new TextEncoder().encode('<svg onload="alert(1)"/>'))).status,400)
+    assert.equal((await f.call(`/api/notices/${n.id}/images`,'POST',f.cover,{'X-CSRF-Token':''})).status,403)
+    f.time(25*3600000);await f.login();await f.call('/api/notices')
+    assert.equal(f.db.prepare('SELECT count(*) AS n FROM notice_assets').get()!.n,0)
+    // PDFs and images share the same logical 200 MiB ceiling.
+    for(let i=0;i<7;i++)f.db.prepare("INSERT INTO objects(id,hash,status,owner,pdf_bytes,cover_bytes,data) VALUES(?,?,'ready','test',?,12,'{}')").run(crypto.randomUUID(),`quota-${i}`,i===6?8*1024*1024:32*1024*1024)
+    assert.equal((await f.call(`/api/notices/${n.id}/images`,'POST',f.cover)).status,409)
+    f.setToken('');assert.equal((await f.call(`/api/notices/${n.id}`)).status,401);assert.equal((await f.call(`/api/notice-assets/${id}`)).status,401)
+  }finally{f.close()}
+})
+
+test("30-day trash collection removes PDFs and notice images, never live content",async()=>{
+  const f=await fixture()
+  try{
+    await f.login();const report=await f.upload(), live=await f.upload(new Uint8Array(await samplePdf(1).arrayBuffer()))
+    const n=await(await f.call('/api/notices','POST',noticeInput())).json()
+    await f.call(`/api/notices/${n.id}/images`,'POST',f.cover)
+    await f.call(`/api/drafts/${report.id}`,'PATCH',{revision:1,command:{type:'trash',trashed:true}})
+    await f.call(`/api/notices/${n.id}`,'PATCH',{revision:1,action:'trash'})
+    f.time(29*86400000);await f.login();await f.call('/api/drafts')
+    assert.equal(f.db.prepare('SELECT count(*) AS n FROM objects').get()!.n,2)
+    f.time(2*86400000);await f.login();await f.call('/api/drafts')
+    assert.equal(f.db.prepare('SELECT id FROM objects').get()!.id,live.id)
+    assert.equal(f.db.prepare('SELECT count(*) AS n FROM chunks WHERE object_id=?').get(report.id)!.n,0)
+    assert.equal(f.db.prepare('SELECT count(*) AS n FROM notices').get()!.n,0)
+    assert.equal(f.db.prepare('SELECT count(*) AS n FROM notice_assets').get()!.n,0)
+  }finally{f.close()}
+})

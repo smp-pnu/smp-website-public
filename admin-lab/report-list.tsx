@@ -1,45 +1,347 @@
-import { FileText, Search, RefreshCw, ChevronRight } from "lucide-react"
+import { useEffect, useState } from "react"
+import { FileText, Search, RefreshCw, ChevronRight, ArrowUp, ArrowDown, GripVertical } from "lucide-react"
 import type { Draft } from "./model"
 import { statusOf } from "./model"
 import { useCover } from "./use-lab"
+import { pageSize, type LibraryQuery, type BatchAction, type Filter, type Sort } from "./library-model"
 
-export type Filter = "all" | "review" | "approved" | "trash"
-export type Sort = "updated" | "date" | "company"
 type Props = {
-  drafts: Draft[]; allDrafts: Draft[]; loading: boolean; query: string; filter: Filter; sort: Sort;
-  onQuery: (query: string) => void; onFilter: (filter: Filter) => void; onSort: (sort: Sort) => void;
-  onSelect: (id: string) => void; onRefresh: () => void;
+  drafts: Draft[]
+  allDrafts: Draft[]
+  loading: boolean
+  criteria: LibraryQuery
+  managed: boolean
+  onCriteria: (query: LibraryQuery) => void
+  onSelect: (id: string) => void
+  onRefresh: () => void
+  onMove: (from: string, to: string) => Promise<void>
+  onBatch: (items: Draft[], action: BatchAction) => Promise<void>
 }
 function Cover({ id }: { id: string }) {
   const cover = useCover(id)
-  return <span className="report-thumb">{cover ? <img src={cover} alt="" loading="lazy"/> : <FileText size={17}/>}</span>
+  return (
+    <span className="report-thumb">
+      {cover ? <img src={cover} alt="" loading="lazy" /> : <FileText size={17} />}
+    </span>
+  )
 }
-export function ReportList({ drafts, allDrafts, loading, query, filter, sort, onQuery, onFilter, onSort, onSelect, onRefresh }: Props) {
-  const active = allDrafts.filter(d => !d.trashedAt)
-  const approved = active.filter(d => d.approvedRevision === d.revision).length
+export function ReportList({
+  drafts,
+  allDrafts,
+  loading,
+  criteria,
+  managed,
+  onCriteria,
+  onSelect,
+  onRefresh,
+  onMove,
+  onBatch,
+}: Props) {
+  const [page, setPage] = useState(1),
+    [selected, setSelected] = useState<string[]>([])
+  const [field, setField] = useState<"semester" | "author" | "industry">("semester"),
+    [value, setValue] = useState("")
+  const [dragged, setDragged] = useState("")
+  useEffect(() => {
+    setPage(1)
+    setSelected([])
+  }, [criteria])
+  const active = allDrafts.filter((d) => !d.trashedAt),
+    approved = active.filter((d) => d.approvedRevision === d.revision).length
   const tabs: { value: Filter; label: string; count: number }[] = [
     { value: "all", label: "전체", count: active.length },
     { value: "review", label: "검토 대기", count: active.length - approved },
     { value: "approved", label: "시험 승인", count: approved },
     { value: "trash", label: "휴지통", count: allDrafts.length - active.length },
   ]
-  return <section className="report-library" aria-label="리포트 목록">
-    <nav className="list-tabs" aria-label="리포트 상태">{tabs.map(tab => <button key={tab.value} aria-pressed={filter === tab.value} onClick={() => onFilter(tab.value)}>{tab.label}<span>{tab.count}</span></button>)}</nav>
-    <div className="list-toolbar">
-      <label className="search-field"><Search size={16}/><input value={query} onChange={e => onQuery(e.target.value)} placeholder="제목, 기업명, 종목코드 검색" aria-label="리포트 검색"/>{query && <button className="clear-search" onClick={() => onQuery("")} aria-label="검색어 지우기">×</button>}</label>
-      <label className="sort-field"><span className="sr-only">정렬 기준</span><select value={sort} onChange={e => onSort(e.target.value as Sort)}><option value="updated">최근 수정순</option><option value="date">발표일순</option><option value="company">기업명순</option></select></label>
-      <button className="icon-button" aria-label="목록 새로고침" disabled={loading} onClick={onRefresh}><RefreshCw size={16}/></button>
-    </div>
-    <div className="report-table-wrap"><table className="report-table">
-      <thead><tr><th scope="col">리포트</th><th scope="col">상태</th><th scope="col" className="medium-column">학기</th><th scope="col" className="medium-column">발표일</th><th scope="col" className="wide-column">작성자</th><th scope="col" className="row-arrow"><span className="sr-only">열기</span></th></tr></thead>
-      <tbody>{drafts.map(draft => <tr key={draft.id}>
-        <td><button className="report-link" onClick={() => onSelect(draft.id)}><Cover id={draft.id}/><span><strong>{draft.fields.title || draft.filename}</strong><small>{draft.fields.company || "기업 미입력"}{draft.fields.ticker ? ` · ${draft.fields.ticker}` : ""} · {draft.pages}쪽</small></span></button></td>
-        <td><span className={`status ${draft.trashedAt ? "trashed" : draft.approvedRevision === draft.revision ? "approved" : "review"}`}>{statusOf(draft)}</span></td>
-        <td className="medium-column">{draft.fields.semester || "—"}</td><td className="medium-column tabular">{draft.fields.date || "—"}</td><td className="wide-column">{draft.fields.author || "—"}</td>
-        <td className="row-arrow"><ChevronRight size={16} aria-hidden="true"/></td>
-      </tr>)}</tbody>
-    </table></div>
-    {!drafts.length && <div className="table-empty" role="status"><FileText size={25}/><strong>{loading ? "리포트를 불러오는 중입니다." : query ? "검색 결과가 없습니다." : filter === "all" ? "등록된 리포트가 없습니다." : "해당 상태의 리포트가 없습니다."}</strong><p>{!loading && (query ? "검색어를 바꾸거나 검색을 초기화하세요." : filter === "all" ? "오른쪽 위 ‘PDF 추가’에서 파일을 등록하세요." : "다른 상태를 선택해 확인하세요.")}</p></div>}
-    <footer className="list-footer"><span>{drafts.length}개 리포트</span><span>파일당 32MB · 최대 120쪽</span></footer>
-  </section>
+  const source = criteria.filter === "trash" ? allDrafts.filter((d) => d.trashedAt) : active
+  const options = (key: "semester" | "author" | "industry") =>
+    [...new Set(source.map((d) => d.fields[key] || "미지정"))].sort((a, b) =>
+      key === "semester" ? b.localeCompare(a) : a.localeCompare(b, "ko"),
+    )
+  const pages = Math.max(1, Math.ceil(drafts.length / pageSize)),
+    current = Math.min(page, pages)
+  const visible = drafts.slice((current - 1) * pageSize, current * pageSize)
+  const checked = visible.filter((d) => selected.includes(d.id))
+  const update = (patch: Partial<LibraryQuery>) => onCriteria({ ...criteria, ...patch })
+  const manual = managed && criteria.sort === "order" && criteria.filter !== "trash"
+  const batch = async (action: BatchAction) => {
+    await onBatch(checked, action)
+    setSelected([])
+  }
+  return (
+    <section className="report-library" aria-label="리포트 목록">
+      <nav className="list-tabs" aria-label="리포트 상태">
+        {tabs.map((tab) => (
+          <button
+            key={tab.value}
+            aria-pressed={criteria.filter === tab.value}
+            disabled={loading}
+            onClick={() => update({ filter: tab.value })}
+          >
+            {tab.label}
+            <span>{tab.count}</span>
+          </button>
+        ))}
+      </nav>
+      <nav className="semester-folders" aria-label="학기별 보관함">
+        <button aria-pressed={!criteria.semester} onClick={() => update({ semester: "" })}>
+          모든 학기
+        </button>
+        {options("semester").map((s) => (
+          <button key={s} aria-pressed={criteria.semester === s} onClick={() => update({ semester: s })}>
+            {s}
+            <small>{source.filter((d) => (d.fields.semester || "미지정") === s).length}</small>
+          </button>
+        ))}
+      </nav>
+      <div className="list-toolbar">
+        <label className="search-field">
+          <Search size={16} />
+          <input
+            value={criteria.query}
+            onChange={(e) => update({ query: e.target.value })}
+            placeholder="기업·코드·제목·파일명 검색"
+            aria-label="리포트 검색"
+          />
+        </label>
+        {(["author", "industry"] as const).map((key) => (
+          <label className="sort-field" key={key}>
+            <span className="sr-only">{key === "author" ? "팀" : "업종"}</span>
+            <select value={criteria[key]} onChange={(e) => update({ [key]: e.target.value })}>
+              <option value="">{key === "author" ? "모든 팀" : "모든 업종"}</option>
+              {options(key).map((v) => (
+                <option key={v}>{v}</option>
+              ))}
+            </select>
+          </label>
+        ))}
+        <label className="sort-field">
+          <span className="sr-only">정렬 기준</span>
+          <select value={criteria.sort} onChange={(e) => update({ sort: e.target.value as Sort })}>
+            {managed && <option value="order">직접 정한 순서</option>}
+            <option value="updated">최근 수정순</option>
+            <option value="date">발표일순</option>
+            <option value="company">기업명순</option>
+          </select>
+        </label>
+        <button className="icon-button" aria-label="목록 새로고침" disabled={loading} onClick={onRefresh}>
+          <RefreshCw size={16} />
+        </button>
+      </div>
+      {manual && (
+        <p className="library-hint">
+          왼쪽 손잡이를 드래그하거나 화살표로 순서를 바꿉니다. 다른 페이지까지 이동하려면 화살표를 사용하세요.
+          시험 사이트에만 저장됩니다.
+        </p>
+      )}
+      {managed && criteria.filter === "trash" && (
+        <p className="library-hint">
+          휴지통에 옮긴 지 30일이 지난 자료는 다음 관리자 접속·목록 조회 시 PDF와 함께 자동 정리됩니다.
+        </p>
+      )}
+      {checked.length > 0 && (
+        <div className="bulk-toolbar">
+          <strong>{checked.length}개 선택</strong>
+          {criteria.filter === "trash" ? (
+            <>
+              <button disabled={loading} onClick={() => void batch({ type: "restore" })}>
+                복원
+              </button>
+              <button className="danger" disabled={loading} onClick={() => void batch({ type: "remove" })}>
+                영구 삭제
+              </button>
+            </>
+          ) : (
+            <>
+              <select
+                aria-label="일괄 수정 항목"
+                value={field}
+                onChange={(e) => setField(e.target.value as typeof field)}
+              >
+                <option value="semester">학기</option>
+                <option value="author">작성자·팀</option>
+                <option value="industry">업종</option>
+              </select>
+              <input
+                aria-label="일괄 수정 값"
+                placeholder={field === "semester" ? "2026-2" : "새 값 (빈칸은 미지정)"}
+                value={value}
+                maxLength={100}
+                onChange={(e) => setValue(e.target.value)}
+              />
+              <button disabled={loading} onClick={() => void batch({ type: "classify", field, value })}>
+                일괄 변경
+              </button>
+              <button disabled={loading} onClick={() => void batch({ type: "trash" })}>
+                휴지통
+              </button>
+            </>
+          )}
+        </div>
+      )}
+      <div className="report-table-wrap">
+        <table className="report-table managed-table">
+          <thead>
+            <tr>
+              {managed && (
+                <th className="select-column">
+                  <input
+                    type="checkbox"
+                    aria-label="현재 페이지 전체 선택"
+                    disabled={loading || !visible.length}
+                    checked={!!visible.length && checked.length === visible.length}
+                    onChange={(e) => setSelected(e.target.checked ? visible.map((d) => d.id) : [])}
+                  />
+                </th>
+              )}
+              {manual && <th className="order-column">순서</th>}
+              <th scope="col">리포트</th>
+              <th scope="col">상태</th>
+              <th scope="col" className="medium-column">
+                학기
+              </th>
+              <th scope="col" className="wide-column">
+                팀
+              </th>
+              <th className="row-arrow">
+                <span className="sr-only">열기</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {visible.map((draft, i) => {
+              const index = (current - 1) * pageSize + i
+              return (
+                <tr
+                  key={draft.id}
+                  onDragOver={(e) => {
+                    if (manual && dragged && !loading) e.preventDefault()
+                  }}
+                  onDrop={(e) => {
+                    if (!dragged || loading) return
+                    e.preventDefault()
+                    e.stopPropagation()
+                    void onMove(dragged, draft.id)
+                    setDragged("")
+                  }}
+                >
+                  {managed && (
+                    <td className="select-column">
+                      <input
+                        type="checkbox"
+                        aria-label={`${draft.fields.title || draft.filename} 선택`}
+                        disabled={loading}
+                        checked={selected.includes(draft.id)}
+                        onChange={(e) =>
+                          setSelected((old) =>
+                            e.target.checked ? [...old, draft.id] : old.filter((id) => id !== draft.id),
+                          )
+                        }
+                      />
+                    </td>
+                  )}
+                  {manual && (
+                    <td className="order-column">
+                      <div className="order-controls">
+                        <span
+                          className="drag-handle"
+                          draggable={!loading}
+                          onDragStart={(e) => {
+                            setDragged(draft.id)
+                            e.dataTransfer.setData("text/plain", draft.id)
+                          }}
+                          onDragEnd={() => setDragged("")}
+                          title="드래그해서 순서 변경"
+                        >
+                          <GripVertical size={14} />
+                        </span>
+                        <button
+                          aria-label={`${draft.fields.title} 위로 이동`}
+                          disabled={loading || index === 0}
+                          onClick={() => void onMove(draft.id, drafts[index - 1].id)}
+                        >
+                          <ArrowUp size={13} />
+                        </button>
+                        <button
+                          aria-label={`${draft.fields.title} 아래로 이동`}
+                          disabled={loading || index === drafts.length - 1}
+                          onClick={() => void onMove(draft.id, drafts[index + 1].id)}
+                        >
+                          <ArrowDown size={13} />
+                        </button>
+                      </div>
+                    </td>
+                  )}
+                  <td className="report-cell">
+                    <button className="report-link" disabled={loading} onClick={() => onSelect(draft.id)}>
+                      <Cover id={draft.id} />
+                      <span>
+                        <strong>{draft.fields.title || draft.filename}</strong>
+                        <small>
+                          {draft.fields.company || "기업 미입력"}
+                          {draft.fields.ticker ? ` · ${draft.fields.ticker}` : ""} · {draft.pages}쪽 ·{" "}
+                          {draft.fields.date || "날짜 미입력"}
+                        </small>
+                      </span>
+                    </button>
+                  </td>
+                  <td>
+                    <span
+                      className={`status ${draft.trashedAt ? "trashed" : draft.approvedRevision === draft.revision ? "approved" : "review"}`}
+                    >
+                      {statusOf(draft)}
+                    </span>
+                  </td>
+                  <td className="medium-column">{draft.fields.semester || "—"}</td>
+                  <td className="wide-column">{draft.fields.author || "—"}</td>
+                  <td className="row-arrow">
+                    <ChevronRight size={16} />
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+      {!drafts.length && (
+        <div className="table-empty" role="status">
+          <FileText size={25} />
+          <strong>{loading ? "리포트를 불러오는 중입니다." : "조건에 맞는 리포트가 없습니다."}</strong>
+          <button
+            className="text-button"
+            onClick={() => update({ query: "", semester: "", author: "", industry: "", filter: "all" })}
+          >
+            필터 초기화
+          </button>
+        </div>
+      )}
+      <footer className="list-footer">
+        <span>{drafts.length}개 리포트</span>
+        <nav className="pagination" aria-label="리포트 목록 페이지">
+          <button
+            disabled={current === 1 || loading}
+            onClick={() => {
+              setPage(current - 1)
+              setSelected([])
+            }}
+          >
+            이전
+          </button>
+          <span>
+            {current} / {pages}
+          </span>
+          <button
+            disabled={current === pages || loading}
+            onClick={() => {
+              setPage(current + 1)
+              setSelected([])
+            }}
+          >
+            다음
+          </button>
+        </nav>
+      </footer>
+    </section>
+  )
 }

@@ -56,3 +56,31 @@ CREATE TABLE IF NOT EXISTS metadata_extractions (
   expires INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS metadata_extraction_expiry ON metadata_extractions(expires);
+CREATE TABLE IF NOT EXISTS mutation_checks(token TEXT PRIMARY KEY, valid INTEGER NOT NULL CHECK(valid=1));
+CREATE TABLE IF NOT EXISTS library_order(kind TEXT PRIMARY KEY, revision INTEGER NOT NULL, ids TEXT NOT NULL);
+INSERT OR IGNORE INTO library_order(kind,revision,ids) VALUES('reports',1,'[]');
+CREATE TABLE IF NOT EXISTS notices (
+  id TEXT PRIMARY KEY,
+  revision INTEGER NOT NULL DEFAULT 1,
+  data TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS notice_assets (
+  id TEXT PRIMARY KEY,
+  notice_id TEXT NOT NULL REFERENCES notices(id) ON DELETE CASCADE,
+  bytes INTEGER NOT NULL CHECK(bytes BETWEEN 12 AND 1048576),
+  mime TEXT NOT NULL CHECK(mime IN ('image/webp','image/jpeg')),
+  data TEXT NOT NULL,
+  expires INTEGER
+);
+CREATE INDEX IF NOT EXISTS notice_assets_parent ON notice_assets(notice_id);
+CREATE TABLE IF NOT EXISTS replacements (
+  upload_id TEXT PRIMARY KEY REFERENCES objects(id) ON DELETE CASCADE,
+  target_id TEXT NOT NULL REFERENCES objects(id) ON DELETE CASCADE,
+  revision INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS upload_receipts (
+  id TEXT PRIMARY KEY,
+  target_id TEXT NOT NULL REFERENCES objects(id) ON DELETE CASCADE,
+  owner TEXT NOT NULL,
+  expires INTEGER NOT NULL
+);
