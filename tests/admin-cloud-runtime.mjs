@@ -41,6 +41,10 @@ try {
   await call('/api/logout','POST')
   const login = await (await call('/api/auth/login/options','POST',{})).json()
   csrf = (await (await call('/api/auth/login/verify','POST',{response:device.authenticate(login,origin)})).json()).session.csrf
+  // An absent AI binding must leave uploads available. No remote inference is
+  // configured in this local runtime; the model boundary is mocked in unit tests.
+  const metadata = await (await call('/api/metadata/extract','POST',{hash:'a'.repeat(64),pages:['Test investment report, company (123456), source text long enough for extraction.']})).json()
+  assert.deepEqual(metadata.candidates,[]); assert.ok(metadata.warning)
   // Optional real PDF path permits a local end-to-end transport check without publishing it.
   const source = process.argv[2] ? new Uint8Array(await readFile(process.argv[2])) : new Uint8Array(32*1024*1024).fill(32)
   if (!process.argv[2]) { source.set(new TextEncoder().encode('%PDF-1.7\n'));source.set(new TextEncoder().encode('\n%%EOF\n'),source.length-7) }

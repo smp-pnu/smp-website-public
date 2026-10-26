@@ -74,6 +74,28 @@ async function fixture(initialOrigin = origin) {
   const upload = async (bytes = pdf) => { const { id } = await begin(bytes); await parts(id, bytes); const r = await call(`/api/uploads/${id}/finish`, "POST"); assert.equal(r.status, 200, r.status === 200 ? "" : await r.text()); return r.json() }
   return { db, env, call, login, jar, device, pdf, cover, meta, begin, parts, upload, setToken: (value: string) => { jar.clear(); token = value }, time: (ms: number) => { now += ms }, get now() { return now }, close: () => db.close() }
 }
+test("AI metadata endpoint requires authentication and CSRF, returns only grounded candidates and caches the call", async () => {
+  const f = await fixture(); let calls = 0
+  const page = "Equity Research 2026.02.26\n티씨케이 (KQ.064670)\nNAND 호황기가 눈앞\n목표주가 335,500원"
+  const input = { hash: "a".repeat(64), pages: [page] }
+  f.env.AI = { async run() { calls++; return { response: {
+    company: { value: "티씨케이", quote: "티씨케이 (KQ.064670)", page: 1 },
+    ticker: { value: "064670", quote: "티씨케이 (KQ.064670)", page: 1 },
+  } } } }
+  try {
+    assert.equal((await f.call("/api/metadata/extract", "POST", input)).status, 401)
+    await f.login()
+    assert.equal((await f.call("/api/metadata/extract", "POST", input, { "X-CSRF-Token": "wrong" })).status, 403)
+    assert.equal((await f.call("/api/metadata/extract", "POST", input, { Origin: oldOrigin })).status, 403)
+    assert.equal(calls, 0)
+    const response = await f.call("/api/metadata/extract", "POST", input)
+    assert.equal(response.status, 200); assert.equal(response.headers.get("Cache-Control"), "no-store")
+    assert.equal((await response.json()).candidates.length, 2)
+    assert.equal((await (await f.call("/api/metadata/extract", "POST", input)).json()).cached, true)
+    assert.equal(calls, 1)
+    assert.equal((await f.upload()).filename, "sample.pdf")
+  } finally { f.close() }
+})
 test("cloud signed sessions reject forgery, expiry and revoked passkeys", async () => {
   const f = await fixture()
   try {

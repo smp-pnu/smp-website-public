@@ -48,3 +48,11 @@ CREATE TABLE IF NOT EXISTS admin_challenges (
   expires INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS admin_challenge_expiry ON admin_challenges(expires);
+CREATE TABLE IF NOT EXISTS metadata_extractions (
+  cache_key TEXT PRIMARY KEY,
+  state TEXT NOT NULL CHECK(state IN ('pending','ready','failed')),
+  lease TEXT NOT NULL,
+  payload TEXT,
+  expires INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS metadata_extraction_expiry ON metadata_extractions(expires);

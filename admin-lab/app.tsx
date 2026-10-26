@@ -6,6 +6,7 @@ import { ReportList, type Filter, type Sort } from "./report-list"
 import { samplePdf } from "./sample"
 import { useLab } from "./use-lab"
 import { useConfirmation } from "./confirm"
+import { cloudMode } from "./mode"
 
 export function App({ username: _username, onLogout, onSecurity }: { username?: string; onLogout?: () => Promise<void>; onSecurity?: () => void }) {
   const lab = useLab(), confirm = useConfirmation()
@@ -55,6 +56,7 @@ export function App({ username: _username, onLogout, onSecurity }: { username?: 
       {selected ? <DraftEditor key={`${selected.id}:${selected.revision}:${selected.approvedAt}`} draft={selected} locked={busy} onDirty={setDirty} onSave={lab.save} onApprove={lab.approve} onTrash={lab.trash} onRemove={lab.remove} onReanalyze={lab.reanalyze}/> : <>
         <ReportList drafts={filtered} allDrafts={lab.drafts} loading={lab.loading} query={query} filter={filter} sort={sort} onQuery={setQuery} onFilter={setFilter} onSort={setSort} onSelect={id => void changeSelection(id)} onRefresh={() => { setRefreshError(""); void lab.refresh().catch(e => setRefreshError(e.message)) }}/>
         <div className="list-help"><span>PDF를 이 화면에 끌어놓아도 등록할 수 있습니다. 한 번에 최대 5개.</span><details><summary>시험 도구</summary><button className="secondary" disabled={busy} onClick={() => void ingest([samplePdf(0), samplePdf(1)])}>예시 PDF 2개 추가</button></details></div>
+        {cloudMode && <p className="list-help">등록 시 앞 3쪽의 텍스트를 Cloudflare AI에 전달해 입력 후보를 보완합니다. 하루 최대 10건이며, 같은 원문 결과는 재사용합니다. 자동 입력값은 원문과 확인해 주세요.</p>}
       </>}
     </div>
   </AdminFrame>

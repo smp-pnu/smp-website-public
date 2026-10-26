@@ -52,7 +52,7 @@ export async function analyzePdf(filename: string, bytes: Uint8Array, signal: Ab
         try { texts.push(await readPdfText(page.streamTextContent(), signal)) }
         finally { page.cleanup() }
       }
-      if (existingCover) return { ...extractFields(filename, texts), cover: existingCover, pages: pdf.numPages }
+      if (existingCover) return { ...extractFields(filename, texts), cover: existingCover, pages: pdf.numPages, sourcePages: texts }
       progress("첫 페이지 표지를 만드는 중")
       const page = await pdf.getPage(1)
       const natural = page.getViewport({ scale: 1 })
@@ -68,7 +68,7 @@ export async function analyzePdf(filename: string, bytes: Uint8Array, signal: Ab
         cover = await encodePdfCover(canvas, signal)
       } finally { canvas.width = 1; canvas.height = 1; page.cleanup() }
       signal.throwIfAborted()
-      return { ...extractFields(filename, texts), cover, pages: pdf.numPages }
+      return { ...extractFields(filename, texts), cover, pages: pdf.numPages, sourcePages: texts }
     })()])
   } catch (error) {
     if (error instanceof Error && error.name === "InvalidPDFException") throw Error("PDF 구조가 손상됐어요. 원본을 다시 저장한 뒤 추가해 주세요.")

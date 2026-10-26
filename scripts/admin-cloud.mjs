@@ -28,6 +28,7 @@ if (mode === 'build') {
     assets: { directory: './assets', binding: 'ASSETS', run_worker_first: ['/api/*', '/robots.txt'], not_found_handling: 'none' },
     d1_databases: [{ binding: 'ADMIN_DB', database_name: name, database_id: target.databaseId ?? '00000000-0000-4000-8000-000000000000' }],
     vars: { ORIGIN: origin },
+    ai: { binding: 'AI' },
     observability: { enabled: false },
   }
   await writeFile(configPath, JSON.stringify(config, null, 2) + '\n')
@@ -38,12 +39,14 @@ if (mode === 'build') {
   if (config.name !== name || config.account_id !== account || JSON.stringify(config.routes) !== JSON.stringify(routes) || config.route || config.triggers || config.services || config.r2_buckets || config.kv_namespaces
     || db?.length !== 1 || db[0].binding !== 'ADMIN_DB' || db[0].database_name !== name || db[0].database_id !== target.databaseId || !target.databaseId
     || ['00000000-0000-4000-8000-000000000000', '16cf8db5-1f95-48f3-af68-b32cfa7f7908', 'c09abb5e-02cd-4277-8b19-0af0642f7cae'].includes(target.databaseId)
-    || config.vars.ORIGIN !== origin || config.preview_urls !== false || config.workers_dev !== true) throw Error('Refusing a deployment outside the isolated PDF admin trial')
+    || JSON.stringify(config.ai) !== JSON.stringify({binding:'AI'}) || config.vars.ORIGIN !== origin || config.preview_urls !== false || config.workers_dev !== true) throw Error('Refusing a deployment outside the isolated PDF admin trial')
   if (mode === 'deploy') {
     const info = spawnSync(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'd1', 'info', name, '--json', '--config', configPath], { cwd: root, encoding: 'utf8', env: { ...process.env, WRANGLER_SEND_METRICS: 'false' } })
     if (info.status !== 0) throw Error('Could not verify the remote trial database; refusing deployment')
     const remote = JSON.parse(info.stdout)
     if (remote.name !== name || remote.uuid !== target.databaseId) throw Error('Remote database does not match the isolated trial')
+    const schema = spawnSync(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'd1', 'execute', name, '--remote', '--file', 'admin-cloud/schema.sql', '--yes', '--config', configPath], { cwd: root, encoding: 'utf8', env: { ...process.env, WRANGLER_SEND_METRICS: 'false' } })
+    if (schema.status !== 0) throw Error('Could not apply additive schema to the isolated trial; refusing deployment')
   }
   const result = spawnSync(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'deploy', '--config', configPath, ...(mode === 'dry-run' ? ['--dry-run'] : [])], { cwd: root, stdio: 'inherit', env: { ...process.env, WRANGLER_SEND_METRICS: 'false' } })
   process.exitCode = result.status ?? 1

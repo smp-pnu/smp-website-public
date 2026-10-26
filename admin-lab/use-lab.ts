@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { listDrafts, insertDraft, mutateDraft, readAssets, readCover } from "./storage"
-import { serverMode, storageLabel } from "./mode"
+import { cloudMode, serverMode, storageLabel } from "./mode"
+import { prefillAi } from "./ai-prefill"
 import { checkCapacity, limits, type Draft, type Fields, type DraftCommand } from "./model"
 
 export function useLab() {
@@ -46,7 +47,8 @@ export function useLab() {
           const duplicate = current.find(item => item.hash === hash)
           if (duplicate) { reused++; setSelected(duplicate.id); if (duplicate.trashedAt) failed.push(`${file.name}: 같은 파일이 휴지통에 있어요. 복원해 주세요.`); continue }
           checkCapacity(current, file.size)
-          const analysis = await analyzePdf(file.name, bytes, run.signal, label)
+          const extracted = await analyzePdf(file.name, bytes, run.signal, label)
+          const analysis = cloudMode ? await prefillAi(extracted, hash, file.name, run.signal, label) : extracted
           run.signal.throwIfAborted()
           const now = new Date().toISOString()
           const draft: Draft = {
@@ -83,7 +85,8 @@ export function useLab() {
       const assets = await readAssets(draft.id)
       if (!assets) throw Error("저장된 원본 PDF를 찾지 못했어요.")
       const { analyzePdf } = await import("./pdf")
-      const result = await analyzePdf(draft.filename, new Uint8Array(await assets.pdf.arrayBuffer()), run.signal, setProgress, assets.cover)
+      const extracted = await analyzePdf(draft.filename, new Uint8Array(await assets.pdf.arrayBuffer()), run.signal, setProgress, assets.cover)
+      const result = cloudMode ? await prefillAi(extracted, draft.hash, draft.filename, run.signal, setProgress) : extracted
       run.signal.throwIfAborted()
       await change(draft, { type: "reanalyze", fields: result.fields, evidence: result.evidence, warnings: result.warnings }, "입력 후보를 다시 준비했어요. 표지와 PDF는 그대로 재사용했어요.")
     } finally { controller.current = null; setProgress("") }

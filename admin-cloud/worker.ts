@@ -6,8 +6,9 @@ import { Sessions } from "./session"
 import { chunkBytes, sha256 } from "./protocol"
 import { CloudStore } from "./store"
 import { validateCover } from "./files"
+import { extractMetadata, type AiBinding } from "./ai-metadata"
 
-export interface Env extends AuthEnv { ADMIN_DB: Database; ASSETS: { fetch(request: Request): Promise<Response> }; ORIGIN: string }
+export interface Env extends AuthEnv { ADMIN_DB: Database; ASSETS: { fetch(request: Request): Promise<Response> }; ORIGIN: string; AI?: AiBinding }
 export const headers = {
   "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "X-Robots-Tag": "noindex, nofollow, noarchive", "Referrer-Policy": "no-referrer",
   "Strict-Transport-Security": "max-age=31536000",
@@ -57,6 +58,7 @@ export function createHandler(clock = Date.now) {
           const path = url.pathname, method = request.method
           if (path === "/api/session" && method === "GET") { await store.cleanup(); response = json({ setupRequired: false, session }) }
           else if (path === "/api/drafts" && method === "GET") response = json(await store.list())
+          else if (path === "/api/metadata/extract" && method === "POST") response = json(await extractMetadata(await jsonBody(request), env.ADMIN_DB, env.AI, now))
           else if (path === "/api/uploads" && method === "POST") response = json(await store.begin(await jsonBody(request), session.username), 201)
           else {
             const match = path.match(/^\/api\/(uploads|drafts)\/([^/]+)(?:\/(finish|pdf|cover)(?:\/(\d+))?)?$/)
