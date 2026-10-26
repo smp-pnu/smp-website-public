@@ -109,3 +109,7 @@ Workers Free는 일일 동적 요청과 요청당 CPU 제한이 있다. 방문�
 Drive 저장량은 Gmail·Photos 등과 공유된다. 실제 계정 여유량을 확인해야 한다. 큰 파일에는 중단 후 재개가 가능한 업로드를 사용한다. [Google 저장 공간](https://support.google.com/drive/answer/9312312?hl=en), [Drive 업로드](https://developers.google.com/workspace/drive/api/guides/manage-uploads), [Drive 권한 범위](https://developers.google.com/workspace/drive/api/guides/api-specific-auth)
 
 관리자 파일 용량·작업 수·보류 작업·실패 내역을 보이게 하고 한도에 가까우면 새 작업을 제한한다. 새 유료 저장소/결제 설정 없이 구현할 수 있는 범위에서 진행하되, 기존 계정 권한과 가용량을 확인하기 전에는 자동 업로드·완전 이전을 완료로 표시하지 않는다.
+
+## 배포 전 의존성 확인
+
+전환 코드가 준비되면 `pnpm audit`와 `pnpm audit --prod`를 다시 실행하고 기본 브랜치/시험 브랜치의 결과를 구분한다. 설치된 의존성의 경고 수와 실제 Cloudflare Worker에 포함된 경로는 다를 수 있다. 오래된 호스팅용 어댑터가 남았다면 사용처·빌드 의존성을 확인한 뒤 제거하거나 패치한다. 번들에서 발견되지 않았다는 이유만으로 모든 빌드/운영 경로가 안전하다고 판정하지 않는다. 패치 후 타입·테스트·실제 배포 빌드와 인수인계 기능을 재검증한다.
