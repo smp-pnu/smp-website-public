@@ -42,16 +42,20 @@ try {
   // Optional real PDF path permits a local end-to-end transport check without publishing it.
   const source = process.argv[2] ? new Uint8Array(await readFile(process.argv[2])) : new Uint8Array(32*1024*1024).fill(32)
   if (!process.argv[2]) { source.set(new TextEncoder().encode('%PDF-1.7\n'));source.set(new TextEncoder().encode('\n%%EOF\n'),source.length-7) }
-  const cover = new Uint8Array(await sharp({create:{width:1177,height:1700,channels:3,background:'white'}}).webp().toBuffer())
+  const cover = new Uint8Array(process.argv[3] ? await readFile(process.argv[3]) : await sharp({create:{width:1177,height:1700,channels:3,background:'white'}}).webp().toBuffer())
+  const pages = process.argv[4] ? Number(process.argv[4]) : 27
   const started = performance.now()
-  const {id} = await (await call('/api/uploads','POST',{hash:await fileIdentity(source),filename:'runtime-test.pdf',fileBytes:source.length,coverBytes:cover.length,pages:27,fields:emptyFields(),evidence:[],warnings:[]})).json()
+  const {id} = await (await call('/api/uploads','POST',{hash:await fileIdentity(source),filename:'runtime-test.pdf',fileBytes:source.length,coverBytes:cover.length,pages,fields:emptyFields(),evidence:[],warnings:[]})).json()
   for (const [kind,bytes] of [['pdf',source],['cover',cover]]) for(let offset=0;offset<bytes.length;offset+=chunkBytes) await call(`/api/uploads/${id}/${kind}/${offset/chunkBytes}`,'PUT',bytes.slice(offset,offset+chunkBytes))
   await call(`/api/uploads/${id}/finish`,'POST')
   assert.equal((await (await call('/api/drafts')).json()).length,1)
   const manifest = await (await call(`/api/drafts/${id}/pdf`)).json(), downloaded=[]
   for(let i=0;i<manifest.parts;i++) downloaded.push(Buffer.from(await (await call(`/api/drafts/${id}/pdf/${i}`)).arrayBuffer()))
   assert.deepEqual(Buffer.concat(downloaded),Buffer.from(source))
-  assert.deepEqual(Buffer.from(await (await call(`/api/drafts/${id}/cover`)).arrayBuffer()),Buffer.from(cover))
+  const coverResponse = await call(`/api/drafts/${id}/cover`)
+  const coverType = (await sharp(cover).metadata()).format === 'jpeg' ? 'image/jpeg' : 'image/webp'
+  assert.equal(coverResponse.headers.get('Content-Type'),coverType)
+  assert.deepEqual(Buffer.from(await coverResponse.arrayBuffer()),Buffer.from(cover))
   assert.equal((await mf.dispatchFetch(origin+`/api/drafts/${id}/pdf/0`)).status,401)
-  console.log(JSON.stringify({result:'pass',runtime:'workerd',storage:'isolated local D1',pdfBytes:source.length,chunks:manifest.parts,roundTripMs:Math.round(performance.now()-started),downloadBytesMatch:true}))
+  console.log(JSON.stringify({result:'pass',runtime:'workerd',storage:'isolated local D1',pdfBytes:source.length,chunks:manifest.parts,coverType,roundTripMs:Math.round(performance.now()-started),downloadBytesMatch:true}))
 } finally { await mf.dispose() }

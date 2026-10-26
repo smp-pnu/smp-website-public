@@ -110,7 +110,9 @@ test("cloud upload commits only complete verified chunks; download matches bytes
     const manifest = await (await f.call(`/api/drafts/${id}/pdf`)).json(), chunks = []
     for (let i = 0; i < manifest.parts; i++) chunks.push(Buffer.from(await (await f.call(`/api/drafts/${id}/pdf/${i}`)).arrayBuffer()))
     assert.deepEqual(Buffer.concat(chunks), Buffer.from(source))
-    assert.deepEqual(new Uint8Array(await (await f.call(`/api/drafts/${id}/cover`)).arrayBuffer()), f.cover)
+    const coverResponse = await f.call(`/api/drafts/${id}/cover`)
+    assert.equal(coverResponse.headers.get("Content-Type"), "image/webp")
+    assert.deepEqual(new Uint8Array(await coverResponse.arrayBuffer()), f.cover)
     const change = (revision: number, command: unknown) => f.call(`/api/drafts/${id}`, "PATCH", { revision, command })
     assert.equal((await change(1, { type: "approve", reviewed: false })).status, 400)
     assert.equal((await change(1, { type: "approve", reviewed: true })).status, 200)
@@ -125,6 +127,36 @@ test("cloud upload commits only complete verified chunks; download matches bytes
     assert.equal((await change(6, { type: "remove" })).status, 200)
     assert.equal(f.db.prepare("SELECT count(*) AS n FROM chunks").get()!.n, 0)
   } finally { f.close() }
+})
+test("Safari JPEG covers upload and return their real content type with unchanged PDF bytes", async () => {
+  const f = await fixture()
+  try {
+    await f.login()
+    const cover = new Uint8Array(await sharp({ create: { width: 1200, height: 1600, channels: 3, background: "white" } }).jpeg().toBuffer())
+    const { id } = await f.begin(f.pdf, { coverBytes: cover.length })
+    assert.equal((await f.call(`/api/uploads/${id}/pdf/0`, "PUT", f.pdf)).status, 200)
+    assert.equal((await f.call(`/api/uploads/${id}/cover/0`, "PUT", cover)).status, 200)
+    assert.equal((await f.call(`/api/uploads/${id}/finish`, "POST")).status, 200)
+    const response = await f.call(`/api/drafts/${id}/cover`)
+    assert.equal(response.headers.get("Content-Type"), "image/jpeg")
+    assert.deepEqual(new Uint8Array(await response.arrayBuffer()), cover)
+    assert.deepEqual(new Uint8Array(await (await f.call(`/api/drafts/${id}/pdf/0`)).arrayBuffer()), f.pdf)
+  } finally { f.close() }
+})
+test("cover headers accept bounded JPEG variants and reject malformed, oversized or unsupported images", async () => {
+  for (const progressive of [false, true]) {
+    const jpeg = new Uint8Array(await sharp({ create: { width: 80, height: 100, channels: 3, background: "white" } }).jpeg({ progressive }).toBuffer())
+    assert.equal(validateCover(jpeg, jpeg.length), "image/jpeg")
+    for (const length of [2, 4, 15]) assert.throws(() => validateCover(jpeg.slice(0, length), jpeg.length))
+    const invalidLength = jpeg.slice(); invalidLength[4] = 0; invalidLength[5] = 0
+    assert.throws(() => validateCover(invalidLength, invalidLength.length))
+    assert.throws(() => validateCover(jpeg, 1024 * 1024 + 1))
+  }
+  const oversized = new Uint8Array(await sharp({ create: { width: 2049, height: 10, channels: 3, background: "white" } }).jpeg().toBuffer())
+  assert.throws(() => validateCover(oversized, oversized.length))
+  const png = new Uint8Array(await sharp({ create: { width: 10, height: 10, channels: 3, background: "white" } }).png().toBuffer())
+  assert.throws(() => validateCover(png, png.length))
+  assert.throws(() => validateCover(new Uint8Array([0xff, 0xd8, ...Array(30).fill(0xff)]), 32))
 })
 test("cloud rejects cross-origin/CSRF, malformed uploads, oversized files and bad manifest identities", async () => {
   const f = await fixture()

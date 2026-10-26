@@ -66,7 +66,7 @@ export async function validateUpload(request: Request) {
   try {
     const input = sharp(Buffer.from(await cover.arrayBuffer()), { limitInputPixels: 2_100_000, failOn: "warning" })
     const info = await input.metadata()
-    if (info.format !== "webp" || (info.pages ?? 1) !== 1) throw Error("Only still WebP")
+    if (!["webp", "jpeg"].includes(info.format ?? "") || (info.pages ?? 1) !== 1) throw Error("Only still WebP/JPEG")
     image = await input.webp({ quality: 90 }).toBuffer()
     if (image.length > 1024 * 1024) throw Error("Too large")
   } catch { throw new HttpError(400, "표지 이미지 형식이나 크기를 확인해 주세요.") }

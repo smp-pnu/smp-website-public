@@ -3,6 +3,8 @@ import { limits, validateFile } from "./model"
 import { extractFields } from "./extract"
 import { cloudMode } from "./mode"
 import { fileIdentity } from "../admin-cloud/protocol"
+import { readPdfText } from "./pdf-text"
+import { encodePdfCover } from "./pdf-cover"
 
 export async function fingerprint(file: File, signal: AbortSignal) {
   validateFile(file)
@@ -47,9 +49,8 @@ export async function analyzePdf(filename: string, bytes: Uint8Array, signal: Ab
         progress(`${number}페이지에서 입력 후보를 찾는 중`)
         signal.throwIfAborted()
         const page = await pdf.getPage(number)
-        const text = await page.getTextContent()
-        texts.push(text.items.map(item => "str" in item ? item.str + (item.hasEOL ? "\n" : " ") : "").join("").slice(0, 12_000))
-        page.cleanup()
+        try { texts.push(await readPdfText(page.streamTextContent(), signal)) }
+        finally { page.cleanup() }
       }
       if (existingCover) return { ...extractFields(filename, texts), cover: existingCover, pages: pdf.numPages }
       progress("첫 페이지 표지를 만드는 중")
@@ -61,9 +62,11 @@ export async function analyzePdf(filename: string, bytes: Uint8Array, signal: Ab
       canvas.width = Math.max(1, Math.ceil(viewport.width)); canvas.height = Math.max(1, Math.ceil(viewport.height))
       const context = canvas.getContext("2d")
       if (!context) throw Error("이 브라우저에서 표지를 만들 수 없어요.")
-      await page.render({ canvas, canvasContext: context, viewport, background: "white" }).promise
-      const cover = await new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(Error("표지 생성에 실패했어요.")), "image/webp", 0.9))
-      canvas.width = 1; canvas.height = 1
+      let cover: Blob
+      try {
+        await page.render({ canvas, canvasContext: context, viewport, background: "white" }).promise
+        cover = await encodePdfCover(canvas, signal)
+      } finally { canvas.width = 1; canvas.height = 1; page.cleanup() }
       signal.throwIfAborted()
       return { ...extractFields(filename, texts), cover, pages: pdf.numPages }
     })()])

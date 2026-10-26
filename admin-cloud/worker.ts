@@ -98,7 +98,8 @@ export function createHandler(clock = Date.now) {
             } else if (resource === "drafts" && method === "GET" && asset === "cover" && partText === undefined) {
               await store.get(id)
               const parts = await store.parts(id, "cover", true)
-              response = new Response(new Uint8Array(Buffer.concat(parts.map(p => Buffer.from(p.data, "base64")))), { headers: { "Content-Type": "image/webp" } })
+              const cover = new Uint8Array(Buffer.concat(parts.map(p => Buffer.from(p.data, "base64"))))
+              response = new Response(cover, { headers: { "Content-Type": validateCover(cover, cover.length) } })
             } else throw new HttpError(404, "요청한 기능이 없어요.")
           }
         }

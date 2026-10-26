@@ -142,6 +142,20 @@ test("server expires idle/absolute sessions and persists login rate limits acros
     f.time(16 * 60_000); await f.login()
   } finally { await f.close() }
 })
+test("local server accepts Safari JPEG covers and normalizes them to its stored WebP format", async () => {
+  const f = await fixture()
+  try {
+    await f.setup()
+    const form = await f.form()
+    const image = new Uint8Array(await sharp({ create: { width: 100, height: 140, channels: 3, background: "white" } }).jpeg().toBuffer())
+    form.set("cover", new Blob([image], { type: "image/jpeg" }), "cover.jpeg")
+    const response = await f.call("/api/drafts", "POST", form)
+    assert.equal(response.status, 201)
+    const draft = await response.json(), cover = await f.call(`/api/drafts/${draft.id}/cover`)
+    assert.equal(cover.headers.get("Content-Type"), "image/webp")
+    assert.equal((await sharp(Buffer.from(await cover.arrayBuffer())).metadata()).format, "webp")
+  } finally { await f.close() }
+})
 test("server refuses non-loopback configuration; entry points cannot load production env/deploy", async () => {
   assert.throws(() => createAdminApplication({ root: "/unused", origin: "https://pnusmp.com" }), /loopback/)
   const script = await readFile(new URL("../scripts/admin-server.mjs", import.meta.url), "utf8")
