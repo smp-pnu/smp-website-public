@@ -5,6 +5,7 @@ import { approveDraft, checkCapacity, editDraft, emptyFields, limits, reportSumm
 import { extractFields } from "../admin-lab/extract"
 import { fingerprint } from "../admin-lab/pdf"
 import { samplePdf } from "../admin-lab/sample"
+import { adminError } from "../admin-lab/errors"
 
 const now = "2026-10-24T00:00:00Z"
 function fixture(): Draft {
@@ -102,4 +103,9 @@ test("admin prototype is isolated from deployment, runtime routes and external c
   assert.doesNotMatch(deployment + production, /admin-lab/)
   const script = await readFile(new URL("../scripts/admin-lab.mjs", import.meta.url), "utf8")
   assert.doesNotMatch(script, /wrangler|NOTION_TOKEN|CLOUDFLARE_API_TOKEN/)
+})
+test("admin module load errors are actionable across Safari and Chromium without masking PDF errors", () => {
+  assert.match(adminError(new TypeError("Importing a module script failed.")), /새로고침/)
+  assert.match(adminError(new TypeError("Failed to fetch dynamically imported module: /old.js")), /새로고침/)
+  assert.equal(adminError(new Error("PDF 구조가 손상됐어요.")), "PDF 구조가 손상됐어요.")
 })

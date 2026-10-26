@@ -1,6 +1,7 @@
 // Separate trial build/deploy. Never loads .env or the production deployment config.
 import path from 'node:path'
-import { cp, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { cp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
+import { gzipSync } from 'node:zlib'
 import { createRequire } from 'node:module'
 import { spawnSync } from 'node:child_process'
 const root = path.resolve(import.meta.dirname, '..')
@@ -22,6 +23,11 @@ if (mode === 'build') {
   for (const file of ['build/pdf.worker.min.mjs', 'LICENSE']) await cp(path.join(pdfRoot, file), path.join(assets, path.basename(file)))
   const { build } = await import('vite')
   await build({ configFile: path.join(root, 'admin-cloud/vite.config.ts'), mode: 'admin-cloud' })
+  const scriptDirectory = path.join(root, 'dist/admin-cloud/assets/assets')
+  const scripts = (await readdir(scriptDirectory)).filter(file => file.endsWith('.js'))
+  if (scripts.length !== 1) throw Error('The cloud admin must not depend on lazy hashed JavaScript chunks')
+  const entry = await readFile(path.join(scriptDirectory, scripts[0]))
+  if (entry.length > 900_000 || gzipSync(entry).length > 270_000) throw Error('The isolated admin entry exceeds its single-bundle size budget')
   const config = {
     name, account_id: account, main: '../../admin-cloud/worker.ts', compatibility_date: '2026-10-01', compatibility_flags: ['nodejs_compat'],
     workers_dev: true, preview_urls: false, routes,

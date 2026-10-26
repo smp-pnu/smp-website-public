@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { listDrafts, insertDraft, mutateDraft, readAssets, readCover } from "./storage"
 import { cloudMode, serverMode, storageLabel } from "./mode"
 import { prefillAi } from "./ai-prefill"
+import { adminError } from "./errors"
 import { checkCapacity, limits, type Draft, type Fields, type DraftCommand } from "./model"
 
 export function useLab() {
@@ -61,14 +62,14 @@ export function useLab() {
           if (serverMode || saved.id === draft.id) added++; else reused++
           await refresh(); setSelected(saved.id)
         } catch (error) {
-          if (!run.signal.aborted) failed.push(`${file.name}: ${error instanceof Error ? error.message : "파일을 처리하지 못했어요."}`)
+          if (!run.signal.aborted) failed.push(`${file.name}: ${adminError(error)}`)
         }
       }
       if (alive.current) {
         setMessage([added ? `${added}개 초안을 준비했어요.` : "", reused ? `같은 PDF ${reused}개는 기존 초안을 재사용했어요.` : "", run.signal.aborted ? "취소했어요. 이미 저장된 초안은 유지돼요." : ""].filter(Boolean).join(" "))
         setErrors(failed)
       }
-    } catch (error) { if (alive.current) setErrors([error instanceof Error && /dynamically imported module/.test(error.message) ? "시험 화면이 업데이트됐어요. 새로고침 후 PDF를 다시 추가해 주세요." : error instanceof Error ? error.message : "분석기를 불러오지 못했어요."]) }
+    } catch (error) { if (alive.current) setErrors([adminError(error)]) }
     finally { controller.current = null; if (alive.current) setProgress("") }
   }
 
@@ -89,7 +90,8 @@ export function useLab() {
       const result = cloudMode ? await prefillAi(extracted, draft.hash, draft.filename, run.signal, setProgress) : extracted
       run.signal.throwIfAborted()
       await change(draft, { type: "reanalyze", fields: result.fields, evidence: result.evidence, warnings: result.warnings }, "입력 후보를 다시 준비했어요. 표지와 PDF는 그대로 재사용했어요.")
-    } finally { controller.current = null; setProgress("") }
+    } catch (error) { throw new Error(adminError(error)) }
+    finally { controller.current = null; setProgress("") }
   }
   return { drafts, selected, setSelected, loading, progress, message, errors, refresh, ingest,
     reanalyze,
