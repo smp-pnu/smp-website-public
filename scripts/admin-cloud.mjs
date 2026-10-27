@@ -26,6 +26,8 @@ if (mode === 'build') {
   for (const file of ['build/pdf.worker.min.mjs', 'LICENSE']) await cp(path.join(pdfRoot, file), path.join(assets, path.basename(file)))
   const { build } = await import('vite')
   await build({ configFile: path.join(root, 'admin-cloud/vite.config.ts'), mode: 'admin-cloud' })
+  // Public, static OAuth disclosure: no session, database query or third-party script.
+  await cp(path.join(root, 'admin-cloud/static/privacy.html'), path.join(root, 'dist/admin-cloud/assets/privacy.html'))
   const scriptDirectory = path.join(root, 'dist/admin-cloud/assets/assets')
   const scripts = (await readdir(scriptDirectory)).filter(file => file.endsWith('.js'))
   if (scripts.length !== 1) throw Error('The cloud admin must not depend on lazy hashed JavaScript chunks')

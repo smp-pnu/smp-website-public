@@ -108,5 +108,6 @@ export function CloudAuthGate({ children }: { children: (session: Session, logou
     </fieldset></form>
     {!setup && <button className="secondary" disabled={busy} onClick={() => { setRecover(!recover); setToken(""); setError("") }}>{recover ? "로그인으로 돌아가기" : "복구·인수인계"}</button>}
     <p className="auth-note">Touch ID·기기 잠금번호는 서버에 전달되지 않습니다.</p>
+    <p className="auth-note"><a href="/privacy.html">Google Drive 연결 및 개인정보 안내</a></p>
   </section></main>
 }

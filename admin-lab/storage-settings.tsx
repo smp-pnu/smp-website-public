@@ -195,7 +195,7 @@ export function StorageSettings({
                 }}/>
               </label>
             </details>}
-            {status.configured && <p className="field-help">Google 앱이 ‘테스트’ 상태라면 연결이 7일 뒤 만료될 수 있습니다. 저장·조회가 중단되면 ‘Google 연결 갱신’으로 다시 승인해 주세요. 정식 이전 전에 Google 게시 상태를 확인해야 합니다.</p>}
+            {status.configured && <p className="field-help">Google 연결은 필요한 작업 시 자동 갱신됩니다. Google에서 접근을 철회하거나 장기간 사용하지 않아 연결이 만료되면 ‘Google 연결 갱신’으로 같은 학회 계정을 다시 승인해 주세요. 인수인계할 때는 현재 Google 앱과 전용 폴더를 유지하세요. <a href="/privacy.html">연결·보관 안내</a></p>}
             {status.pending && (
               <div className="settings-note">
                 <p>
