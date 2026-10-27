@@ -1,7 +1,7 @@
 // Real workerd + local D1. No Cloudflare credentials, live endpoints or auth bypasses.
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
-import { readFile } from 'node:fs/promises'
+import { readFile,readdir } from 'node:fs/promises'
 import { build } from 'esbuild'
 import sharp from 'sharp'
 import { fileIdentity, chunkBytes } from '../admin-cloud/protocol.ts'
@@ -19,10 +19,19 @@ const bundle = await build({entryPoints:['admin-cloud/worker.ts'],bundle:true,wr
 const mf = new Miniflare(convertV4MiniflareOptions({
   ratelimits:{AUTH_LIMITER:{namespace_id:'2026102701',simple:{limit:20,period:60}}},
   modules:true,script:bundle.outputFiles[0].text,compatibilityDate:'2026-10-01',compatibilityFlags:['nodejs_compat'],
-  cf:false,host:'127.0.0.1',port:0,d1Databases:{ADMIN_DB:'test-admin'},
+  cf:false,host:'127.0.0.1',port:0,d1Databases:{ADMIN_DB:'test-admin',CMS_DB:'test-cms'},
   bindings:{ORIGIN:origin,SESSION_SIGNING_KEY:'a'.repeat(64),SETUP_TOKEN_HASH:createHash('sha256').update(setupToken).digest('hex')},
 }))
 try {
+  const cms = await mf.getD1Database('CMS_DB')
+  for(const name of (await readdir('cloudflare/migrations')).sort()) {
+    const source=await readFile('cloudflare/migrations/'+name,'utf8')
+    await cms.batch(source.split(';').filter(s=>s.trim()).map(s=>cms.prepare(s)))
+  }
+  const cmsSchema=await readFile('cms/schema.sql','utf8')
+  await cms.batch(cmsSchema.split(';').filter(s=>s.trim()).map(s=>cms.prepare(s)))
+  await cms.batch((await readFile('cms/budget.sql','utf8')).split('-- statement').filter(s=>s.trim()).map(s=>cms.prepare(s)))
+  await cms.prepare('CREATE TABLE IF NOT EXISTS free_admin_config(name TEXT PRIMARY KEY,value TEXT NOT NULL)').run()
   const db = await mf.getD1Database('ADMIN_DB')
   const schema = await readFile(new URL('../admin-cloud/schema.sql',import.meta.url),'utf8')
   await db.batch(schema.split(';').filter(s=>s.trim()).map(s=>db.prepare(s)))
@@ -48,6 +57,18 @@ try {
   // configured in this local runtime; the model boundary is mocked in unit tests.
   const metadata = await (await call('/api/metadata/extract','POST',{reviewed:true,hash:'a'.repeat(64),pages:['Test investment report, company (123456), source text long enough for extraction.']})).json()
   assert.deepEqual(metadata.candidates,[]); assert.ok(metadata.warning)
+  // Live CMS adapter uses the same session and CSRF protection. This is a
+  // second isolated local D1, never the production database binding.
+  assert.equal((await mf.dispatchFetch(origin+'/api/cms/status')).status,401)
+  const cmsNotice=await(await call('/api/cms/notice','POST',{item:{id:'',kind:'notice',title:'CMS runtime verification',date:'2026-01-01',summary:'',author:'SMP',category:'공지',pinned:false,externalUrl:null,attachments:[]},blocks:[],cover:null})).json()
+  await call(`/api/cms/entry/${cmsNotice.id}/approve`,'POST',{revision:1})
+  assert.equal((await cms.prepare('SELECT count(*) n FROM free_content').first()).n,0)
+  await cms.prepare("INSERT INTO free_controls(name,until_at) VALUES('cms-source-admin',1)").run()
+  await call(`/api/cms/entry/${cmsNotice.id}/approve`,'POST',{revision:1})
+  assert.equal((await cms.prepare('SELECT count(*) n FROM free_content').first()).n,1)
+  assert.equal((await(await call('/api/cms/notice?q=runtime')).json()).total,1)
+  await call(`/api/cms/entry/${cmsNotice.id}/withdraw`,'POST',{revision:1})
+  assert.equal((await cms.prepare('SELECT count(*) n FROM free_content').first()).n,0)
   // Optional real PDF path permits a local end-to-end transport check without publishing it.
   const source = process.argv[2] ? new Uint8Array(await readFile(process.argv[2])) : new Uint8Array(32*1024*1024).fill(32)
   if (!process.argv[2]) { source.set(new TextEncoder().encode('%PDF-1.7\n'));source.set(new TextEncoder().encode('\n%%EOF\n'),source.length-7) }

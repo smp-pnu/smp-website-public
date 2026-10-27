@@ -487,7 +487,7 @@ test("cloud staging is bounded, expires and cleans up; rate cap and capacity are
     f.close()
   }
 })
-test("cloud build and entry point cannot import production or local credential storage", async () => {
+test("cloud build scopes CMS writes to the approved database and keeps authentication isolated", async () => {
   assert.equal(allowedTrialOrigin(origin, "admin-cloud"), true)
   for (const url of [
     oldOrigin,
@@ -513,7 +513,9 @@ test("cloud build and entry point cannot import production or local credential s
   const deploy = await readFile(new URL("../scripts/admin-cloud.mjs", import.meta.url), "utf8")
   assert.match(deploy, /smp-pdf-admin-trial/)
   assert.match(deploy, /Refusing a deployment/)
-  assert.doesNotMatch(deploy, /dotenv|loadEnv|smp-website-free['"]/)
+  assert.doesNotMatch(deploy, /dotenv|loadEnv/)
+  assert.match(deploy, /db\[1\]\.binding !== 'CMS_DB'/)
+  assert.match(deploy, /db\[1\]\.database_id !== 'c09abb5e-02cd-4277-8b19-0af0642f7cae'/)
 })
 test("cloud EOF verification crosses chunk boundaries; malformed/oversized animated covers are rejected", async () => {
   const f = await fixture()

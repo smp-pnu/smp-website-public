@@ -1,3 +1,4 @@
+import {adminMode} from "../../cms/mode"
 import {writeFile} from "node:fs/promises"
 import {remoteDatabase} from "./database"
 import {ensureJobFailures} from "./job-schema"
@@ -10,6 +11,10 @@ async function main() {
   if(database==="16cf8db5-1f95-48f3-af68-b32cfa7f7908") throw new Error("Production maintenance cannot use the trial database")
   const input=maintenanceInput(process.env.SMP_CMS_OPERATION||"publish",process.env.SMP_CMS_PAGE_ID||"")
   const db=remoteDatabase(required("CLOUDFLARE_ACCOUNT_ID"),database,required("CLOUDFLARE_API_TOKEN"))
+  if(await adminMode(db)){
+    if(input.operation==="retry-failed")await db.prepare("UPDATE cms_jobs SET attempts=0,next_at=0,error=NULL WHERE attempts>=3").run()
+    console.log(JSON.stringify({source:"admin",...(await db.prepare("SELECT count(*) AS pending,sum(attempts>=3) AS failed FROM cms_jobs").first())}));return
+  }
   await ensureJobFailures(db);await ensureSyncRuns(db)
   const queued=await managePublication(db,input.operation,input.id)
   const status=await publicationStatus(db)

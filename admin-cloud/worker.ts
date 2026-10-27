@@ -1,3 +1,5 @@
+import { guardUploadDeletion, cmsMaintenance } from "../cms/maintenance"
+import { cmsApi, cmsExport } from "../cms/api"
 import { Buffer } from "node:buffer"
 import type { Database } from "../cloudflare/bindings"
 import { HttpError, idPattern, object } from "../admin-server/validation"
@@ -17,6 +19,7 @@ import { DriveUploads } from "./drive/uploads"
 import { publicationExport } from "./publication-export"
 
 export interface Env extends AuthEnv {
+  CMS_DB?: Database
   ADMIN_DB: Database
   ASSETS: { fetch(request: Request): Promise<Response> }
   ORIGIN: string
@@ -32,7 +35,7 @@ export const headers = {
   "Referrer-Policy": "no-referrer",
   "Strict-Transport-Security": "max-age=31536000",
   "Content-Security-Policy":
-    "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+    "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' https://pnusmp.com blob: data:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
 }
 async function bodyBytes(request: Request, max: number) {
   if (Number(request.headers.get("content-length") ?? 0) > max)
@@ -57,11 +60,11 @@ async function bodyBytes(request: Request, max: number) {
   }
   return new Uint8Array(Buffer.concat(parts, bytes))
 }
-async function jsonBody(request: Request) {
+async function jsonBody(request: Request, max = 48 * 1024) {
   if (!request.headers.get("content-type")?.startsWith("application/json"))
     throw new HttpError(415, "JSON 요청이 필요해요.")
   try {
-    return JSON.parse(new TextDecoder().decode(await bodyBytes(request, 48 * 1024)))
+    return JSON.parse(new TextDecoder().decode(await bodyBytes(request, max)))
   } catch (e) {
     if (e instanceof HttpError) throw e
     throw new HttpError(400, "요청 내용을 확인해 주세요.")
@@ -97,7 +100,9 @@ export function createHandler(clock = Date.now, driveFetch: DriveFetch = fetch) 
         // OAuth redirects cannot carry our SameSite=Strict login cookie. The
         // one-time PKCE state only creates a pending grant; a signed-in CSRF-
         // protected confirmation is still required before any Drive writes.
-        const authResponse = url.pathname.startsWith("/api/publisher/")
+        const authResponse = url.pathname.startsWith("/api/cms-export/")
+            ? await cmsExport(request,env,drive,now)
+            : url.pathname.startsWith("/api/publisher/")
             ? await publicationExport(request,env,drive,now)
             : url.pathname === "/api/storage/drive/callback" && request.method === "GET"
             ? await connection.callback(url)
@@ -112,7 +117,9 @@ export function createHandler(clock = Date.now, driveFetch: DriveFetch = fetch) 
           await store.budget()
           const path = url.pathname,
             method = request.method
-          if (path === "/api/storage/status" && method === "GET") {
+          if (path.startsWith("/api/cms/")) {
+            response = await cmsApi(request,env,drive,()=>jsonBody(request,256*1024),max=>bodyBytes(request,max),now)
+          } else if (path === "/api/storage/status" && method === "GET") {
             response = json({
               ...(await connection.status(session.username)),
               ...(await env.ADMIN_DB.prepare(
@@ -135,6 +142,7 @@ export function createHandler(clock = Date.now, driveFetch: DriveFetch = fetch) 
           else if (path === "/api/storage/drive/quota" && method === "GET")
             response = json(await connection.quota())
           else if (path === "/api/storage/maintenance" && method === "POST") {
+            await cmsMaintenance(env,now)
             const lease = await env.ADMIN_DB.prepare(
               "INSERT INTO usage(key,hits,expires) VALUES('drive-maintenance',1,?) ON CONFLICT(key) DO UPDATE SET expires=excluded.expires WHERE expires<=? RETURNING key",
             )
@@ -189,10 +197,11 @@ export function createHandler(clock = Date.now, driveFetch: DriveFetch = fetch) 
             response = json(
               await new LibraryStore(env.ADMIN_DB, now).reorder(await jsonBody(request)),
             )
-          else if (path === "/api/reports/batch" && method === "POST")
-            response = json(
-              await new LibraryStore(env.ADMIN_DB, now).batch(await jsonBody(request)),
-            )
+          else if (path === "/api/reports/batch" && method === "POST") {
+            const input=object(await jsonBody(request)),action=object(input.action)
+            if(['trash','remove'].includes(String(action.type)))await guardUploadDeletion(env,Array.isArray(input.items)?input.items.map((v:unknown)=>String(object(v).id)):[])
+            response=json(await new LibraryStore(env.ADMIN_DB,now).batch(input))
+          }
           else if (path === "/api/metadata/extract" && method === "POST")
             response = json(
               await extractMetadata(await jsonBody(request), env.ADMIN_DB, env.AI, now),
@@ -327,6 +336,7 @@ export function createHandler(clock = Date.now, driveFetch: DriveFetch = fetch) 
               const body = object(await jsonBody(request))
               if (!Number.isSafeInteger(body.revision) || Number(body.revision) < 1)
                 throw new HttpError(400, "초안 버전을 확인해 주세요.")
+              if(["trash","remove"].includes(String(object(body.command).type)))await guardUploadDeletion(env,[id])
               await store.change(id, Number(body.revision), body.command)
               response = json({ ok: true })
             } else if (resource === "drafts" && method === "GET" && asset === "pdf") {

@@ -23,7 +23,7 @@ export async function readDetail(env:Env,ctx:Context,kind:ContentKind,id:string,
     readRelated(item,readDocument),
   ])
   const ready=!!record && record.body_revision===item.editedAt && !!record.blocks
-  if(!ready && env.SMP_READ_ONLY!=="1") ctx.waitUntil(enqueue(env,id,item.editedAt??"").then(()=>requestPublisher(env)))
+  if(!ready && !env.CMS_ADMIN_MODE && env.SMP_READ_ONLY!=="1") ctx.waitUntil(enqueue(env,id,item.editedAt??"").then(()=>requestPublisher(env)))
   const savedCover=record?.cover ? JSON.parse(record.cover) : null
   const cover=savedCover && publicCover({...item,cover:savedCover})
   if(cover && (!ready || savedCover.sourceKey!==sourceKey(item))) delete cover.reader

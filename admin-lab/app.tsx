@@ -1,3 +1,4 @@
+import { CmsConsole } from "./cms-console"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { ArrowLeft, Check, Plus, Upload, X } from "lucide-react"
 import { DraftEditor } from "./editor"
@@ -21,11 +22,13 @@ import { cloudMode } from "./mode"
 import { Notices } from "./notices"
 import { StorageSettings } from "./storage-settings"
 
-export function App({
+function UploadApp({
   username: _username,
   onLogout,
-  onSecurity,
+  onSecurity, onCmsImport, onCmsReturn,
 }: {
+  onCmsImport?: (id:string)=>Promise<void>
+  onCmsReturn?: ()=>void
   username?: string
   onLogout?: () => Promise<void>
   onSecurity?: () => void
@@ -234,6 +237,7 @@ export function App({
           : undefined
       }
     >
+      {onCmsReturn&&<div className="cms-actions"><button onClick={()=>void canLeave().then(ok=>{if(ok)onCmsReturn()})}><ArrowLeft size={16}/>게시 관리로 돌아가기</button>{selected&&onCmsImport&&<button className="primary" disabled={busy||dirty||!selected.approvedRevision||!!selected.trashedAt} onClick={()=>void onCmsImport(selected.id).catch(e=>setRefreshError(e.message))}>승인본을 게시 목록에 추가</button>}</div>}
       {section === "storage" ? (
         <StorageSettings onBusy={setNoticeBusy} onChange={refreshOverview} />
       ) : section === "notices" ? (
@@ -390,4 +394,13 @@ export function App({
       )}
     </AdminFrame>
   )
+}
+
+export function App(props:{username?:string;onLogout?:()=>Promise<void>;onSecurity?:()=>void}){
+  const [cms,setCms]=useState<{active:boolean;total:number}|null>(null),[loading,setLoading]=useState(cloudMode),[error,setError]=useState(''),[upload,setUpload]=useState(false),[uploadTarget,setUploadTarget]=useState<string|undefined>(undefined)
+  useEffect(()=>{if(!cloudMode)return;let live=true;void api('/cms/status').then(r=>r.json()).then(v=>{if(live)setCms(v)}).catch(e=>{if(live)setError(e.message)}).finally(()=>{if(live)setLoading(false)});return()=>{live=false}},[])
+  if(loading)return <main className="fatal" role="status">관리 자료를 불러오는 중…</main>
+  if(cloudMode&&error)return <main className="fatal"><h1>관리 자료에 연결하지 못했습니다.</h1><p role="alert">{error}</p><button onClick={()=>location.reload()}>다시 연결</button></main>
+  if(cms&&!upload)return <CmsConsole active={cms.active} onUpload={(target)=>{setUploadTarget(target);setUpload(true)}} {...props}/>
+  return <UploadApp {...props} {...(cms?{onCmsReturn:()=>setUpload(false),onCmsImport:async(id:string)=>{await api('/cms/import-upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,target:uploadTarget})});setUpload(false)}}:{})}/>
 }

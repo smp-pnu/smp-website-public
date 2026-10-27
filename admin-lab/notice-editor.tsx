@@ -13,7 +13,7 @@ import {
 } from "./notice-model"
 import { NoticeContent } from "./notice-preview"
 
-async function photo(file: File) {
+export async function photo(file: File) {
   if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 12 * 1024 * 1024)
     throw Error("12 MB 이하 JPG·PNG·WebP 사진을 선택해 주세요.")
   const url = URL.createObjectURL(file),

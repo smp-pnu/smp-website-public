@@ -17,6 +17,10 @@ export async function visitorPublication(env:Env,kind:ContentKind,rawId:string) 
     const preview = await env.REPORT_PREVIEW.published(id)
     if (preview !== undefined) return preview
   }
+  if(env.CMS_ADMIN_MODE) {
+    const row=await env.CMS_DB.prepare("SELECT item FROM free_content WHERE id=? AND kind=?").bind(id,kind).first<{item:string}>()
+    return row?JSON.parse(row.item) as ContentItem:null
+  }
   const owner=source(env,kind)
   let flight=checks.get(env.CMS_DB)
   if(!flight) {flight=singleFlight<ContentItem|null>();checks.set(env.CMS_DB,flight)}

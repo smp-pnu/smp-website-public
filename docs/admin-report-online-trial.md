@@ -1,5 +1,7 @@
 # 관리자 실자료 → 별도 온라인 게시 시험
 
+> 2026-10-27 관리자 CMS 전환 이후 현재 사용법과 운영 기준은 [관리자 CMS 운영](admin-cms.md)을 따릅니다. 이 문서의 Notion 동기화·시험 운영 설명은 이전 구조의 기록입니다.
+
 2026-10-27, `feature/admin-report-live-trial-20261027`에서 수행했다. 시험 주소는 https://smp-report-publication-trial.smp-website.workers.dev/research 이다. **일회 게시 스냅샷**이며 지금 관리자에서 새로 승인해도 이 사이트가 자동 갱신되는 것은 아니다.
 
 ## 대상과 격리

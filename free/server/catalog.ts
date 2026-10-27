@@ -5,6 +5,7 @@ import { source } from "./notion"
 import type { Env } from "./types"
 import { staticEntries } from "../../lib/site-search-static"
 import { isNotionFileUrl } from "../../lib/pdf-source"
+export const notionSourceSql="NOT EXISTS(SELECT 1 FROM free_controls WHERE name='cms-source-admin' AND until_at=1)"
 type Kind = ContentKind | "members"
 // D1 and the local SQLite test adapter expose changes in different envelopes.
 function changes(result: unknown) {
@@ -34,7 +35,7 @@ export function documentStatements(env:Env,kinds:readonly Kind[]=["research","no
   ]
 }
 export async function enqueue(env: Env,id: string,revision: string) {
-  await env.CMS_DB.prepare(`INSERT INTO free_jobs(id,revision,next_at) VALUES (?,?,?)
+  await env.CMS_DB.prepare(`INSERT INTO free_jobs(id,revision,next_at) SELECT ?,?,? WHERE ${notionSourceSql}
     ON CONFLICT(id) DO UPDATE SET revision=excluded.revision,attempts=0,next_at=excluded.next_at
     WHERE revision < excluded.revision`).bind(id,revision,Date.now()).run()
 }
@@ -63,7 +64,7 @@ export async function storePages(env:Env,pages:NotionPage[],kind:ContentKind|"me
   const results=await env.CMS_DB.batch([
     env.CMS_DB.prepare(`INSERT INTO free_content(id,kind,revision,item,search_entry)
       SELECT value->>'$.id',value->>'$.kind',value->>'$.revision',value->'$.item',value->'$.entry' FROM json_each(?)
-      WHERE value->>'$.item' IS NOT NULL AND value->>'$.revision'>=COALESCE((SELECT revision FROM free_tombstones WHERE id=value->>'$.id'),'')
+      WHERE ${notionSourceSql} AND value->>'$.item' IS NOT NULL AND value->>'$.revision'>=COALESCE((SELECT revision FROM free_tombstones WHERE id=value->>'$.id'),'')
       ON CONFLICT(id) DO UPDATE SET kind=excluded.kind,revision=excluded.revision,item=excluded.item,search_entry=excluded.search_entry
       WHERE free_content.revision < excluded.revision OR (free_content.revision=excluded.revision AND excluded.kind='members'
         AND json_extract(excluded.item,'$.image')='/api/member-photo/'||excluded.id
@@ -72,23 +73,23 @@ export async function storePages(env:Env,pages:NotionPage[],kind:ContentKind|"me
     // the IN subquery with the outer revision scanned the entire catalogue
     // once per incoming row, even when every page remained public.
     env.CMS_DB.prepare(`DELETE FROM free_content
-      WHERE id IN(SELECT value->>'$.id' FROM json_each(?))
+      WHERE ${notionSourceSql} AND id IN(SELECT value->>'$.id' FROM json_each(?))
       AND revision<=COALESCE((SELECT value->>'$.revision' FROM json_each(?) WHERE value->>'$.id'=free_content.id),'')`).bind(withdrawn,withdrawn),
     env.CMS_DB.prepare(`INSERT INTO free_jobs(id,revision,next_at) SELECT id,revision,? FROM free_content
-      WHERE (kind!='members' OR id IN(SELECT value->>'$.id' FROM json_each(?) WHERE value->>'$.photo'=1)) AND (body_revision IS NULL OR body_revision!=revision) AND id IN(SELECT value->>'$.id' FROM json_each(?))
+      WHERE ${notionSourceSql} AND (kind!='members' OR id IN(SELECT value->>'$.id' FROM json_each(?) WHERE value->>'$.photo'=1)) AND (body_revision IS NULL OR body_revision!=revision) AND id IN(SELECT value->>'$.id' FROM json_each(?))
       ON CONFLICT(id) DO UPDATE SET revision=excluded.revision,attempts=0,next_at=excluded.next_at WHERE free_jobs.revision<excluded.revision`).bind(Date.now(),data,data),
-    env.CMS_DB.prepare(`DELETE FROM free_jobs WHERE id IN(SELECT value->>'$.id' FROM json_each(?)) AND NOT EXISTS(SELECT 1 FROM free_content WHERE free_content.id=free_jobs.id)`).bind(data),
+    env.CMS_DB.prepare(`DELETE FROM free_jobs WHERE ${notionSourceSql} AND id IN(SELECT value->>'$.id' FROM json_each(?)) AND NOT EXISTS(SELECT 1 FROM free_content WHERE free_content.id=free_jobs.id)`).bind(data),
     // Unpublishing keeps the verified cover cache; actual deletion clears it.
-    env.CMS_DB.prepare(`DELETE FROM free_report_covers WHERE id IN(SELECT value->>'$.id' FROM json_each(?))
+    env.CMS_DB.prepare(`DELETE FROM free_report_covers WHERE ${notionSourceSql} AND id IN(SELECT value->>'$.id' FROM json_each(?))
       AND revision<=COALESCE((SELECT value->>'$.revision' FROM json_each(?) WHERE value->>'$.id'=free_report_covers.id),'')
       AND COALESCE((SELECT value->>'$.revision' FROM json_each(?) WHERE value->>'$.id'=free_report_covers.id),'')>=COALESCE((SELECT revision FROM free_tombstones WHERE id=free_report_covers.id),'')
       AND NOT EXISTS(SELECT 1 FROM free_content WHERE id=free_report_covers.id)`).bind(deleted,deleted,deleted),
-    env.CMS_DB.prepare(`INSERT INTO free_tombstones(id,revision) SELECT value->>'$.id',value->>'$.revision' FROM json_each(?) WHERE true
+    env.CMS_DB.prepare(`INSERT INTO free_tombstones(id,revision) SELECT value->>'$.id',value->>'$.revision' FROM json_each(?) WHERE ${notionSourceSql}
       ON CONFLICT(id) DO UPDATE SET revision=excluded.revision WHERE revision<excluded.revision`).bind(data),
     env.CMS_DB.prepare(`INSERT INTO free_controls(name,until_at) SELECT 'publish-at:'||(value->>'$.id'),value->>'$.due' FROM json_each(?)
-      WHERE value->>'$.due' IS NOT NULL AND value->>'$.revision'=(SELECT revision FROM free_tombstones WHERE id=value->>'$.id')
+      WHERE ${notionSourceSql} AND value->>'$.due' IS NOT NULL AND value->>'$.revision'=(SELECT revision FROM free_tombstones WHERE id=value->>'$.id')
       ON CONFLICT(name) DO UPDATE SET until_at=excluded.until_at WHERE until_at<>excluded.until_at`).bind(data),
-    env.CMS_DB.prepare(`DELETE FROM free_controls WHERE name IN(SELECT 'publish-at:'||(value->>'$.id') FROM json_each(?)
+    env.CMS_DB.prepare(`DELETE FROM free_controls WHERE ${notionSourceSql} AND name IN(SELECT 'publish-at:'||(value->>'$.id') FROM json_each(?)
       WHERE value->>'$.due' IS NULL AND value->>'$.revision'=(SELECT revision FROM free_tombstones WHERE id=value->>'$.id'))`).bind(data),
   ])
   return changes(results[0])+changes(results[1])>0
@@ -96,11 +97,11 @@ export async function storePages(env:Env,pages:NotionPage[],kind:ContentKind|"me
 export async function storePage(env:Env,page:NotionPage,kind:ContentKind|"members") { return storePages(env,[page],kind) }
 export async function removePage(env:Env,id:string,revision=new Date().toISOString()) {
   const results=await env.CMS_DB.batch([
-    env.CMS_DB.prepare("DELETE FROM free_content WHERE id=? AND revision<=?").bind(id,revision),
-    env.CMS_DB.prepare("DELETE FROM free_jobs WHERE id=? AND NOT EXISTS(SELECT 1 FROM free_content WHERE id=?)").bind(id,id),
-    env.CMS_DB.prepare("DELETE FROM free_media WHERE page_id=? AND NOT EXISTS(SELECT 1 FROM free_content WHERE id=?)").bind(id,id),
-    env.CMS_DB.prepare("DELETE FROM free_report_covers WHERE id=? AND revision<=? AND NOT EXISTS(SELECT 1 FROM free_content WHERE id=?)").bind(id,revision,id),
-    env.CMS_DB.prepare("INSERT INTO free_tombstones(id,revision) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET revision=MAX(revision,excluded.revision)").bind(id,revision),
+    env.CMS_DB.prepare(`DELETE FROM free_content WHERE ${notionSourceSql} AND id=? AND revision<=?`).bind(id,revision),
+    env.CMS_DB.prepare(`DELETE FROM free_jobs WHERE ${notionSourceSql} AND id=? AND NOT EXISTS(SELECT 1 FROM free_content WHERE id=?)`).bind(id,id),
+    env.CMS_DB.prepare(`DELETE FROM free_media WHERE ${notionSourceSql} AND page_id=? AND NOT EXISTS(SELECT 1 FROM free_content WHERE id=?)`).bind(id,id),
+    env.CMS_DB.prepare(`DELETE FROM free_report_covers WHERE ${notionSourceSql} AND id=? AND revision<=? AND NOT EXISTS(SELECT 1 FROM free_content WHERE id=?)`).bind(id,revision,id),
+    env.CMS_DB.prepare(`INSERT INTO free_tombstones(id,revision) SELECT ?,? WHERE ${notionSourceSql} ON CONFLICT(id) DO UPDATE SET revision=MAX(revision,excluded.revision)`).bind(id,revision),
   ])
   return changes(results[0])>0
 }

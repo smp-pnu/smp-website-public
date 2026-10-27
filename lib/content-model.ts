@@ -49,6 +49,7 @@ export type ContentItem = {
   category: string
   categoryColor?: string
   author: string
+  displayOrder?: number
   pinned: boolean
   semester?: string
   semesterOrder?: number
@@ -134,6 +135,7 @@ export function sortContent(items: ContentItem[]) {
       || (a.semester ? (a.semesterOrder ?? Infinity) - (b.semesterOrder ?? Infinity) : 0)
     : 0
   return [...items].sort((a, b) => Number(b.pinned) - Number(a.pinned)
+    || (a.displayOrder!==undefined && b.displayOrder!==undefined ? a.displayOrder-b.displayOrder : 0)
     || reportOrder(a, b)
     || b.date.localeCompare(a.date)
     || (a.kind === "research" && b.kind === "research" ? a.title.localeCompare(b.title, "ko", { numeric: true }) : 0)

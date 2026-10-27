@@ -3,5 +3,6 @@
   "bytes": 268435456,
   "packFiles": 1000,
   "packBytes": 4294967296,
-  "assetFiles": 1544
+  "assetFiles": 10000,
+  "managedBytes": 2147483648
 }

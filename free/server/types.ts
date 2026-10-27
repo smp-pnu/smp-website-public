@@ -2,6 +2,7 @@ import type { Database } from "../../cloudflare/bindings"
 import type { ContentItem } from "../../lib/content-model"
 export type Env = {
   CMS_DB: Database;
+  CMS_ADMIN_MODE?: boolean;
   ASSETS: { fetch: typeof fetch };
   API_RATE_LIMIT?: { limit(options: { key: string }): Promise<{ success: boolean }> };
   NOTION_TOKEN?: string;

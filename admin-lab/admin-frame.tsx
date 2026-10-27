@@ -1,11 +1,16 @@
 import type { ReactNode } from "react"
-import { FileText, KeyRound, ExternalLink, LogOut, Megaphone, HardDrive } from "lucide-react"
+import { FileText, KeyRound, ExternalLink, LogOut, Megaphone, HardDrive, Users, Calendar, Upload } from "lucide-react"
 import { cloudMode, serverMode } from "./mode"
 import { limits, sizeLabel } from "./model"
 
 type Props = {
   children: ReactNode
-  active: "reports" | "security" | "notices" | "storage"
+  active: "reports" | "security" | "notices" | "storage" | "members" | "recruitment"
+  cmsEnabled?: boolean
+  cmsActive?: boolean
+  onMembers?: () => void
+  onRecruitment?: () => void
+  onUpload?: () => void
   onReports?: () => void
   onNotices?: () => void
   onSecurity?: () => void
@@ -18,7 +23,7 @@ type Props = {
 }
 export function AdminFrame({
   children,
-  active,
+  active, cmsEnabled, cmsActive, onMembers, onRecruitment, onUpload,
   onReports,
   onNotices,
   onSecurity,
@@ -60,6 +65,9 @@ export function AdminFrame({
               공지사항
             </button>
           )}
+          {onMembers && <button className={active==='members'?'active':''} onClick={onMembers} disabled={busy}><Users size={17}/>회원 명단</button>}
+          {onRecruitment && <button className={active==='recruitment'?'active':''} onClick={onRecruitment} disabled={busy}><Calendar size={17}/>모집 안내</button>}
+          {onUpload && <button onClick={onUpload} disabled={busy}><Upload size={17}/>PDF 등록</button>}
           {onSecurity && (
             <button
               className={active === "security" ? "active" : ""}
@@ -115,9 +123,9 @@ export function AdminFrame({
           <span>부산대학교 금융투자학회</span>
           <div>
             <span className="environment-badge">
-              {cloudMode ? "온라인 시험" : serverMode ? "로컬 서버 시험" : "로컬 시험"}
+              {cmsEnabled ? (cmsActive ? "공식 사이트 관리" : "전환 준비") : cloudMode ? "온라인 시험" : serverMode ? "로컬 서버 시험" : "로컬 시험"}
             </span>
-            <span className="environment-note">운영 사이트 게시 안 됨</span>
+            <span className="environment-note">{cmsEnabled ? (cmsActive ? "승인한 내용만 게시됩니다" : "공식 사이트 전환 전") : "운영 사이트 게시 안 됨"}</span>
           </div>
         </header>
         <main id="admin-main" className="admin-main" tabIndex={-1}>

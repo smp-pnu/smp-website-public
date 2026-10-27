@@ -1,4 +1,5 @@
 import "server-only"
+import { sourceKey } from "./report-source-key"
 import { createHash } from "node:crypto"
 import { normalizeId, type ContentItem } from "./content-model"
 import { getPdfSources } from "./pdf-source"
@@ -15,14 +16,7 @@ export function coverPrefix(id: string) {
   if (normalizeId(id) !== id) throw new Error("Invalid report ID")
   return `report-covers/${id}/`
 }
-export function sourceKey(item: ContentItem) {
-  const pdf = getPdfSources(item)[0]
-  if (!pdf) return null
-  const url = new URL(pdf.url)
-  // Notion renews signed URLs without changing the underlying file.
-  if (url.hostname !== "drive.usercontent.google.com") url.search = ""
-  return hash(url.href)
-}
+export { sourceKey } from "./report-source-key"
 export function currentCover(cover: SavedCover | null, item: ContentItem) {
   return !!cover && cover.sourceKey === sourceKey(item) && cover.editedAt === (item.editedAt ?? "")
 }

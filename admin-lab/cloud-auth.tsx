@@ -84,7 +84,7 @@ export function CloudAuthGate({ children }: { children: (session: Session, logou
   return <main className="auth-shell"><section className="auth-card">
     <div className="admin-brand"><strong>SMP</strong><span>사이트 관리</span></div>
     <h1>{setup ? "첫 관리자 패스키 등록" : recover ? "복구·인수인계" : "관리자 로그인"}</h1>
-    <p className="auth-intro">{recover ? "패스키 등록 때 보관한 64자리 복구 코드가 필요합니다. 로컬 시험판의 아이디·비밀번호를 입력하는 곳이 아닙니다." : "등록한 패스키로 로그인하세요. 이 시험 사이트의 변경 사항은 공식 홈페이지에 게시되지 않습니다."}</p>
+    <p className="auth-intro">{recover ? "패스키 등록 때 보관한 64자리 복구 코드가 필요합니다. 로컬 시험판의 아이디·비밀번호를 입력하는 곳이 아닙니다." : "등록한 패스키로 로그인하세요. 게시 관리에서 승인한 내용만 공식 홈페이지에 반영됩니다."}</p>
     <form onSubmit={e => { e.preventDefault(); void run(async () => {
       if (setup || recover) return register(setup ? "setup" : "recover")
       const optionsJSON = await post("/auth/login/options")

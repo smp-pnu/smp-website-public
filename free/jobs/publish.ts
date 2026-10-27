@@ -1,3 +1,5 @@
+import {adminMode} from "../../cms/mode"
+import {publishCms} from "../../cms/publish"
 import { mkdir,writeFile,access,readdir,rm } from "node:fs/promises"
 import { spawnSync } from "node:child_process"
 import { createHash } from "node:crypto"
@@ -59,6 +61,7 @@ async function main() {
   const deadline=Date.now()+(libraryMigration?150:11)*60_000
   env.NOTION_WAIT_UNTIL=deadline
   try {
+    if(await adminMode(env.CMS_DB)){await publishCms(env,origin,acquiredUntil-60000);return}
     const recruitment=await prepareRecruitment(env)
     const forceBuild=process.env.SMP_FORCE_BUILD==="1" || recruitment.changed
     await reconcileIfDue(env)
@@ -147,7 +150,7 @@ async function main() {
     await finishPublications(env,origin,complete)
     console.log(JSON.stringify({prepared:complete.length,notionRequests:requestCount}))
   } finally {
-    try { await syncAdminStatus(env) } catch { console.warn("Operations status update deferred") }
+    try { if(!await adminMode(env.CMS_DB)) await syncAdminStatus(env) } catch { console.warn("Operations status update deferred") }
     await env.CMS_DB.prepare("DELETE FROM free_controls WHERE name='publisher' AND until_at=?").bind(acquiredUntil).run()
   }
 }
