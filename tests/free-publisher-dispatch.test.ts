@@ -122,3 +122,19 @@ test("GitHub's longer retry-after is honored without discarding pending jobs",as
     assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM free_jobs").get()!.n,1)
   } finally {sqlite.close()}
 })
+
+
+test("admin recruitment changes dispatch without PDF jobs; terminal CMS failures remain idle",async t=>{
+ const {sqlite,env}=setup();t.mock.method(Date,"now",()=>START+3*86400000);env.CMS_ADMIN_MODE=true
+ sqlite.exec(readFileSync(new URL('../cms/schema.sql',import.meta.url),'utf8'))
+ sqlite.exec("CREATE TABLE free_admin_config(name TEXT PRIMARY KEY,value TEXT NOT NULL)")
+ try {
+  assert.equal(await requestPublisher(env),'idle')
+  sqlite.exec("INSERT INTO cms_jobs(id,revision,payload,next_at,attempts) VALUES('failed',1,'{}',0,3)")
+  assert.equal(await requestPublisher(env),'idle')
+  sqlite.exec("INSERT INTO free_admin_config VALUES('recruitment_validated','new')")
+  assert.equal(await requestPublisher(env),'requested')
+  sqlite.exec("DELETE FROM free_controls; INSERT INTO free_admin_config VALUES('recruitment_deployed','new')")
+  assert.equal(await requestPublisher(env),'idle')
+ }finally{sqlite.close()}
+})
