@@ -85,6 +85,15 @@ function blocks(input) {
     return b;
   });
 }
+const canonical = (value) =>
+  JSON.parse(
+    JSON.stringify(value)
+      .replaceAll("https://smp-pnu.vercel.app", "https://pnusmp.com")
+      .replaceAll(
+        "https://smp-website-free.smp-website.workers.dev",
+        "https://pnusmp.com",
+      ),
+  );
 const records = published.map((row) => {
   const item = JSON.parse(row.item),
     body = blocks(JSON.parse(row.blocks ?? "[]")),
@@ -134,6 +143,7 @@ for (const kind of ["research", "notice", "members"]) {
   for (const r of filtered) {
     r.rank = rank.get(r.id);
     if (kind !== "members") r.draft.item.displayOrder = r.rank;
+    r.draft = canonical(r.draft);
     validatePayload(r.draft, kind, r.id);
   }
 }

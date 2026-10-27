@@ -423,11 +423,18 @@ export function CmsConsole({
               <button
                 className="primary"
                 disabled={
-                  busy || dirty || !!selected.trashedAt || selected.pending
+                  busy ||
+                  dirty ||
+                  !!selected.trashedAt ||
+                  (selected.pending && !selected.error)
                 }
                 onClick={() => void action("approve")}
               >
-                {selected.pending ? "준비 중…" : "게시"}
+                {selected.error
+                  ? "다시 게시"
+                  : selected.pending
+                    ? "준비 중…"
+                    : "게시"}
               </button>
             </div>
           </header>

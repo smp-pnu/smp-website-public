@@ -378,3 +378,33 @@ test("late Notion delivery cannot remove, overwrite or enqueue admin publication
     f.close();
   }
 });
+
+test("cutover atomically preserves public IDs, keeps a rollback snapshot and fences the old publisher", async () => {
+  const { activateAdmin } = await import("../cms/cutover");
+  const f = fixture();
+  try {
+    const e = await f.store.create("notice", structuredClone(f.payload));
+    f.active();
+    await f.store.approve(e.id, 1);
+    f.sql
+      .prepare("DELETE FROM free_controls WHERE name='cms-source-admin'")
+      .run();
+    const before = f.sql.prepare("SELECT * FROM free_content").get();
+    const result = await activateAdmin(f.db);
+    assert.equal(result.published, 1);
+    assert.equal(await adminMode(f.db), true);
+    assert.deepEqual(
+      f.sql.prepare("SELECT * FROM cms_legacy_public").get(),
+      before,
+    );
+    assert.equal(
+      f.sql
+        .prepare("SELECT count(*) n FROM free_controls WHERE name='publisher'")
+        .get()!.n,
+      0,
+    );
+    await assert.rejects(() => activateAdmin(f.db), /already active/);
+  } finally {
+    f.close();
+  }
+});

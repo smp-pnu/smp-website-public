@@ -192,7 +192,7 @@ export async function cmsApi(
           : {}),
       };
       if (!same) delete next.original;
-      await db
+      const replaced = await db
         .prepare(
           "UPDATE cms_entries SET draft=?,revision=revision+1,updated_at=? WHERE id=? AND revision=? RETURNING id",
         )
@@ -203,12 +203,7 @@ export async function cmsApi(
           entry.revision,
         )
         .first();
-      if (
-        !(await db
-          .prepare("SELECT id FROM cms_entries WHERE id=? AND draft=?")
-          .bind(targetId, JSON.stringify(next))
-          .first())
-      )
+      if (!replaced)
         throw new HttpError(409, "다른 변경이 저장됐어요. 다시 확인해 주세요.");
       await db
         .prepare("DELETE FROM cms_jobs WHERE id=? AND revision<=?")
