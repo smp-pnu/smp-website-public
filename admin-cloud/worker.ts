@@ -2,6 +2,7 @@ import { Buffer } from "node:buffer"
 import type { Database } from "../cloudflare/bindings"
 import { HttpError, idPattern, object } from "../admin-server/validation"
 import { Passkeys, type AuthEnv } from "./auth"
+import { StepUp } from "./step-up"
 import { Sessions } from "./session"
 import { chunkBytes, sha256 } from "./protocol"
 import { CloudStore } from "./store"
@@ -115,6 +116,11 @@ export function createHandler(clock = Date.now, driveFetch: DriveFetch = fetch) 
               (SELECT count(*) FROM report_files WHERE state='pending-delete' AND last_error IS NOT NULL)+(SELECT count(*) FROM abandoned_drive_files WHERE last_error IS NOT NULL) AS cleanupErrors`,
               ).first()),
             })
+          } else if (path === "/api/storage/drive/rotate" && method === "POST") {
+            const data = object(await jsonBody(request))
+            const state = await env.ADMIN_DB.prepare("SELECT value FROM admin_config WHERE key='recovery'").first<{value:string}>()
+            await new StepUp(env.ADMIN_DB, now).consume(request, data.stepUpToken, state?.value ?? "", "drive:rotate")
+            response = json(await connection.rotate(data.client))
           } else if (path === "/api/storage/drive/configure" && method === "POST")
             response = json(await connection.configure(await jsonBody(request)))
           else if (path === "/api/storage/drive/start" && method === "POST")

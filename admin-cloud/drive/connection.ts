@@ -2,6 +2,7 @@ import { Buffer } from "node:buffer"
 import type { Database } from "../../cloudflare/bindings"
 import { HttpError, object, text } from "../../admin-server/validation"
 import { randomToken } from "../session"
+import { securityEventStatements } from "../security-events"
 import { sha256 } from "../protocol"
 export type DriveEnv = {
   ADMIN_DB: Database
@@ -166,6 +167,23 @@ export class DriveConnection {
       throw transientError()
     }
   }
+  private parseClient(input: unknown) {
+    const raw = object(input),
+      web = object(raw.web)
+    const clientId = text(web.client_id, 200),
+      clientSecret = text(web.client_secret, 256)
+    if (
+      !/^[\w-]+\.apps\.googleusercontent\.com$/.test(clientId) ||
+      clientSecret.length < 12 ||
+      !Array.isArray(web.redirect_uris) ||
+      !web.redirect_uris.includes(this.env.ORIGIN + "/api/storage/drive/callback")
+    )
+      throw new HttpError(
+        400,
+        "이 관리자 주소의 콜백이 등록된 웹 애플리케이션 OAuth JSON을 선택해 주세요.",
+      )
+    return { clientId, clientSecret }
+  }
   async configured() {
     return !!(this.env.DRIVE_ACCOUNT_EMAIL && (await this.vault.get<Client>("drive-client")))
   }
@@ -195,20 +213,7 @@ export class DriveConnection {
   async configure(input: unknown) {
     if (!this.env.DRIVE_ACCOUNT_EMAIL)
       throw new HttpError(409, "서버의 학회 Drive 계정 설정이 먼저 필요합니다.")
-    const raw = object(input),
-      web = object(raw.web)
-    const clientId = text(web.client_id, 200),
-      clientSecret = text(web.client_secret, 256)
-    if (
-      !/^[\w-]+\.apps\.googleusercontent\.com$/.test(clientId) ||
-      clientSecret.length < 12 ||
-      !Array.isArray(web.redirect_uris) ||
-      !web.redirect_uris.includes(this.env.ORIGIN + "/api/storage/drive/callback")
-    )
-      throw new HttpError(
-        400,
-        "이 관리자 주소의 콜백이 등록된 웹 애플리케이션 OAuth JSON을 선택해 주세요.",
-      )
+    const { clientId, clientSecret } = this.parseClient(input)
     const prior = await this.vault.get<Client>("drive-client")
     if (prior && (prior.clientId !== clientId || prior.clientSecret !== clientSecret))
       throw new HttpError(
@@ -221,6 +226,38 @@ export class DriveConnection {
       namespace: prior?.namespace ?? crypto.randomUUID(),
     })
     return { ok: true }
+  }
+  async rotate(input: unknown) {
+    const next = this.parseClient(input), db = this.env.ADMIN_DB
+    const rows = (await db.prepare("SELECT key,encrypted FROM storage_secrets WHERE key IN ('drive-client','drive-grant')").all<{key:string;encrypted:string}>()).results ?? []
+    const original = rows.find(row => row.key === "drive-client")?.encrypted
+    const originalGrant = rows.find(row => row.key === "drive-grant")?.encrypted
+    if (!original || !originalGrant) throw new HttpError(409, "Drive 연결을 먼저 완료해 주세요.")
+    const prior = await this.vault.open<Client>(original, "drive-client")
+    const grant = await this.vault.open<Grant>(originalGrant, "drive-grant")
+    if (next.clientId !== prior.clientId) throw new HttpError(409, "기존 OAuth 앱과 같은 클라이언트 ID의 새 키만 교체할 수 있어요.")
+    if (!grant.folderId || !validFileId(grant.folderId)) throw transientError()
+    // Test the new secret with the current grant before overwriting anything.
+    const token = await this.exchange(new URLSearchParams({grant_type:"refresh_token",refresh_token:grant.refreshToken,client_id:next.clientId,client_secret:next.clientSecret}))
+    this.cachedToken = token.access_token
+    const about = await this.request<{user:{emailAddress:string}}>("/about?fields=user(emailAddress)")
+    if (about.user?.emailAddress?.toLowerCase() !== this.env.DRIVE_ACCOUNT_EMAIL?.toLowerCase()) throw new HttpError(403, "학회 계정을 확인하지 못했어요.")
+    const folder = await this.request<{ownedByMe:boolean;trashed:boolean;appProperties?:Record<string,string>;permissions?:{role:string}[]}>(`/files/${grant.folderId}?fields=ownedByMe,trashed,appProperties,permissions`)
+    if (!folder.ownedByMe || folder.trashed || folder.appProperties?.smpAdmin !== prior.namespace || !folder.permissions?.length || folder.permissions.some(p=>p.role!=="owner")) throw transientError()
+    const encryptedClient = await this.vault.seal({...prior,...next},"drive-client")
+    const encryptedGrant = await this.vault.seal({...grant,accessToken:token.access_token,expires:this.now+token.expires_in*1000},"drive-grant")
+    const check = crypto.randomUUID()
+    // CAS and the two encrypted values commit together. A concurrent reconnect
+    // or refresh cannot be overwritten by an older rotation attempt.
+    try { await db.batch([
+      db.prepare("INSERT INTO mutation_checks(token,valid) VALUES(?,CASE WHEN (SELECT encrypted FROM storage_secrets WHERE key='drive-client')=? AND (SELECT encrypted FROM storage_secrets WHERE key='drive-grant')=? THEN 1 ELSE 0 END)").bind(check,original,originalGrant),
+      db.prepare("UPDATE storage_secrets SET encrypted=? WHERE key='drive-client'").bind(encryptedClient),
+      db.prepare("UPDATE storage_secrets SET encrypted=? WHERE key='drive-grant'").bind(encryptedGrant),
+      db.prepare("DELETE FROM drive_oauth"),
+      ...securityEventStatements(db,this.now,"drive:rotate"),
+      db.prepare("DELETE FROM mutation_checks WHERE token=?").bind(check),
+    ]) } catch { throw new HttpError(409, "연결 상태가 바뀌었어요. 기존 설정은 유지됩니다. 다시 확인해 주세요.") }
+    return {ok:true}
   }
   async start(owner: string) {
     const client = await this.vault.get<Client>("drive-client")

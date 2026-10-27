@@ -22,6 +22,7 @@ export class MockDrive {
   trashFailures = false
   quotaRemaining = 1024 * 1024 * 1024
   issued = 0
+  rejectedSecret = ""
   metadata(file: MockFile) {
     return {
       ...file,
@@ -36,6 +37,7 @@ export class MockDrive {
       headers = new Headers(init.headers)
     this.calls.push({ method, url: input })
     const json = (v: unknown, status = 200) => Response.json(v, { status })
+    if (url.href === "https://oauth2.googleapis.com/token" && this.rejectedSecret && new URLSearchParams(String(init.body)).get("client_secret") === this.rejectedSecret) return json({},400)
     if (url.href === "https://oauth2.googleapis.com/token")
       return json({
         access_token: "test-access",

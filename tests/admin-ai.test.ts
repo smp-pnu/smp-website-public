@@ -11,7 +11,7 @@ import { prefillAi } from "../admin-lab/ai-prefill"
 const page = "Equity Research 2026.02.26\n티씨케이 (KQ.064670)\nNAND 호황기가 눈앞\n목표주가 335,500원\n현재주가 238,500원\nUpside 41%\nSRS 38th Research Team 1\ncontact@example.com 010-1234-5678"
 const quote = (value: string, source: string) => ({ value, quote: source, page: 1 })
 const output = { company: quote("티씨케이", "티씨케이 (KQ.064670)"), ticker: quote("064670", "티씨케이 (KQ.064670)"), title: quote("NAND 호황기가 눈앞", "NAND 호황기가 눈앞"), date: quote("2026-02-26", "Equity Research 2026.02.26"), targetPrice: quote("335,500원", "목표주가 335,500원"), upside: quote("41%", "Upside 41%") }
-const input = { hash: "a".repeat(64), pages: aiPages([page]) }
+const input = { reviewed: true, hash: "a".repeat(64), pages: aiPages([page]) }
 async function database() {
   const sqlite = new DatabaseSync(":memory:")
   sqlite.exec(await readFile(new URL("../admin-cloud/schema.sql", import.meta.url), "utf8"))
@@ -98,9 +98,30 @@ test("AI daily ceiling counts errors and concurrent requests and cached results 
 test("client keeps PDF and rule-based fields when AI is unavailable or returns invented evidence", async t => {
   const base = { fields: emptyFields(), evidence: [], warnings: [], sourcePages: [page], cover: new Blob(["cover"]), pages: 39 }
   t.mock.method(globalThis, "fetch", async () => { throw new TypeError("Load failed") })
-  const result = await prefillAi(base, input.hash, "test.pdf", new AbortController().signal, () => {})
+  const result = await prefillAi(base, input.hash, "test.pdf", new AbortController().signal, () => {}, async () => true)
   assert.equal(result.cover, base.cover); assert.equal(result.pages, 39); assert.ok(result.warnings.length)
   t.mock.method(globalThis, "fetch", async () => Response.json({ candidates: [{ field: "ticker", value: "005930", quote: "Samsung (005930)", page: 1 }] }))
-  const forged = await prefillAi(base, input.hash, "test.pdf", new AbortController().signal, () => {})
+  const forged = await prefillAi(base, input.hash, "test.pdf", new AbortController().signal, () => {}, async () => true)
   assert.equal(forged.fields.ticker, "")
+})
+
+
+test("AI contact masking covers compact, dotted and international phones without losing tickers", () => {
+  const raw = "티씨케이 064670 · 01012345678 · 010.1234.5678 · +82 (0)10-1234-5678 · +1 415 555 0123 · 02 123 4567 · user@example.com"
+  const clean = aiPages([raw]).join("")
+  assert.match(clean,/064670/)
+  assert.doesNotMatch(clean,/12345678|1234|555|example.com/)
+})
+test("AI opt-out performs no API request; server rejects missing review before database access", async () => {
+  const original = globalThis.fetch
+  let calls = 0
+  globalThis.fetch = async () => { calls++; throw Error("must not send") }
+  const base = {fields:emptyFields(), evidence:[], warnings:[], sourcePages:[page]}
+  try {
+    assert.equal(await prefillAi(base,input.hash,"test.pdf",new AbortController().signal,()=>{},async () => false),base)
+    assert.equal(calls,0)
+    const {db,sqlite} = await database()
+    try { await assert.rejects(extractMetadata({...input,reviewed:false},db,{async run(){ calls++; return {} }}),/전송 내용을/);assert.equal(calls,0) }
+    finally {sqlite.close()}
+  } finally {globalThis.fetch=original}
 })

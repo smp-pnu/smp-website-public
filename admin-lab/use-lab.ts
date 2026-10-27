@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { listDrafts, insertDraft, mutateDraft, readAssets, readCover } from "./storage"
 import { cloudMode, serverMode, storageLabel } from "./mode"
+import { useConfirmation } from "./confirm"
 import { prefillAi } from "./ai-prefill"
 import { adminError } from "./errors"
 import { checkCapacity, limits, type Draft, type Fields, type DraftCommand } from "./model"
 
 export function useLab() {
+  const [aiEnabled, setAiEnabled] = useState(false)
+  const confirm = useConfirmation()
+  const reviewAi = (pages: string[]) => confirm(
+    "아래 텍스트만 Cloudflare AI에 전송합니다. 이름·주소 등은 자동 제거되지 않을 수 있어요. 민감한 내용이 있으면 기본 추출을 사용해 주세요.",
+    { title: "AI 전송 내용 확인", preview: pages.map((page, i) => `[${i + 1}쪽]\n${page}`).join("\n\n"), cancelLabel: "기본 추출만 사용", acceptLabel: "확인하고 AI 사용" },
+  )
   const [drafts, setDrafts] = useState<Draft[]>([])
   const [selected, setSelected] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -67,8 +74,8 @@ export function useLab() {
           }
           if(!cloudMode)checkCapacity(current, file.size)
           const extracted = await analyzePdf(file.name, bytes, run.signal, label)
-          const analysis = cloudMode
-            ? await prefillAi(extracted, hash, file.name, run.signal, label)
+          const analysis = cloudMode && aiEnabled
+            ? await prefillAi(extracted, hash, file.name, run.signal, label, reviewAi)
             : extracted
           run.signal.throwIfAborted()
           const now = new Date().toISOString()
@@ -146,8 +153,8 @@ export function useLab() {
         setProgress,
         assets.cover,
       )
-      const result = cloudMode
-        ? await prefillAi(extracted, draft.hash, draft.filename, run.signal, setProgress)
+      const result = cloudMode && aiEnabled
+        ? await prefillAi(extracted, draft.hash, draft.filename, run.signal, setProgress, reviewAi)
         : extracted
       run.signal.throwIfAborted()
       await change(
@@ -204,6 +211,7 @@ export function useLab() {
     }
   }
   return {
+    aiEnabled, setAiEnabled,
     drafts,
     selected,
     setSelected,

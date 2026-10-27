@@ -295,6 +295,15 @@ export function App({
               </label>
             </header>
           )}
+          {cloudMode && (
+            <div className="list-help">
+              <label>
+                <input type="checkbox" checked={lab.aiEnabled} disabled={busy} onChange={e => lab.setAiEnabled(e.target.checked)} />
+                {" "}AI로 입력 후보 보완
+              </label>
+              <p>선택하면 등록·다시 추출 시 앞 3쪽의 전송 텍스트를 먼저 확인합니다. 기본 추출은 AI에 전송하지 않습니다. 하루 최대 10건, 같은 원문 결과는 재사용합니다.</p>
+            </div>
+          )}
           {dragging && (
             <div className="drop-hint">
               <Upload size={18} />
@@ -372,12 +381,6 @@ export function App({
                   </button>
                 </details>
               </div>
-              {cloudMode && (
-                <p className="list-help">
-                  등록 시 앞 3쪽의 텍스트를 Cloudflare AI에 전달해 입력 후보를 보완합니다. 하루 최대
-                  10건이며, 같은 원문 결과는 재사용합니다. 자동 입력값은 원문과 확인해 주세요.
-                </p>
-              )}
             </>
           )}
         </div>

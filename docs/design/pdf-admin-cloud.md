@@ -30,7 +30,7 @@ Worker는 PDF 전체 구조 검사나 표지 재인코딩을 하지 않는다. �
 | 총 저장 | 200MiB / 50개, 휴지통·예약 업로드 포함 |
 | 표지 | 1MiB 이하 정적 WebP 또는 JPEG, 각 변 최대 2048px |
 | 인증된 자료 API | 전체 하루 5,000회, 분당 600회 |
-| 공개 인증 POST | 전체 하루 200회, 분당 40회(등록·로그인 옵션/검증 각각 1회) |
+| 공개 인증 POST | Cloudflare 바인딩으로 요청자·단계별 분당 20회, 초과 요청은 D1 접근 전 거부. 지역별 근사 한도이며 공격 트래픽 전체에 대한 무료 사용량 보장은 아님 |
 | 동시 업로드 | 1건, 여러 파일은 순차 처리 |
 | AI 입력 보완 | 전체 하루 최대 10회, 실패 포함, UTC 자정(한국 오전 9시) 초기화 |
 
@@ -80,3 +80,7 @@ Git 제외 파일 `.smp-tools/admin-cloud-target.json`에는 시험 `databaseId`
 한 학기당 관리자 1명인 인수인계에는, 다음 담당자가 자신의 기기에서 기존 복구 코드로 패스키를 교체하는 현재 절차를 쓸 수 있다. 새 등록이 완료되기 전에는 기존 권한이 유지되며, 완료 순간 기존 패스키·세션과 복구 코드가 무효가 된다. 다음 담당자가 새 복구 코드를 직접 보관한다. 단순히 새 패스키를 추가하고 이전 키만 해제하는 방식은 이전 담당자가 알고 있는 복구 코드까지 폐기하지 않으므로 완전한 인수인계로 설명하지 않는다. 실제 인수인계나 기존 관리자 권한 해제는 이번 디자인 작업에서 실행하지 않았다.
 
 참고한 설계: [Shopify 목록](https://shopify.dev/docs/api/app-home/latest/patterns/compositions/resource-list), [Shopify 폼·저장](https://shopify.dev/docs/apps/design/user-experience/forms), [Atlassian 내비게이션](https://atlassian.design/components/navigation-system/), [MDN 패스키](https://developer.mozilla.org/en-US/docs/Web/Security/Authentication/Passkeys).
+
+## 인증 관리 보완
+
+패스키 추가·해제 및 Drive 키 교체는 기존 패스키의 사용자 확인을 다시 받는다. 재인증 결과는 같은 세션·대상 작업에만 유효하고 2분 이내 한 번 사용한다. 새 기기 등록 증명도 시작한 세션에 묶는다. 성공한 보안 변경은 비밀정보 없이 작업 종류·시각만 최근 90일/200건 중 작은 범위로 보관한다. 인증 보호 바인딩이 누락되면 로그인 기능은 설정 오류로 닫힌다. 관리자 배포 설정에 해당 바인딩이 포함돼야 한다.

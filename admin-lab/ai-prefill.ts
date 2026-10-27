@@ -4,11 +4,14 @@ import type { Evidence, Fields } from "./model"
 
 export async function prefillAi<T extends { fields: Fields; evidence: Evidence[]; warnings: string[]; sourcePages: string[] }>(
   base: T, hash: string, filename: string, signal: AbortSignal, progress: (step: string) => void,
+  review: (pages: string[]) => Promise<boolean>,
 ): Promise<T> {
-  progress("AI로 입력 후보를 확인하는 중")
   const pages = aiPages(base.sourcePages)
+  if (!await review(pages)) return base
+  signal.throwIfAborted()
+  progress("AI로 입력 후보를 확인하는 중")
   try {
-    const result = await (await api("/metadata/extract", { method: "POST", signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hash, pages }) })).json() as { candidates: AiCandidate[]; warning?: string }
+    const result = await (await api("/metadata/extract", { method: "POST", signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hash, pages, reviewed: true }) })).json() as { candidates: AiCandidate[]; warning?: string }
     signal.throwIfAborted()
     // Recheck quoted evidence on the client, too. Never directly spread model
     // properties onto a draft, even if the API response is unexpectedly shaped.

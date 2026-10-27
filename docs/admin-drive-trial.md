@@ -28,7 +28,7 @@ Google 앱이 External / Testing이면 Drive 갱신 토큰이 7일 뒤 만료된
 
 연결 오류에 `Google 인증 교환` 또는 `Google 계정 확인`이 나오면 해당 단계와 HTTP 상태를 먼저 확인한다. 원문 오류 응답이나 OAuth 코드·토큰을 로그에 남기지 않는다. Cloudflare의 네이티브 `fetch`는 클래스 메서드처럼 바인딩해 호출하면 안 되며 `redirect: "error"`도 지원하지 않는다. 전역 함수로 호출하고 `manual`로 받은 리디렉션을 거부한다. 단, Drive의 위치 헤더 없는 HTTP 308 응답은 분할 업로드 수신 확인이므로 유지한다.
 
-서버의 허용 계정은 Git에 들어가지 않는 `.smp-tools/admin-cloud-target.json`의 `driveAccountEmail`에서 배포 변수로 전달된다. 연결 계정 이메일은 서버에서도 확인한다. OAuth 클라이언트 교체는 기존 파일 접근을 끊을 수 있어 화면에서 임의 교체할 수 없다.
+서버의 허용 계정은 Git에 들어가지 않는 `.smp-tools/admin-cloud-target.json`의 `driveAccountEmail`에서 배포 변수로 전달된다. 연결 계정 이메일은 서버에서도 확인한다. OAuth 앱 자체의 교체는 차단한다. 같은 클라이언트 ID의 비밀 키는 **파일 저장소 → 연결 키 교체**에서 기존 패스키로 재인증한 뒤 교체할 수 있다. 새 키로 학회 계정과 기존 비공개 폴더를 확인한 뒤 설정을 원자적으로 저장하며, 실패하면 이전 설정을 유지한다. 성공 확인 전에 Google의 이전 키를 폐기하지 않는다.
 
 ## 보관·삭제 원칙
 

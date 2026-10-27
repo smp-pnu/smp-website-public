@@ -17,6 +17,7 @@ const origin = 'https://admin.pnusmp.com'
 const setupToken = 'b'.repeat(64)
 const bundle = await build({entryPoints:['admin-cloud/worker.ts'],bundle:true,write:false,format:'esm',platform:'neutral',mainFields:['module','main'],external:['node:*'],target:'es2022'})
 const mf = new Miniflare(convertV4MiniflareOptions({
+  ratelimits:{AUTH_LIMITER:{namespace_id:'2026102701',simple:{limit:20,period:60}}},
   modules:true,script:bundle.outputFiles[0].text,compatibilityDate:'2026-10-01',compatibilityFlags:['nodejs_compat'],
   cf:false,host:'127.0.0.1',port:0,d1Databases:{ADMIN_DB:'test-admin'},
   bindings:{ORIGIN:origin,SESSION_SIGNING_KEY:'a'.repeat(64),SETUP_TOKEN_HASH:createHash('sha256').update(setupToken).digest('hex')},
@@ -32,7 +33,7 @@ try {
   let csrf = ''
   const call = async (path,method='GET',data) => {
     const binary = data instanceof Uint8Array
-    const response = await mf.dispatchFetch(origin+path,{method,headers:{Origin:origin,Cookie:jar.read(),'X-CSRF-Token':csrf,...(data?{'Content-Type':binary?'application/octet-stream':'application/json'}:{})},body:data?(binary?data:JSON.stringify(data)):undefined})
+    const response = await mf.dispatchFetch(origin+path,{method,headers:{Origin:origin,'CF-Connecting-IP':'192.0.2.1',Cookie:jar.read(),'X-CSRF-Token':csrf,...(data?{'Content-Type':binary?'application/octet-stream':'application/json'}:{})},body:data?(binary?data:JSON.stringify(data)):undefined})
     assert.equal(response.status<300,true,`${method} ${path}: ${response.status} ${response.status>=300?await response.text():''}`)
     jar.set(response); return response
   }
@@ -45,7 +46,7 @@ try {
   csrf = (await (await call('/api/auth/login/verify','POST',{response:device.authenticate(login,origin)})).json()).session.csrf
   // An absent AI binding must leave uploads available. No remote inference is
   // configured in this local runtime; the model boundary is mocked in unit tests.
-  const metadata = await (await call('/api/metadata/extract','POST',{hash:'a'.repeat(64),pages:['Test investment report, company (123456), source text long enough for extraction.']})).json()
+  const metadata = await (await call('/api/metadata/extract','POST',{reviewed:true,hash:'a'.repeat(64),pages:['Test investment report, company (123456), source text long enough for extraction.']})).json()
   assert.deepEqual(metadata.candidates,[]); assert.ok(metadata.warning)
   // Optional real PDF path permits a local end-to-end transport check without publishing it.
   const source = process.argv[2] ? new Uint8Array(await readFile(process.argv[2])) : new Uint8Array(32*1024*1024).fill(32)

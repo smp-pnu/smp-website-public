@@ -12,6 +12,7 @@ const { Miniflare, convertV4MiniflareOptions } = createRequire(require.resolve('
 const origin = 'https://admin.pnusmp.com', setupToken = 'b'.repeat(64), google = new MockDrive()
 const bundle = await build({ entryPoints: ['admin-cloud/worker.ts'], bundle: true, write: false, format: 'esm', platform: 'neutral', mainFields: ['module', 'main'], external: ['node:*'], target: 'es2022' })
 const mf = new Miniflare(convertV4MiniflareOptions({
+  ratelimits:{AUTH_LIMITER:{namespace_id:'2026102701',simple:{limit:20,period:60}}},
   modules: true, script: bundle.outputFiles[0].text, compatibilityDate: '2026-10-01', compatibilityFlags: ['nodejs_compat'],
   cf: false, host: '127.0.0.1', port: 0, d1Databases: { ADMIN_DB: 'test-drive-admin' },
   bindings: { ORIGIN: origin, DRIVE_ACCOUNT_EMAIL: google.email, SESSION_SIGNING_KEY: 'a'.repeat(64), SETUP_TOKEN_HASH: createHash('sha256').update(setupToken).digest('hex') },
@@ -30,7 +31,7 @@ try {
   let csrf = ''
   const call = async (path, method = 'GET', data, redirect = 'follow') => {
     const response = await mf.dispatchFetch(origin + path, {
-      method, redirect, headers: { Origin: origin, Cookie: jar.read(), 'X-CSRF-Token': csrf, ...(data ? { 'Content-Type': 'application/json' } : {}) },
+      method, redirect, headers: { Origin: origin, 'CF-Connecting-IP':'192.0.2.1', Cookie: jar.read(), 'X-CSRF-Token': csrf, ...(data ? { 'Content-Type': 'application/json' } : {}) },
       body: data ? JSON.stringify(data) : undefined,
     })
     jar.set(response)

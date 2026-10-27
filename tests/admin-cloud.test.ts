@@ -75,7 +75,13 @@ async function fixture(initialOrigin = origin, drive?: MockDrive) {
     csrf = ""
   const jar = cookieJar(),
     device = authenticator()
+  const limits = new Map<string, { start: number; hits: number }>()
   const env: Env = {
+    AUTH_LIMITER: { async limit({key}) {
+      let value = limits.get(key)
+      if (!value || now >= value.start + 60000) { value = {start: now, hits: 0}; limits.set(key, value) }
+      return {success: ++value.hits <= 20}
+    } },
     ADMIN_DB: adapter,
     ASSETS: {
       async fetch() {
@@ -96,6 +102,7 @@ async function fixture(initialOrigin = origin, drive?: MockDrive) {
   ) => {
     const headers: Record<string, string> = {
       Origin: env.ORIGIN,
+      "CF-Connecting-IP": "192.0.2.1",
       Cookie: token || jar.read(),
       "X-CSRF-Token": csrf,
       ...extra,
@@ -140,6 +147,12 @@ async function fixture(initialOrigin = origin, drive?: MockDrive) {
       assert.equal(response.status, 200, response.status === 200 ? "" : await response.text())
       csrf = (await response.json()).session.csrf
     }
+  }
+  const stepUp = async (purpose: string, extra: Record<string,string> = {}) => {
+    const options = await (await call("/api/auth/reauth/options", "POST", {purpose}, extra)).json()
+    const response = await call("/api/auth/reauth/verify", "POST", {response: device.authenticate(options, env.ORIGIN)}, extra)
+    assert.equal(response.status, 200, await response.clone().text())
+    return (await response.json()).stepUpToken as string
   }
   const pdf = new Uint8Array(await samplePdf(0).arrayBuffer())
   const cover = new Uint8Array(
@@ -192,6 +205,7 @@ async function fixture(initialOrigin = origin, drive?: MockDrive) {
     login,
     jar,
     device,
+    stepUp,
     pdf,
     cover,
     meta,
@@ -219,7 +233,7 @@ test("AI metadata endpoint requires authentication and CSRF, returns only ground
   let calls = 0
   const page =
     "Equity Research 2026.02.26\n티씨케이 (KQ.064670)\nNAND 호황기가 눈앞\n목표주가 335,500원"
-  const input = { hash: "a".repeat(64), pages: [page] }
+  const input = { reviewed: true, hash: "a".repeat(64), pages: [page] }
   f.env.AI = {
     async run() {
       calls++
@@ -582,8 +596,7 @@ test("passkeys bind proof to challenge, origin and user verification; setup cann
         type,
       )
     }
-    f.db.prepare("UPDATE usage SET hits=200 WHERE key LIKE 'auth-day:%'").run()
-    assert.equal((await f.call("/api/auth/login/options", "POST", {})).status, 429)
+    assert.equal((await f.call("/api/auth/login/options", "POST", {})).status, 200)
   } finally {
     f.close()
   }
@@ -730,9 +743,9 @@ test("additional passkeys require live admin CSRF, last key is protected and rem
         .status,
       403,
     )
-    assert.equal((await f.call("/api/auth/keys/remove", "POST", { id: f.device.id })).status, 409)
+    assert.equal((await f.call("/api/auth/keys/remove", "POST", { id: f.device.id, stepUpToken: await f.stepUp(`key:remove:${f.device.id}`) })).status, 409)
     const options = await (
-      await f.call("/api/auth/register/options", "POST", { mode: "add" })
+      await f.call("/api/auth/register/options", "POST", { mode: "add", stepUpToken: await f.stepUp("key:add") })
     ).json()
     const second = authenticator()
     assert.equal(
@@ -746,7 +759,7 @@ test("additional passkeys require live admin CSRF, last key is protected and rem
     )
     await f.login()
     assert.equal((await (await f.call("/api/auth/keys")).json()).length, 2)
-    assert.equal((await f.call("/api/auth/keys/remove", "POST", { id: second.id })).status, 200)
+    assert.equal((await f.call("/api/auth/keys/remove", "POST", { id: second.id, stepUpToken: await f.stepUp(`key:remove:${second.id}`) })).status, 200)
     const proofOptions = await (await f.call("/api/auth/login/options", "POST", {})).json()
     assert.equal(
       (
@@ -1549,4 +1562,71 @@ test("OAuth callback works without a session but only authenticated confirmation
   } finally {
     f.close()
   }
+})
+
+
+test("unauthenticated floods cannot spend another IP's login budget or write D1 after limiting", async () => {
+  const f = await fixture()
+  try {
+    await f.login()
+    for(let i=0;i<220;i++) {
+      const r = await f.call("/api/auth/login/options", "POST", {}, {"CF-Connecting-IP":"192.0.2.99", "X-Forwarded-For": `198.51.100.${i}`})
+      assert.equal(r.status, i < 20 ? 200 : 429)
+      if(i >= 20) assert.equal(f.queries, 0)
+    }
+    assert.equal(f.db.prepare("SELECT count(*) AS n FROM usage WHERE key LIKE 'auth-%'").get()!.n, 0)
+    assert.equal((await f.call("/api/auth/login/options", "POST", {})).status, 200)
+    // Proofs are isolated even when the same NAT has spent its start budget.
+    const options = await (await f.call("/api/auth/login/options", "POST", {}, {"CF-Connecting-IP":"192.0.2.55"})).json()
+    const flowCookie = f.jar.read()
+    for(let i=0;i<21;i++) await f.call("/api/auth/login/options", "POST", {}, {"CF-Connecting-IP":"192.0.2.55"})
+    assert.equal((await f.call("/api/auth/login/verify", "POST", {response:f.device.authenticate(options,origin)}, {"CF-Connecting-IP":"192.0.2.55",Cookie:flowCookie})).status, 200)
+    f.time(60001)
+    assert.equal((await f.call("/api/auth/login/options", "POST", {}, {"CF-Connecting-IP":"192.0.2.99"})).status,200)
+  } finally { f.close() }
+})
+
+test("step-up requires an existing key and binds one-use authority to action, session and expiry", async () => {
+  const f = await fixture()
+  try {
+    await f.login(); f.time(20*60000)
+    assert.equal((await f.call("/api/auth/register/options", "POST", {mode:"add"})).status,403)
+    const options = await (await f.call("/api/auth/reauth/options", "POST", {purpose:"key:add"})).json()
+    const stranger = authenticator()
+    assert.equal((await f.call("/api/auth/reauth/verify", "POST", {response:stranger.authenticate(options,origin)})).status,403)
+    let grant = await f.stepUp("key:add")
+    assert.equal((await f.call("/api/auth/keys/remove", "POST", {id:f.device.id,stepUpToken:grant})).status,403)
+    assert.equal((await f.call("/api/auth/register/options", "POST", {mode:"add",stepUpToken:grant})).status,200)
+    assert.equal((await f.call("/api/auth/register/options", "POST", {mode:"add",stepUpToken:grant})).status,403)
+    grant = await f.stepUp("key:add"); f.time(120001)
+    assert.equal((await f.call("/api/auth/register/options", "POST", {mode:"add",stepUpToken:grant})).status,403)
+    grant = await f.stepUp("key:add"); await f.login()
+    assert.equal((await f.call("/api/auth/register/options", "POST", {mode:"add",stepUpToken:grant})).status,403)
+  } finally { f.close() }
+})
+
+
+test("Drive secret rotation needs step-up, preserves the app namespace and rolls back invalid keys", async () => {
+  const google = new MockDrive(), f = await fixture(origin, google)
+  try {
+    await f.login(); await connectDrive(f)
+    const vault = new StorageVault(f.env)
+    const before = await vault.get<{namespace:string;clientId:string;clientSecret:string}>("drive-client")
+    const grant = await vault.get<{folderId:string;refreshToken:string}>("drive-grant")
+    const client = driveClient(); client.web.client_secret="new-secret-for-test-only"
+    assert.equal((await f.call("/api/storage/drive/rotate","POST",{client})).status,403)
+    google.rejectedSecret=client.web.client_secret
+    assert.equal((await f.call("/api/storage/drive/rotate","POST",{client,stepUpToken:await f.stepUp("drive:rotate")})).status,503)
+    assert.deepEqual(await vault.get("drive-client"),before)
+    google.rejectedSecret=""
+    const wrong = driveClient(); wrong.web.client_id="different.apps.googleusercontent.com"
+    assert.equal((await f.call("/api/storage/drive/rotate","POST",{client:wrong,stepUpToken:await f.stepUp("drive:rotate")})).status,409)
+    assert.equal((await f.call("/api/storage/drive/rotate","POST",{client,stepUpToken:await f.stepUp("drive:rotate")})).status,200)
+    assert.deepEqual(await vault.get("drive-client"),{...before,clientSecret:client.web.client_secret})
+    assert.equal((await vault.get<{folderId:string}>("drive-grant"))!.folderId,grant!.folderId)
+    assert.equal(google.files.size,1)
+    assert.equal((await f.call("/api/storage/drive/quota")).status,200)
+    assert.equal(f.db.prepare("SELECT count(*) AS n FROM security_events WHERE action='drive:rotate'").get()!.n,1)
+    for(const row of f.db.prepare("SELECT encrypted FROM storage_secrets").all())assert.ok(!String(row.encrypted).includes(client.web.client_secret))
+  } finally {f.close()}
 })

@@ -4,6 +4,7 @@ import { api, setApiSession, type Session } from "./server-storage"
 import { useConfirmation } from "./confirm"
 import { normalizeAdminCode, parseRecoveryFile } from "./recovery-code"
 
+import { reauthenticate } from "./reauthenticate"
 import { SecuritySettings, type PasskeyItem } from "./security-settings"
 const post = async (path: string, data: unknown = {}) => (await api(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) })).json()
 const message = (error: unknown) => error instanceof Error && error.name === "NotAllowedError" ? "패스키 인증이 취소됐거나 시간이 지났어요. 다시 시도해 주세요." : error instanceof Error ? error.message : "인증을 마치지 못했어요."
@@ -52,7 +53,8 @@ export function CloudAuthGate({ children }: { children: (session: Session, logou
   }
   const register = async (mode: "setup" | "recover" | "add") => {
     const code = mode === "add" ? "" : normalizeAdminCode(token)
-    const optionsJSON = await post("/auth/register/options", { mode, token: code })
+    const stepUpToken = mode === "add" ? await reauthenticate("key:add") : undefined
+    const optionsJSON = await post("/auth/register/options", { mode, token: code, stepUpToken })
     const response = await startRegistration({ optionsJSON })
     const result = await post("/auth/register/verify", { response, label })
     accept(result.session); setSetup(false); setRecover(false); setToken(""); setLabel("")
@@ -75,7 +77,7 @@ export function CloudAuthGate({ children }: { children: (session: Session, logou
     onLogout={async () => { try { await logout() } catch (e) { setError(message(e)) } }}
     onRemove={id => void run(async () => {
       if (!await confirm("이 패스키와 해당 패스키로 로그인한 세션을 해제할까요?")) return
-      await post("/auth/keys/remove", { id }); setKeys(await (await api("/auth/keys")).json())
+      await post("/auth/keys/remove", { id, stepUpToken: await reauthenticate(`key:remove:${id}`) }); setKeys(await (await api("/auth/keys")).json())
       try { await api("/session") } catch { accept(null); setSecurity(false) }
     })}/>
   if (session) return children(session, logout, () => { setSecurity(true); void run(async () => setKeys(await (await api("/auth/keys")).json())) })

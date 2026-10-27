@@ -16,6 +16,7 @@ const routes = [{ pattern: 'admin.pnusmp.com', custom_domain: true, zone_id: '5b
 let target = {}
 try { target = JSON.parse(await readFile(path.join(root, '.smp-tools/admin-cloud-target.json'), 'utf8')) } catch (e) { if (e.code !== 'ENOENT') throw e }
 if (target.driveAccountEmail !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target.driveAccountEmail)) throw Error('Invalid trial Drive account allowlist')
+const ratelimits = [{ name: "AUTH_LIMITER", namespace_id: "2026102701", simple: { limit: 20, period: 60 } }]
 const vars = { ORIGIN: origin, ...(target.driveAccountEmail ? {DRIVE_ACCOUNT_EMAIL: target.driveAccountEmail} : {}) }
 if (mode === 'build') {
   const require = createRequire(import.meta.url), pdfRoot = path.dirname(require.resolve('pdfjs-dist/package.json'))
@@ -35,7 +36,7 @@ if (mode === 'build') {
     workers_dev: true, preview_urls: false, routes,
     assets: { directory: './assets', binding: 'ASSETS', run_worker_first: ['/api/*', '/robots.txt'], not_found_handling: 'none' },
     d1_databases: [{ binding: 'ADMIN_DB', database_name: name, database_id: target.databaseId ?? '00000000-0000-4000-8000-000000000000' }],
-    vars,
+    vars, ratelimits,
     ai: { binding: 'AI' },
     observability: { enabled: false },
   }
@@ -44,7 +45,7 @@ if (mode === 'build') {
 } else {
   const config = JSON.parse(await readFile(configPath, 'utf8'))
   const db = config.d1_databases
-  if (config.name !== name || config.account_id !== account || JSON.stringify(config.routes) !== JSON.stringify(routes) || config.route || config.triggers || config.services || config.r2_buckets || config.kv_namespaces
+  if (JSON.stringify(config.ratelimits) !== JSON.stringify(ratelimits) || config.name !== name || config.account_id !== account || JSON.stringify(config.routes) !== JSON.stringify(routes) || config.route || config.triggers || config.services || config.r2_buckets || config.kv_namespaces
     || db?.length !== 1 || db[0].binding !== 'ADMIN_DB' || db[0].database_name !== name || db[0].database_id !== target.databaseId || !target.databaseId
     || ['00000000-0000-4000-8000-000000000000', '16cf8db5-1f95-48f3-af68-b32cfa7f7908', 'c09abb5e-02cd-4277-8b19-0af0642f7cae'].includes(target.databaseId)
     || JSON.stringify(config.ai) !== JSON.stringify({binding:'AI'}) || JSON.stringify(config.vars) !== JSON.stringify(vars) || config.preview_urls !== false || config.workers_dev !== true) throw Error('Refusing a deployment outside the isolated PDF admin trial')

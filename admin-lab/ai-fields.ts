@@ -8,12 +8,20 @@ export type AiCandidate = { field: AiField; value: string; quote: string; page: 
 export const aiTextLimit = 12_000 // UTF-8 bytes across at most three pages.
 export const compact = (value: string) => value.normalize("NFKC").replace(/\s+/g, "").toLocaleLowerCase()
 
+// Pattern masking is not anonymization: names, addresses and unusual contacts
+// still require the administrator's review in the local transmission preview.
+export function maskContacts(value: string) {
+  return value.normalize("NFKC")
+    .replace(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/g, "[이메일 생략]")
+    .replace(/(?<!\d)(?:\+82[ .()-]*(?:0[ .()-]*)?|0)(?:2|[1-9]\d)[ .()-]*\d{3,4}[ .()-]*\d{4}(?!\d)/g, "[연락처 생략]")
+    .replace(/(?<![\d+])\+[1-9]\d{0,2}(?:[ .()-]*\d){7,12}(?!\d)/g, "[연락처 생략]")
+}
+
 export function aiPages(pages: string[]) {
   let left = aiTextLimit
   const encoder = new TextEncoder()
   return pages.slice(0, 3).map(page => {
-    const clean = page.normalize("NFKC").replace(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/g, "[이메일 생략]")
-      .replace(/\b0\d{1,2}[- ]\d{3,4}[- ]\d{4}\b/g, "[연락처 생략]")
+    const clean = maskContacts(page)
     let text = ""
     for (const char of clean) { const bytes = encoder.encode(char).length; if (bytes > left) break; text += char; left -= bytes }
     return text

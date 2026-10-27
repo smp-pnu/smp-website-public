@@ -33,7 +33,9 @@ notRated: 원문에 Not Rated가 있을 때만 'Not Rated'. 목표주가가 없�
 }
 
 export async function extractMetadata(input: unknown, db: Database, ai: AiBinding | undefined, now = Date.now()): Promise<Result> {
-  const source = object(input), hash = text(source.hash, 64)
+  const source = object(input)
+  if (source.reviewed !== true) throw new HttpError(400, "AI 전송 내용을 확인한 뒤 요청해 주세요.")
+  const hash = text(source.hash, 64)
   if (!/^[a-f0-9]{64}$/.test(hash) || !Array.isArray(source.pages) || source.pages.length < 1 || source.pages.length > 3) throw new HttpError(400, "PDF 입력 정보를 확인해 주세요.")
   const supplied = source.pages.map(page => text(page, aiTextLimit))
   if (new TextEncoder().encode(supplied.join("")).length > aiTextLimit) throw new HttpError(400, "AI에 전달할 텍스트 용량을 초과했어요.")
@@ -42,7 +44,7 @@ export async function extractMetadata(input: unknown, db: Database, ai: AiBindin
   if (!ai) return { candidates: [], warning: unavailable }
   const prompt = metadataPrompt(pages)
   if (new TextEncoder().encode(JSON.stringify(prompt)).length > metadataPromptLimit) return { candidates: [], warning: "원문 형식이 복잡해 AI 보완을 생략했어요. 기본 추출값을 확인해 주세요." }
-  const key = await sha256(new TextEncoder().encode(JSON.stringify(["metadata-v2", hash, pages])))
+  const key = await sha256(new TextEncoder().encode(JSON.stringify(["metadata-v3", hash, pages])))
   await db.prepare("DELETE FROM metadata_extractions WHERE expires<=?").bind(now).run()
   const cached = await db.prepare("SELECT state,payload FROM metadata_extractions WHERE cache_key=?").bind(key).first<{ state: string; payload: string | null }>()
   if (cached) return cached.state === "ready" ? { ...JSON.parse(cached.payload!) as Result, cached: true } : { candidates: [], warning: "같은 PDF의 AI 처리가 진행 중이거나 잠시 중단됐어요. 기존 추출값으로 등록합니다." }

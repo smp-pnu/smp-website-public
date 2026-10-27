@@ -48,6 +48,14 @@ CREATE TABLE IF NOT EXISTS admin_challenges (
   expires INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS admin_challenge_expiry ON admin_challenges(expires);
+CREATE TABLE IF NOT EXISTS admin_stepups (
+  hash TEXT PRIMARY KEY, session TEXT NOT NULL, epoch TEXT NOT NULL,
+  purpose TEXT NOT NULL, expires INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS admin_stepup_expiry ON admin_stepups(expires);
+CREATE TABLE IF NOT EXISTS security_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, action TEXT NOT NULL, created INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS metadata_extractions (
   cache_key TEXT PRIMARY KEY,
   state TEXT NOT NULL CHECK(state IN ('pending','ready','failed')),

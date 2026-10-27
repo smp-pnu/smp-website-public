@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { HardDrive, RefreshCw, Upload } from "lucide-react"
 import { api } from "./server-storage"
+import { reauthenticate } from "./reauthenticate"
 import { sizeLabel } from "./model"
 
 type Status = {
@@ -178,6 +179,23 @@ export function StorageSettings({
                 )}
               </div>
             )}
+            {status.connected && <details>
+              <summary>연결 키 교체</summary>
+              <p className="field-help">Google에서 같은 OAuth 앱의 새 키를 만든 뒤 JSON을 선택하세요. 기존 패스키로 본인 확인 후 새 키의 연결을 검사합니다. 실패하면 기존 설정을 유지합니다. 성공을 확인하기 전에는 Google의 이전 키를 삭제하지 마세요.</p>
+              <label className={`secondary file-picker ${busy ? "disabled" : ""}`}>
+                새 키 JSON 확인·교체
+                <input type="file" accept="application/json,.json" aria-label="교체할 OAuth 앱 JSON" disabled={busy} onChange={e => {
+                  const file = e.target.files?.[0]; e.target.value=""; if(!file)return
+                  void run(async () => {
+                    if(file.size>16384)throw Error("OAuth 클라이언트 JSON 파일을 선택해 주세요.")
+                    const client = JSON.parse(await file.text())
+                    const stepUpToken = await reauthenticate("drive:rotate")
+                    await api("/storage/drive/rotate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({client,stepUpToken})})
+                  })
+                }}/>
+              </label>
+            </details>}
+            {status.configured && <p className="field-help">Google 앱이 ‘테스트’ 상태라면 연결이 7일 뒤 만료될 수 있습니다. 저장·조회가 중단되면 ‘Google 연결 갱신’으로 다시 승인해 주세요. 정식 이전 전에 Google 게시 상태를 확인해야 합니다.</p>}
             {status.pending && (
               <div className="settings-note">
                 <p>

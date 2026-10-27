@@ -172,3 +172,5 @@ fieldset { border: 0; border-top: 1px solid var(--line); min-width: 0; margin: 0
 .settings-panel > ul { padding-left: 20px; font-size: 13px; line-height: 1.9; }
 .settings-panel .button-row { flex-wrap: wrap; }
 @media (max-width: 650px) { .admin-sidebar nav { flex-wrap: wrap; } }
+.transmission-preview { max-height: 36svh; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: #f4f6f8; border: 1px solid #dce1e6; padding: 12px; font: 12px/1.6 ui-monospace, monospace; color: #253347; margin: 0 0 18px; }
+.confirm-dialog:has(.transmission-preview) { max-width: 680px; max-height: 90svh; overflow: auto; }
