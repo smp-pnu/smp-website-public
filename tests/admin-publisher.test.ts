@@ -97,6 +97,30 @@ test("complete snapshots, export authorization and explicit preview target are m
   f.target.sqlite.prepare("DELETE FROM preview_config").run()
   await assert.rejects(f.run(),/outside the isolated/)
 })
+test("native assets retain their receiver and packs have explicit binary headers",async t=>{
+  const f=await fixture(t),uploaded=await f.upload()
+  await f.change(uploaded.draft,{type:"approve",reviewed:true})
+  await f.run()
+  const binding={fetch:async function(input:Parameters<typeof fetch>[0]) {
+    assert.equal(this,binding,"Cloudflare Fetcher methods require their original receiver")
+    const response=await f.assets.fetch(input)
+    if((input as Request).url.endsWith('.pack'))return new Response(response.body)
+    return response
+  }}
+  const reader=await previewReader(f.target.db,binding)
+  const id=uploaded.draft.id.replaceAll("-","")
+  const item=await reader.published(id)
+  assert.ok(item)
+  const response=await reader.pdf(new Request(`https://preview.test/api/content/research/${id}/pdf?download=1`),item)
+  assert.equal(response.status,200)
+  assert.deepEqual(new Uint8Array(await response.arrayBuffer()),uploaded.pdf)
+  const cover=JSON.parse(f.target.sqlite.prepare('SELECT cover FROM preview_reports WHERE id=?').get(id)!.cover as string)
+  const pack=await reader.pdf(new Request(`https://preview.test/api/content/research/${id}/pdf?prepared=${cover.pdfHash}&pages=${cover.reader.pagePack.url.split('/').at(-1).slice(0,-5)}`),item)
+  assert.equal(pack.status,200)
+  assert.equal(pack.headers.get('content-type'),'application/octet-stream')
+  assert.equal(Number(pack.headers.get('content-length')),cover.reader.pagePack.bytes)
+  assert.equal(decodePagePack(new Uint8Array(await pack.arrayBuffer()),3).length,3)
+})
 test("ordering uses approved fields and preserves semester order without PDF conversion",async t=>{
   const f=await fixture(t),a=await f.upload(),b=await f.upload(1)
   await f.change(a.draft,{type:"approve",reviewed:true});await f.change(b.draft,{type:"approve",reviewed:true})
@@ -111,7 +135,9 @@ test("ordering uses approved fields and preserves semester order without PDF con
   const published=await f.run()
   assert.equal(published.prepared,0);assert.equal(f.google.calls.length,requests)
   const catalog=await (await f.get('/api/catalog/research')).json() as any
-  assert.deepEqual(catalog.items.map((r:any)=>r.company),['HPSP','인바디'])
+  // The catalogue intentionally leaves SQL row order unspecified; the public
+  // list uses semesterOrder through the existing shared sort function.
+  assert.deepEqual(sortContent(catalog.items).map(r=>r.company),['HPSP','인바디'])
   for(const fields of [{...changed.reports[0].fields,title:true},{...changed.reports[0].fields,notRated:'yes'},{...changed.reports[0].fields,token:'private'}]) {
     const reports=[{...changed.reports[0],fields}]
     assert.throws(()=>validateSnapshot({version:1,complete:true,reports,fingerprint:fingerprint(reports)} as any))

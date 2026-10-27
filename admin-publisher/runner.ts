@@ -4,14 +4,12 @@ import { publicReport, publicationLimits as limits, type ApprovedReport, type Re
 import { searchEntry, documentStatements } from "../free/server/catalog"
 import { fingerprint, validateSnapshot } from "./source"
 import { LocalPublicationAssets, prepareApprovedPdf, type PreparedEdition } from "./assets"
+import { assertPreviewDatabase } from "./target"
+export { assertPreviewDatabase } from "./target"
 
 type Published = {id:string;approved:string;edition:string;item:string;cover:string;original:string}
 export type PublisherResult = {published:number;withdrawn:number;reused:number;prepared:number;deferred:number;failed:number;unchanged:boolean;busy:boolean}
 const revisionKey=(r:ApprovedReport)=>fingerprint(r)
-export async function assertPreviewDatabase(db:Database) {
-  const marker=await db.prepare("SELECT value FROM preview_config WHERE key='mode'").first<{value:string}>()
-  if(marker?.value!=="admin-report-local-preview-v1")throw Error("Refusing a database outside the isolated local preview")
-}
 export async function publishReports(source:ReportSource,db:Database,assets:LocalPublicationAssets,
   options:{now?:()=>number;prepare?:typeof prepareApprovedPdf}={}) {
   await assertPreviewDatabase(db)

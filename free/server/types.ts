@@ -20,7 +20,7 @@ export type Env = {
   PUBLISH_FETCH?: typeof fetch;
   NOTION_WORKLOAD?: "visitor" | "sync" | "publisher" | "webhook";
   NOTION_WAIT_UNTIL?: number;
-  // Dependency injection for the isolated local publisher preview only. No
+  // Dependency injection for explicitly isolated publisher previews only. No
   // deployed config/service binding enables this; production remains Notion.
   REPORT_PREVIEW?: {
     published(id:string): Promise<ContentItem|null|undefined>;

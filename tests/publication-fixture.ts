@@ -46,8 +46,11 @@ export async function publicationFixture() {
     for(const [kind,bytes] of [["pdf",pdf],["cover",cover]] as const)for(let offset=0;offset<bytes.length;offset+=chunkBytes)
       await call(`/api/uploads/${begin.id}/${kind}/${offset/chunkBytes}`,"PUT",bytes.slice(offset,offset+chunkBytes))
     const draft=await (await call(`/api/uploads/${begin.id}/finish`,"POST")).json() as Draft
+    const ids:string[]=env.REPORT_EXPORT_SCOPE?JSON.parse(env.REPORT_EXPORT_SCOPE).ids.filter((id:string)=>id!=='0'.repeat(32)):[]
+    env.REPORT_EXPORT_SCOPE=JSON.stringify({ids:[...new Set([...ids,draft.id.replaceAll('-','')])],expires:now+86400000})
     return {draft,pdf}
   }
+  env.REPORT_EXPORT_SCOPE=JSON.stringify({ids:['0'.repeat(32)],expires:now+86400000})
   const change=async(d:Draft,command:unknown)=>{now++;await call(`/api/drafts/${d.id}`,"PATCH",{revision:d.revision,command});return JSON.parse((local.sqlite.prepare("SELECT data FROM objects WHERE id=?").get(d.id) as {data:string}).data) as Draft}
   return {...local,env,request,call,upload,change,login,connectDrive,google,source:()=>new HttpReportSource(origin,key,request),tick:(ms:number)=>{now+=ms},now:()=>now}
 }

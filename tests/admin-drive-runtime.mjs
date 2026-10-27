@@ -15,7 +15,7 @@ const require = createRequire(import.meta.url)
 const { Miniflare, convertV4MiniflareOptions } = createRequire(require.resolve('wrangler/package.json'))('miniflare')
 const origin = 'https://admin.pnusmp.com', setupToken = 'b'.repeat(64), google = new MockDrive()
 const bundle = await build({ entryPoints: ['admin-cloud/worker.ts'], bundle: true, write: false, format: 'esm', platform: 'neutral', mainFields: ['module', 'main'], external: ['node:*'], target: 'es2022' })
-const mf = new Miniflare(convertV4MiniflareOptions({
+const runtimeOptions = {
   ratelimits:{AUTH_LIMITER:{namespace_id:'2026102701',simple:{limit:20,period:60}}},
   modules: true, script: bundle.outputFiles[0].text, compatibilityDate: '2026-10-01', compatibilityFlags: ['nodejs_compat'],
   cf: false, host: '127.0.0.1', port: 0, d1Databases: { ADMIN_DB: 'test-drive-admin' },
@@ -24,7 +24,8 @@ const mf = new Miniflare(convertV4MiniflareOptions({
     method: request.method, headers: request.headers,
     ...(request.method === 'GET' ? {} : { body: request.method === 'PUT' ? new Uint8Array(await request.arrayBuffer()) : await request.text() }),
   }),
-}))
+}
+const mf = new Miniflare(convertV4MiniflareOptions(runtimeOptions))
 try {
   const db = await mf.getD1Database('ADMIN_DB')
   const schema = await readFile(new URL('../admin-cloud/schema.sql', import.meta.url), 'utf8')
@@ -69,6 +70,7 @@ try {
   for(const [kind,bytes] of [['pdf',pdf],['cover',cover]]) for(let offset=0;offset<bytes.length;offset+=chunkBytes)
     await call(`/api/uploads/${upload.id}/${kind}/${offset/chunkBytes}`,'PUT',bytes.slice(offset,offset+chunkBytes))
   const draft = await (await call(`/api/uploads/${upload.id}/finish`,'POST')).json()
+  await mf.setOptions(convertV4MiniflareOptions({...runtimeOptions,bindings:{...runtimeOptions.bindings,REPORT_EXPORT_SCOPE:JSON.stringify({ids:[draft.id.replaceAll('-','')],expires:Date.now()+3600000})}}))
   const exported = path => mf.dispatchFetch(origin + path,{headers:{Authorization:`Bearer ${'e'.repeat(64)}`}})
   assert.equal((await mf.dispatchFetch(origin+'/api/publisher/reports')).status,401)
   assert.equal((await (await exported('/api/publisher/reports')).json()).reports.length,0)

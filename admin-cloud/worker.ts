@@ -23,6 +23,7 @@ export interface Env extends AuthEnv {
   AI?: AiBinding
   DRIVE_ACCOUNT_EMAIL?: string
   REPORT_EXPORT_KEY?: string
+  REPORT_EXPORT_SCOPE?: string
 }
 export const headers = {
   "Cache-Control": "no-store",

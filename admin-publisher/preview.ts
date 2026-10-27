@@ -3,12 +3,11 @@ import type { Env } from "../free/server/types"
 import type { ContentItem } from "../lib/content-model"
 import type { ReaderPdf } from "../lib/report-reader"
 import { readReaderChunks } from "../free/server/reader-chunks"
-import type { LocalPublicationAssets } from "./assets"
-import { assertPreviewDatabase } from "./runner"
+import { assertPreviewDatabase } from "./target"
 
-// Only the local preview server installs this dependency. It cannot be enabled
+// Only isolated preview entry points install this dependency. It cannot be enabled
 // by an HTTP parameter, CMS field or production environment variable.
-export async function previewReader(db:Database,assets:LocalPublicationAssets):Promise<NonNullable<Env["REPORT_PREVIEW"]>> {
+export async function previewReader(db:Database,assets:{fetch:typeof fetch}):Promise<NonNullable<Env["REPORT_PREVIEW"]>> {
   await assertPreviewDatabase(db)
   return {
     async published(id) {
@@ -28,9 +27,18 @@ export async function previewReader(db:Database,assets:LocalPublicationAssets):P
       if(url.searchParams.has("pages")) {
         if(!pack||!prepared||!cover.reader?.pagePack?.url.endsWith(`/${pack}.pack`)||request.headers.has("range"))return missing()
         const value=await assets.fetch(new Request(new URL(cover.reader.pagePack.url,url)))
-        return new Response(value.body,{status:value.status,headers:{...Object.fromEntries(value.headers),"Content-Security-Policy":"sandbox","Cache-Control":"no-store"}})
+        const type=value.headers.get("content-type")?.split(";")[0]
+        if(value.status!==200||!value.body||(type&&type!=="application/octet-stream")
+          ||(value.headers.has("content-length")&&Number(value.headers.get("content-length"))!==cover.reader.pagePack.bytes)) {
+          await value.body?.cancel();return missing()
+        }
+        // Assets may omit the type/length of an unknown .pack extension. The
+        // reader requires these headers before its own full hash verification.
+        return new Response(value.body,{headers:{"Content-Type":"application/octet-stream","Content-Length":String(cover.reader.pagePack.bytes),"Content-Security-Policy":"sandbox","Cache-Control":"no-store"}})
       }
-      const response=await readReaderChunks(request,pdf,{CMS_DB:db,ASSETS:{fetch:assets.fetch}})
+      // Keep the native Fetcher as the receiver. Copying its fetch method to a
+      // plain object works with local arrow-function mocks but fails in workerd.
+      const response=await readReaderChunks(request,pdf,{CMS_DB:db,ASSETS:assets})
       if(!response)return missing()
       const headers=new Headers(response.headers)
       headers.set("Content-Disposition",`${url.searchParams.get("download")==="1"?"attachment":"inline"}; filename="report.pdf"; filename*=UTF-8''${encodeURIComponent(item.managedPdf!.name)}`)
