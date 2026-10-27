@@ -21,7 +21,7 @@ const rows=Array.from({length:25},(_,i)=>({id:String(i),filename:'sample.pdf',fi
 export const listing=renderToStaticMarkup(<ReportList drafts={rows} allDrafts={rows} criteria={defaultQuery} managed loading={false} onCriteria={()=>{}} onSelect={()=>{}} onRefresh={()=>{}} onMove={async()=>{}} onBatch={async()=>{}}/>);
 `
 try {
- await build({stdin:{contents:source,resolveDir:process.cwd(),loader:'tsx'},bundle:true,outfile:target,platform:'node',format:'esm',jsx:'automatic',external:['react','react-dom/server','lucide-react'],define:{'import.meta.env.MODE':'"admin-cloud"'}})
+ await build({stdin:{contents:source,resolveDir:process.cwd(),loader:'tsx'},bundle:true,outfile:target,platform:'node',format:'esm',jsx:'automatic',external:['react','react-dom','react-dom/server','lucide-react'],define:{'import.meta.env.MODE':'"admin-cloud"'}})
  const {content,listing}=await import(pathToFileURL(target).href)
  assert.ok(content.includes('&lt;script&gt;'));assert.ok(!content.includes('<script>'));assert.ok(!content.includes('javascript:'))
  assert.ok(content.includes('src="/api/notice-assets/test"'));assert.ok(content.includes('href="https://pnusmp.com/"'))

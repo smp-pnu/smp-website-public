@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react"
+import { createPortal } from "react-dom"
 import { FileText, Search, RefreshCw, ChevronRight, ArrowUp, ArrowDown, GripVertical } from "lucide-react"
 import type { Draft } from "./model"
 import { statusOf } from "./model"
 import { useCover } from "./use-lab"
-import { pageSize, type LibraryQuery, type BatchAction, type Filter, type Sort } from "./library-model"
+import { useReportReorder } from "./use-report-reorder"
+import { pageSize, type LibraryQuery, type BatchAction, type Filter, type Sort, type DropPlacement } from "./library-model"
 
 type Props = {
   drafts: Draft[]
@@ -14,7 +16,7 @@ type Props = {
   onCriteria: (query: LibraryQuery) => void
   onSelect: (id: string) => void
   onRefresh: () => void
-  onMove: (from: string, to: string) => Promise<void>
+  onMove: (from: string, to: string, placement?: DropPlacement) => Promise<void>
   onBatch: (items: Draft[], action: BatchAction) => Promise<void>
 }
 function Cover({ id }: { id: string }) {
@@ -41,11 +43,15 @@ export function ReportList({
     [selected, setSelected] = useState<string[]>([])
   const [field, setField] = useState<"semester" | "author" | "industry">("semester"),
     [value, setValue] = useState("")
-  const [dragged, setDragged] = useState("")
+  const reorder = useReportReorder(onMove)
+  const { dragged, target: dropTarget, cancel: clearDrag } = reorder
   useEffect(() => {
     setPage(1)
     setSelected([])
   }, [criteria])
+  useEffect(() => {
+    clearDrag()
+  }, [criteria, page, loading, clearDrag])
   const active = allDrafts.filter((d) => !d.trashedAt),
     approved = active.filter((d) => d.approvedRevision === d.revision).length
   const tabs: { value: Filter; label: string; count: number }[] = [
@@ -65,6 +71,7 @@ export function ReportList({
   const checked = visible.filter((d) => selected.includes(d.id))
   const update = (patch: Partial<LibraryQuery>) => onCriteria({ ...criteria, ...patch })
   const manual = managed && criteria.sort === "order" && criteria.filter !== "trash"
+  const moving = dragged ? drafts.find((draft) => draft.id === dragged) : null
   const batch = async (action: BatchAction) => {
     await onBatch(checked, action)
     setSelected([])
@@ -130,9 +137,9 @@ export function ReportList({
         </button>
       </div>
       {manual && (
-        <p className="library-hint">
-          왼쪽 손잡이를 드래그하거나 화살표로 순서를 바꿉니다. 다른 페이지까지 이동하려면 화살표를 사용하세요.
-          시험 사이트에만 저장됩니다.
+        <p className="library-hint" id="report-order-help">
+          <span className="drag-help">손잡이를 끌어 파란 선 위치에 놓으세요. Esc로 취소할 수 있습니다. </span>
+          화살표로도 이동할 수 있으며, 순서는 놓은 뒤 자동 저장됩니다.
         </p>
       )}
       {managed && criteria.filter === "trash" && (
@@ -180,7 +187,10 @@ export function ReportList({
           )}
         </div>
       )}
-      <div className="report-table-wrap">
+      <div
+        className={`report-table-wrap${dragged ? " is-reordering" : ""}`}
+        ref={reorder.table}
+      >
         <table className="report-table managed-table">
           <thead>
             <tr>
@@ -215,16 +225,11 @@ export function ReportList({
               return (
                 <tr
                   key={draft.id}
-                  onDragOver={(e) => {
-                    if (manual && dragged && !loading) e.preventDefault()
-                  }}
-                  onDrop={(e) => {
-                    if (!dragged || loading) return
-                    e.preventDefault()
-                    e.stopPropagation()
-                    void onMove(dragged, draft.id)
-                    setDragged("")
-                  }}
+                  data-report-id={draft.id}
+                  className={[
+                    dragged === draft.id ? "is-drag-source" : "",
+                    dropTarget?.id === draft.id ? `drop-${dropTarget.placement}` : "",
+                  ].filter(Boolean).join(" ") || undefined}
                 >
                   {managed && (
                     <td className="select-column">
@@ -246,13 +251,13 @@ export function ReportList({
                       <div className="order-controls">
                         <span
                           className="drag-handle"
-                          draggable={!loading}
-                          onDragStart={(e) => {
-                            setDragged(draft.id)
-                            e.dataTransfer.setData("text/plain", draft.id)
-                          }}
-                          onDragEnd={() => setDragged("")}
-                          title="드래그해서 순서 변경"
+                          onPointerDown={(event) => { if (!loading) reorder.start(event, draft.id) }}
+                          onPointerMove={reorder.move}
+                          onPointerUp={reorder.end}
+                          onPointerCancel={clearDrag}
+                          onLostPointerCapture={clearDrag}
+                          aria-describedby="report-order-help"
+                          title={`${draft.fields.title || draft.filename} 순서 변경: 파란 선에 놓기`}
                         >
                           <GripVertical size={14} />
                         </span>
@@ -304,6 +309,18 @@ export function ReportList({
           </tbody>
         </table>
       </div>
+      {moving && createPortal(
+        <div ref={reorder.preview} className="report-drag-preview" style={{ transform: reorder.previewPosition() }} aria-hidden="true">
+          <FileText size={22} />
+          <span><strong>{moving.fields.title || moving.filename}</strong><small>{moving.fields.company || moving.filename} · 이동 중</small></span>
+          <GripVertical size={16} />
+        </div>, document.body,
+      )}
+      <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {dropTarget
+          ? `${drafts.find((d) => d.id === dropTarget.id)?.fields.title || "리포트"} ${dropTarget.placement === "before" ? "앞" : "뒤"}에 놓기`
+          : dragged ? "리포트 이동 중. Esc로 취소할 수 있습니다." : ""}
+      </span>
       {!drafts.length && (
         <div className="table-empty" role="status">
           <FileText size={25} />

@@ -10,6 +10,7 @@ export type LibraryQuery = {
   industry: string
 }
 export type LibraryOrder = { revision: number; ids: string[] }
+export type DropPlacement = "before" | "after"
 export type BatchAction =
   | { type: "trash" | "restore" | "remove" }
   | { type: "classify"; field: "semester" | "author" | "industry"; value: string }
@@ -61,12 +62,15 @@ export function filterReports(drafts: Draft[], query: LibraryQuery, order: strin
         : b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id)
     })
 }
-export function moveReport(ids: string[], from: string, to: string) {
+export function moveReport(ids: string[], from: string, to: string, placement?: DropPlacement) {
   const source = ids.indexOf(from),
     target = ids.indexOf(to)
   if (source < 0 || target < 0 || source === target) return ids
   const next = [...ids]
   next.splice(source, 1)
-  next.splice(target, 0, from)
-  return next
+  // Explicit edges refer to the target after removing the source. Arrow moves
+  // keep their existing direction-based behavior when no edge is supplied.
+  const insertion = placement ? next.indexOf(to) + (placement === "after" ? 1 : 0) : target
+  next.splice(insertion, 0, from)
+  return next.every((id, index) => id === ids[index]) ? ids : next
 }

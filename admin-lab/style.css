@@ -77,7 +77,7 @@ progress::-webkit-progress-value { background: #708698; border-radius: 2px; }
 .clear-search { border: 0; background: none; color: #747e89; font-size: 18px; line-height: 1; }
 .sort-field { margin-left: auto; }
 .sort-field select { border: 1px solid #d4dae1; border-radius: 5px; background: #fff; color: #626d79; padding: 8px 28px 8px 10px; font-size: 12px; }
-.report-table-wrap { overflow-x: auto; }
+.report-table-wrap { overflow-x: auto; padding-bottom: 4px; }
 .report-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
 .report-table th { padding: 10px 16px; background: #f7f8fa; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); color: #777f89; font-weight: 500; white-space: nowrap; }
 .report-table th:first-child { padding-left: 20px; width: 48%; }
@@ -142,7 +142,23 @@ fieldset { border: 0; border-top: 1px solid var(--line); min-width: 0; margin: 0
 .order-column{width:96px;min-width:96px;padding:10px 5px!important}.order-controls{display:flex;align-items:center;gap:2px}
 .order-controls button,.block-controls button{display:inline-flex;align-items:center;justify-content:center;width:30px;height:32px;background:transparent;border:1px solid transparent;border-radius:4px;color:#627086}
 .order-controls button:hover:not(:disabled),.block-controls button:hover:not(:disabled){background:#e9eef5;border-color:#ccd5e1}
-.drag-handle{cursor:grab;padding:2px;color:#96a2b2}.drag-handle:active{cursor:grabbing}
+.drag-handle{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:24px;height:32px;cursor:grab;color:#8795a8;border-radius:4px;user-select:none}
+.drag-handle:hover{color:#294564;background:#e9eef5}.drag-handle:active{cursor:grabbing}
+.report-table .is-drag-source{opacity:.32;background:#edf2f8}
+.is-reordering .report-table tbody tr:hover{background:transparent}
+.is-reordering{cursor:grabbing;user-select:none}
+.is-reordering .report-link,.is-reordering button,.is-reordering input,.is-reordering .drag-handle{cursor:grabbing}
+.report-drag-preview{position:fixed;left:0;top:0;z-index:1000;pointer-events:none;display:flex;align-items:center;gap:12px;width:340px;max-width:calc(100vw - 16px);padding:14px 16px;background:rgb(255 255 255 / .94);border:1px solid #cbd7e6;border-radius:7px;box-shadow:0 6px 20px #172b4d1a;color:#294564;will-change:transform}
+.report-drag-preview>svg{flex-shrink:0}.report-drag-preview>span{min-width:0;flex:1}
+.report-drag-preview strong,.report-drag-preview small{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.report-drag-preview strong{font-size:13px;color:#25282d}.report-drag-preview small{font-size:11px;color:#68758a;margin-top:3px}
+.report-table .drop-before>td,.report-table .drop-after>td{position:relative}
+.report-table .drop-before>td::before,.report-table .drop-after>td::before{content:"";position:absolute;left:0;right:0;height:3px;background:#3b82f6;z-index:2;pointer-events:none}
+.report-table .drop-before>td::before{top:-2px}
+.report-table .drop-after>td::before{bottom:-2px}
+.report-table .drop-before>td:first-child::after,.report-table .drop-after>td:first-child::after{content:"";position:absolute;left:3px;width:7px;height:7px;border:2px solid #3b82f6;border-radius:50%;background:#fff;z-index:3;pointer-events:none}
+.report-table .drop-before>td:first-child::after{top:-4px}
+.report-table .drop-after>td:first-child::after{bottom:-4px}
 .report-table.managed-table .report-link{min-width:160px}.report-link strong{overflow-wrap:anywhere}
 .pagination{display:flex;align-items:center;gap:12px;font-size:12px}.pagination span{font-variant-numeric:tabular-nums}
 .notice-editor{border:1px solid #e0e5ec;border-radius:9px;background:#fff;overflow:hidden}
@@ -162,6 +178,8 @@ fieldset { border: 0; border-top: 1px solid var(--line); min-width: 0; margin: 0
 .notice-prose figure{margin:24px 0}.notice-prose img{display:block;max-width:100%;max-height:900px;margin:auto}.notice-prose figcaption{font-size:12px;color:#6b7789;text-align:center;margin-top:8px;white-space:pre-wrap}.notice-prose a{color:#285b88;text-decoration:underline;text-underline-offset:3px}
 @media(max-width:720px){.semester-folders{padding:12px 12px 0}.list-toolbar .search-field{flex-basis:100%}.list-toolbar .sort-field{flex:1}.list-toolbar .sort-field select{width:100%;max-width:none}.order-column{width:74px;min-width:74px}.drag-handle{display:none}.report-table.managed-table .report-link{min-width:135px}.notice-fields{margin:14px!important}.block-list{padding:0 12px}.notice-preview{padding:20px}.notice-editor .editor-tabs{flex-wrap:wrap}.notice-prose{font-size:14px}}
 .report-table.managed-table td.report-cell{white-space:normal;padding-block:0;width:46%}.notice-editor .check-row{margin-top:14px;margin-bottom:0}
+@media(max-width:720px){.drag-help{display:none}}
+@media(pointer:coarse){.drag-handle,.drag-help{display:none}}
 .editor-tabs{flex-wrap:wrap;gap:16px}.editor-tabs .file-picker{font-size:11px;padding:6px 8px;margin:6px 0}.notice-block textarea:focus-visible{outline-offset:-3px}
 
 /* Storage settings use the existing admin surface and stay readable on phones. */

@@ -81,3 +81,32 @@ test("notice preview only links https and mailto; executable/untrusted URLs stay
   assert.equal(safeNoticeLink("https://pnusmp.com"), "https://pnusmp.com/")
   assert.equal(safeNoticeLink("mailto:hello@example.com"), "mailto:hello@example.com")
 })
+test("drop edges insert before or after the target in either direction", () => {
+  const ids = ["a", "b", "c", "d"]
+  assert.deepEqual(moveReport(ids, "a", "c", "before"), ["b", "a", "c", "d"])
+  assert.deepEqual(moveReport(ids, "a", "c", "after"), ["b", "c", "a", "d"])
+  assert.deepEqual(moveReport(ids, "d", "b", "before"), ["a", "d", "b", "c"])
+  assert.deepEqual(moveReport(ids, "d", "b", "after"), ["a", "b", "d", "c"])
+  assert.deepEqual(moveReport(ids, "d", "a", "before"), ["d", "a", "b", "c"])
+  assert.deepEqual(moveReport(ids, "a", "d", "after"), ["b", "c", "d", "a"])
+  assert.deepEqual(ids, ["a", "b", "c", "d"], "source order is immutable")
+})
+test("unchanged or invalid drops retain the order reference so they do not write", () => {
+  const ids = ["a", "b", "c"]
+  for (const edge of ["before", "after"] as const) {
+    assert.equal(moveReport(ids, "b", "b", edge), ids)
+    assert.equal(moveReport(ids, "missing", "b", edge), ids)
+    assert.equal(moveReport(ids, "a", "missing", edge), ids)
+  }
+  assert.equal(moveReport(ids, "a", "b", "before"), ids)
+  assert.equal(moveReport(ids, "b", "a", "after"), ids)
+})
+test("filtered drops preserve hidden reports; arrows still cross page boundaries", () => {
+  const ids = ["a", "hidden-1", "b", "hidden-2", "c"]
+  assert.deepEqual(moveReport(ids, "c", "a", "before"), ["c", "a", "hidden-1", "b", "hidden-2"])
+  assert.deepEqual(moveReport(ids, "a", "b", "after"), ["hidden-1", "b", "a", "hidden-2", "c"])
+  const pages = Array.from({ length: 25 }, (_, index) => String(index))
+  const down = moveReport(pages, "19", "20")
+  assert.deepEqual(down.slice(18, 22), ["18", "20", "19", "21"])
+  assert.deepEqual(moveReport(down, "19", "20"), pages)
+})

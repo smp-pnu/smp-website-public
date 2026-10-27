@@ -10,6 +10,7 @@ import {
   type LibraryQuery,
   type LibraryOrder,
   type BatchAction,
+  type DropPlacement,
 } from "./library-model"
 import type { Draft } from "./model"
 import { api } from "./server-storage"
@@ -118,8 +119,10 @@ export function App({
     }
   }, [lab.drafts, lab.loading])
   const filtered = filterReports(lab.drafts, criteria, order.ids)
-  const move = async (from: string, to: string) => {
+  const move = async (from: string, to: string, placement?: DropPlacement) => {
     if (busy || from === to) return
+    const ids = moveReport(order.ids, from, to, placement)
+    if (ids === order.ids) return
     setOperation(true)
     setRefreshError("")
     try {
@@ -130,7 +133,7 @@ export function App({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               revision: order.revision,
-              ids: moveReport(order.ids, from, to),
+              ids,
             }),
           })
         ).json(),
