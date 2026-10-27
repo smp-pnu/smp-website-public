@@ -1,8 +1,8 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { defaultQuery, filterReports, moveReport } from "../admin-lab/library-model"
+import { defaultQuery, filterReports, moveListItem } from "../admin-lab/library-model"
 import { emptyFields, type Draft } from "../admin-lab/model"
-import { safeNoticeLink } from "../admin-lab/notice-model"
+import { safeNoticeLink, orderNotices, type NoticeSummary } from "../admin-lab/notice-model"
 const draft = (id: string, semester: string, author: string, company: string): Draft => ({
   id,
   hash: "a".repeat(64),
@@ -53,8 +53,8 @@ test("report folder/filter/search preserve manual order and handle Korean filena
     filterReports(rows, { ...defaultQuery, query: "티씨케이.pdf" }, []).map((d) => d.id),
     ["a"],
   )
-  assert.deepEqual(moveReport(["c", "b", "a"], "a", "c"), ["a", "c", "b"])
-  assert.deepEqual(moveReport(["c", "b", "a"], "missing", "c"), ["c", "b", "a"])
+  assert.deepEqual(moveListItem(["c", "b", "a"], "a", "c"), ["a", "c", "b"])
+  assert.deepEqual(moveListItem(["c", "b", "a"], "missing", "c"), ["c", "b", "a"])
   assert.deepEqual(
     filterReports([{ ...rows[0], trashedAt: "2026-10-26" }, rows[1]], defaultQuery, []).map((d) => d.id),
     ["b"],
@@ -83,30 +83,39 @@ test("notice preview only links https and mailto; executable/untrusted URLs stay
 })
 test("drop edges insert before or after the target in either direction", () => {
   const ids = ["a", "b", "c", "d"]
-  assert.deepEqual(moveReport(ids, "a", "c", "before"), ["b", "a", "c", "d"])
-  assert.deepEqual(moveReport(ids, "a", "c", "after"), ["b", "c", "a", "d"])
-  assert.deepEqual(moveReport(ids, "d", "b", "before"), ["a", "d", "b", "c"])
-  assert.deepEqual(moveReport(ids, "d", "b", "after"), ["a", "b", "d", "c"])
-  assert.deepEqual(moveReport(ids, "d", "a", "before"), ["d", "a", "b", "c"])
-  assert.deepEqual(moveReport(ids, "a", "d", "after"), ["b", "c", "d", "a"])
+  assert.deepEqual(moveListItem(ids, "a", "c", "before"), ["b", "a", "c", "d"])
+  assert.deepEqual(moveListItem(ids, "a", "c", "after"), ["b", "c", "a", "d"])
+  assert.deepEqual(moveListItem(ids, "d", "b", "before"), ["a", "d", "b", "c"])
+  assert.deepEqual(moveListItem(ids, "d", "b", "after"), ["a", "b", "d", "c"])
+  assert.deepEqual(moveListItem(ids, "d", "a", "before"), ["d", "a", "b", "c"])
+  assert.deepEqual(moveListItem(ids, "a", "d", "after"), ["b", "c", "d", "a"])
   assert.deepEqual(ids, ["a", "b", "c", "d"], "source order is immutable")
 })
 test("unchanged or invalid drops retain the order reference so they do not write", () => {
   const ids = ["a", "b", "c"]
   for (const edge of ["before", "after"] as const) {
-    assert.equal(moveReport(ids, "b", "b", edge), ids)
-    assert.equal(moveReport(ids, "missing", "b", edge), ids)
-    assert.equal(moveReport(ids, "a", "missing", edge), ids)
+    assert.equal(moveListItem(ids, "b", "b", edge), ids)
+    assert.equal(moveListItem(ids, "missing", "b", edge), ids)
+    assert.equal(moveListItem(ids, "a", "missing", edge), ids)
   }
-  assert.equal(moveReport(ids, "a", "b", "before"), ids)
-  assert.equal(moveReport(ids, "b", "a", "after"), ids)
+  assert.equal(moveListItem(ids, "a", "b", "before"), ids)
+  assert.equal(moveListItem(ids, "b", "a", "after"), ids)
 })
 test("filtered drops preserve hidden reports; arrows still cross page boundaries", () => {
   const ids = ["a", "hidden-1", "b", "hidden-2", "c"]
-  assert.deepEqual(moveReport(ids, "c", "a", "before"), ["c", "a", "hidden-1", "b", "hidden-2"])
-  assert.deepEqual(moveReport(ids, "a", "b", "after"), ["hidden-1", "b", "a", "hidden-2", "c"])
+  assert.deepEqual(moveListItem(ids, "c", "a", "before"), ["c", "a", "hidden-1", "b", "hidden-2"])
+  assert.deepEqual(moveListItem(ids, "a", "b", "after"), ["hidden-1", "b", "a", "hidden-2", "c"])
   const pages = Array.from({ length: 25 }, (_, index) => String(index))
-  const down = moveReport(pages, "19", "20")
+  const down = moveListItem(pages, "19", "20")
   assert.deepEqual(down.slice(18, 22), ["18", "20", "19", "21"])
-  assert.deepEqual(moveReport(down, "19", "20"), pages)
+  assert.deepEqual(moveListItem(down, "19", "20"), pages)
+})
+test("notice display honors manual order inside pinned groups and preserves filtered-out items", () => {
+  const notice = (id: string, pinned = false): NoticeSummary => ({ id, pinned, title: id, category: "공지", date: "2026-10-27", excerpt: "", revision: 1, approvedRevision: null, createdAt: "2026-10-27", updatedAt: "2026-10-27", trashedAt: null })
+  const rows = [notice("a"), notice("b"), notice("pin", true), notice("hidden")]
+  const ids = ["pin", "a", "hidden", "b"]
+  const moved = moveListItem(ids, "b", "a", "before")
+  assert.deepEqual(moved, ["pin", "b", "a", "hidden"])
+  assert.deepEqual(orderNotices(rows, moved).map((n) => n.id), moved)
+  assert.deepEqual(orderNotices(rows, ["b", "a", "pin", "hidden"]).map((n) => n.id), ["pin", "b", "a", "hidden"])
 })

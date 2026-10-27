@@ -1,6 +1,6 @@
 import type { Database } from "../cloudflare/bindings"
 import type { Draft } from "../admin-lab/model"
-import type { LibraryOrder } from "../admin-lab/library-model"
+import { ContentOrderStore } from "./content-order"
 import { applyCommand } from "../admin-lab/model"
 import { bad, HttpError, idPattern, object, text } from "../admin-server/validation"
 import { guardedBatch } from "./transaction"
@@ -12,52 +12,8 @@ export class LibraryStore {
     readonly db: Database,
     readonly now = Date.now(),
   ) {}
-  async order(): Promise<LibraryOrder> {
-    const row = await this.db
-      .prepare("SELECT revision,ids FROM library_order WHERE kind='reports'")
-      .first<{ revision: number; ids: string }>()
-    const active = (
-      await this.db
-        .prepare(
-          "SELECT id FROM objects WHERE status='ready' AND json_extract(data,'$.trashedAt') IS NULL ORDER BY json_extract(data,'$.fields.date') DESC,id",
-        )
-        .all<{ id: string }>()
-    ).results.map((r) => r.id)
-    const stored = (JSON.parse(row?.ids ?? "[]") as string[]).filter((id) => active.includes(id))
-    return {
-      revision: row?.revision ?? 1,
-      ids: [...active.filter((id) => !stored.includes(id)), ...stored],
-    }
-  }
-  async reorder(input: unknown) {
-    const value = object(input),
-      ids = value.ids
-    if (
-      !Number.isInteger(value.revision) ||
-      !Array.isArray(ids) ||
-      ids.length > 500 ||
-      ids.some((id) => typeof id !== "string" || !idPattern.test(id)) ||
-      new Set(ids).size !== ids.length
-    )
-      return bad()
-    const all = await this.order()
-    if (all.ids.length !== ids.length || all.ids.some((id) => !ids.includes(id)))
-      throw new HttpError(409, "목록이 달라졌어요. 새로고침 후 순서를 변경해 주세요.")
-    const encoded = JSON.stringify(ids)
-    await guardedBatch(
-      this.db,
-      `(SELECT revision FROM library_order WHERE kind='reports')=? AND
-      (SELECT count(*) FROM objects WHERE status='ready' AND json_extract(data,'$.trashedAt') IS NULL)=? AND
-      (SELECT count(*) FROM objects WHERE status='ready' AND json_extract(data,'$.trashedAt') IS NULL AND id IN (SELECT value FROM json_each(?)))=?`,
-      [value.revision, ids.length, encoded, ids.length],
-      [
-        this.db
-          .prepare("UPDATE library_order SET ids=?,revision=revision+1 WHERE kind='reports'")
-          .bind(encoded),
-      ],
-    )
-    return this.order()
-  }
+  async order() { return new ContentOrderStore(this.db, "reports").order() }
+  async reorder(input: unknown) { return new ContentOrderStore(this.db, "reports").reorder(input) }
   async batch(input: unknown) {
     const value = object(input),
       items = value.items,

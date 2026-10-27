@@ -6,7 +6,7 @@ import { ReportList } from "./report-list"
 import {
   defaultQuery,
   filterReports,
-  moveReport,
+  moveListItem,
   type LibraryQuery,
   type LibraryOrder,
   type BatchAction,
@@ -121,7 +121,7 @@ export function App({
   const filtered = filterReports(lab.drafts, criteria, order.ids)
   const move = async (from: string, to: string, placement?: DropPlacement) => {
     if (busy || from === to) return
-    const ids = moveReport(order.ids, from, to, placement)
+    const ids = moveListItem(order.ids, from, to, placement)
     if (ids === order.ids) return
     setOperation(true)
     setRefreshError("")

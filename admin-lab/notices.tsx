@@ -1,9 +1,20 @@
 import { useCallback, useEffect, useState } from "react"
-import { Plus, ArrowLeft, RefreshCw } from "lucide-react"
+import { Plus, ArrowLeft, RefreshCw, ArrowUp, ArrowDown } from "lucide-react"
 import { api } from "./server-storage"
 import { NoticeEditor } from "./notice-editor"
-import { newBlock, noticeState, type Notice, type NoticeSummary } from "./notice-model"
+import { newBlock, noticeState, orderNotices, type Notice, type NoticeSummary } from "./notice-model"
 import { useConfirmation } from "./confirm"
+import { moveListItem, type DropPlacement, type LibraryOrder } from "./library-model"
+import { useListReorder } from "./use-list-reorder"
+import { DragHandle, DragPreview } from "./reorder-ui"
+
+async function loadLibrary(): Promise<{ rows: NoticeSummary[]; order: LibraryOrder }> {
+  const [rows, order] = await Promise.all([
+    api("/notices").then((r) => r.json()),
+    api("/notices/order").then((r) => r.json()),
+  ])
+  return { rows, order }
+}
 export function Notices({
   onDirty,
   onBusy,
@@ -23,20 +34,21 @@ export function Notices({
     [filter, setFilter] = useState("all"),
     [category, setCategory] = useState(""),
     [page, setPage] = useState(1)
+  const [order, setOrder] = useState<LibraryOrder>({ revision: 1, ids: [] })
   const confirm = useConfirmation(),
     locked = busy || uploading
   const refresh = useCallback(async () => {
-    const rows = await (await api("/notices")).json()
+    const { rows, order } = await loadLibrary()
     setList(rows)
+    setOrder(order)
     onChange()
   }, [onChange])
   useEffect(() => {
     let alive = true
     setBusy(true)
-    void api("/notices")
-      .then((r) => r.json())
-      .then((rows) => {
-        if (alive) setList(rows)
+    void loadLibrary()
+      .then(({ rows, order }) => {
+        if (alive) { setList(rows); setOrder(order) }
       })
       .catch((e) => {
         if (alive) setError(e.message)
@@ -105,7 +117,7 @@ export function Notices({
       await refresh()
     })
   }
-  const filtered = list.filter(
+  const filtered = orderNotices(list, order.ids).filter(
     (n) =>
       (filter === "trash" ? !!n.trashedAt : !n.trashedAt) &&
       (filter !== "review" || n.approvedRevision !== n.revision) &&
@@ -115,6 +127,24 @@ export function Notices({
   )
   const pages = Math.max(1, Math.ceil(filtered.length / 20)),
     current = Math.min(page, pages)
+  const manual = filter !== "trash"
+  const sameGroup = (from: string, to: string) => {
+    const a = list.find((n) => n.id === from), b = list.find((n) => n.id === to)
+    return !!a && !!b && !a.trashedAt && !b.trashedAt && a.pinned === b.pinned
+  }
+  const move = async (from: string, to: string, placement?: DropPlacement) => {
+    if (locked || selected || !manual || !sameGroup(from, to)) return
+    const ids = moveListItem(order.ids, from, to, placement)
+    if (ids === order.ids) return
+    await run(async () => setOrder(await (await api("/notices/order", {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ revision: order.revision, ids }),
+    })).json()))
+  }
+  const reorder = useListReorder(move, sameGroup)
+  const { dragged, target: dropTarget, cancel: clearDrag } = reorder
+  const moving = list.find((n) => n.id === dragged)
+  useEffect(() => { clearDrag() }, [query, category, filter, page, locked, selected, clearDrag])
   return (
     <section className="content-area">
       {selected ? (
@@ -228,6 +258,7 @@ export function Notices({
             ].map(([v, label]) => (
               <button
                 key={v}
+                disabled={locked}
                 aria-pressed={filter === v}
                 onClick={() => {
                   setFilter(v)
@@ -260,10 +291,15 @@ export function Notices({
               <RefreshCw size={16} />
             </button>
           </div>
-          <div className="report-table-wrap">
-            <table className="report-table">
+          {manual && <p className="library-hint" id="notice-order-help">
+            <span className="drag-help">손잡이를 끌어 파란 선 위치에 놓으세요. Esc로 취소할 수 있습니다. </span>
+            화살표로도 순서를 바꿀 수 있습니다. 고정 공지는 위에 유지하며, 같은 그룹 안에서 이동 후 자동 저장됩니다.
+          </p>}
+          <div className={`report-table-wrap${dragged ? " is-reordering" : ""}`} ref={reorder.table}>
+            <table className="report-table managed-table notice-table">
               <thead>
                 <tr>
+                  {manual && <th className="order-column" scope="col">순서</th>}
                   <th>제목</th>
                   <th>분류</th>
                   <th>상태</th>
@@ -271,9 +307,17 @@ export function Notices({
                 </tr>
               </thead>
               <tbody>
-                {filtered.slice((current - 1) * 20, current * 20).map((n) => (
-                  <tr key={n.id}>
-                    <td>
+                {filtered.slice((current - 1) * 20, current * 20).map((n, i) => {
+                  const index = (current - 1) * 20 + i
+                  const previous = filtered[index - 1], next = filtered[index + 1]
+                  return <tr key={n.id} data-reorder-id={n.id}
+                    className={[dragged === n.id ? "is-drag-source" : "", dropTarget?.id === n.id ? `drop-${dropTarget.placement}` : ""].filter(Boolean).join(" ") || undefined}>
+                    {manual && <td className="order-column"><div className="order-controls">
+                      <DragHandle reorder={reorder} id={n.id} title={n.title || "제목 없는 초안"} disabled={locked} helpId="notice-order-help" />
+                      <button aria-label={`${n.title || "제목 없는 초안"} 위로 이동`} disabled={locked || !previous || !sameGroup(n.id, previous.id)} onClick={() => void move(n.id, previous.id)}><ArrowUp size={13} /></button>
+                      <button aria-label={`${n.title || "제목 없는 초안"} 아래로 이동`} disabled={locked || !next || !sameGroup(n.id, next.id)} onClick={() => void move(n.id, next.id)}><ArrowDown size={13} /></button>
+                    </div></td>}
+                    <td className="notice-title">
                       <button
                         className="report-link"
                         disabled={locked}
@@ -296,10 +340,15 @@ export function Notices({
                     </td>
                     <td className="tabular">{n.date}</td>
                   </tr>
-                ))}
+                })}
               </tbody>
             </table>
           </div>
+          {moving && <DragPreview reorder={reorder} title={moving.title || "제목 없는 초안"} subtitle={moving.category || "공지"} />}
+          <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+            {dropTarget ? `${list.find((n) => n.id === dropTarget.id)?.title || "제목 없는 초안"} ${dropTarget.placement === "before" ? "앞" : "뒤"}에 놓기`
+              : dragged ? "공지 이동 중. 같은 그룹 안에서 이동할 수 있습니다. Esc로 취소할 수 있습니다." : ""}
+          </span>
           {!filtered.length && (
             <p className="table-empty" role="status">
               {busy ? "공지를 불러오는 중입니다." : "표시할 공지가 없습니다."}
@@ -308,13 +357,13 @@ export function Notices({
           <footer className="list-footer">
             <span>{filtered.length}개 · 시험 공지 최대 100개</span>
             <nav className="pagination" aria-label="공지 목록 페이지">
-              <button disabled={current === 1} onClick={() => setPage(current - 1)}>
+              <button disabled={locked || current === 1} onClick={() => setPage(current - 1)}>
                 이전
               </button>
               <span>
                 {current} / {pages}
               </span>
-              <button disabled={current === pages} onClick={() => setPage(current + 1)}>
+              <button disabled={locked || current === pages} onClick={() => setPage(current + 1)}>
                 다음
               </button>
             </nav>

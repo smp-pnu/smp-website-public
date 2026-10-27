@@ -10,6 +10,7 @@ import { validateCover } from "./files"
 import { extractMetadata, type AiBinding } from "./ai-metadata"
 import { LibraryStore } from "./library"
 import { NoticeStore } from "./notices"
+import { ContentOrderStore } from "./content-order"
 import { ReportVersions } from "./report-versions"
 import { DriveConnection, type DriveFetch } from "./drive/connection"
 import { DriveUploads } from "./drive/uploads"
@@ -156,6 +157,10 @@ export function createHandler(clock = Date.now, driveFetch: DriveFetch = fetch) 
               await new NoticeStore(env.ADMIN_DB, now).create(await jsonBody(request)),
               201,
             )
+          else if (path === "/api/notices/order" && method === "GET")
+            response = json(await new ContentOrderStore(env.ADMIN_DB, "notices").order())
+          else if (path === "/api/notices/order" && method === "PUT")
+            response = json(await new ContentOrderStore(env.ADMIN_DB, "notices").reorder(await jsonBody(request)))
           else if (/^\/api\/notice-assets\/[^/]+$/.test(path) && method === "GET") {
             const id = path.split("/")[3]
             if (!idPattern.test(id)) throw new HttpError(400, "사진 번호를 확인해 주세요.")

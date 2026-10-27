@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react"
-import { createPortal } from "react-dom"
-import { FileText, Search, RefreshCw, ChevronRight, ArrowUp, ArrowDown, GripVertical } from "lucide-react"
+import { FileText, Search, RefreshCw, ChevronRight, ArrowUp, ArrowDown } from "lucide-react"
 import type { Draft } from "./model"
 import { statusOf } from "./model"
 import { useCover } from "./use-lab"
-import { useReportReorder } from "./use-report-reorder"
+import { DragHandle, DragPreview } from "./reorder-ui"
+import { useListReorder } from "./use-list-reorder"
 import { pageSize, type LibraryQuery, type BatchAction, type Filter, type Sort, type DropPlacement } from "./library-model"
 
 type Props = {
@@ -43,7 +43,7 @@ export function ReportList({
     [selected, setSelected] = useState<string[]>([])
   const [field, setField] = useState<"semester" | "author" | "industry">("semester"),
     [value, setValue] = useState("")
-  const reorder = useReportReorder(onMove)
+  const reorder = useListReorder(onMove)
   const { dragged, target: dropTarget, cancel: clearDrag } = reorder
   useEffect(() => {
     setPage(1)
@@ -225,7 +225,7 @@ export function ReportList({
               return (
                 <tr
                   key={draft.id}
-                  data-report-id={draft.id}
+                  data-reorder-id={draft.id}
                   className={[
                     dragged === draft.id ? "is-drag-source" : "",
                     dropTarget?.id === draft.id ? `drop-${dropTarget.placement}` : "",
@@ -249,18 +249,7 @@ export function ReportList({
                   {manual && (
                     <td className="order-column">
                       <div className="order-controls">
-                        <span
-                          className="drag-handle"
-                          onPointerDown={(event) => { if (!loading) reorder.start(event, draft.id) }}
-                          onPointerMove={reorder.move}
-                          onPointerUp={reorder.end}
-                          onPointerCancel={clearDrag}
-                          onLostPointerCapture={clearDrag}
-                          aria-describedby="report-order-help"
-                          title={`${draft.fields.title || draft.filename} 순서 변경: 파란 선에 놓기`}
-                        >
-                          <GripVertical size={14} />
-                        </span>
+                        <DragHandle reorder={reorder} id={draft.id} title={draft.fields.title || draft.filename} disabled={loading} helpId="report-order-help" />
                         <button
                           aria-label={`${draft.fields.title} 위로 이동`}
                           disabled={loading || index === 0}
@@ -309,13 +298,7 @@ export function ReportList({
           </tbody>
         </table>
       </div>
-      {moving && createPortal(
-        <div ref={reorder.preview} className="report-drag-preview" style={{ transform: reorder.previewPosition() }} aria-hidden="true">
-          <FileText size={22} />
-          <span><strong>{moving.fields.title || moving.filename}</strong><small>{moving.fields.company || moving.filename} · 이동 중</small></span>
-          <GripVertical size={16} />
-        </div>, document.body,
-      )}
+      {moving && <DragPreview reorder={reorder} title={moving.fields.title || moving.filename} subtitle={moving.fields.company || moving.filename} />}
       <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
         {dropTarget
           ? `${drafts.find((d) => d.id === dropTarget.id)?.fields.title || "리포트"} ${dropTarget.placement === "before" ? "앞" : "뒤"}에 놓기`

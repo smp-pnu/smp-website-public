@@ -938,6 +938,52 @@ const noticeInput = () => ({
   pinned: true,
   blocks: [{ id: crypto.randomUUID(), type: "paragraph", text: "본문 내용" }],
 })
+test("notice order persists independently with auth, CSRF, pinned groups and stale-list protection", async () => {
+  const f = await fixture()
+  try {
+    assert.equal((await f.call("/api/notices/order")).status, 401)
+    assert.equal((await f.call("/api/notices/order", "PUT", { revision: 1, ids: [] })).status, 401)
+    await f.login()
+    const create = async (title: string, pinned: boolean, date: string) =>
+      (await f.call("/api/notices", "POST", { ...noticeInput(), title, pinned, date })).json()
+    const a = await create("고정 A", true, "2026-10-10"), b = await create("고정 B", true, "2026-10-11")
+    const c = await create("일반 C", false, "2026-10-12"), d = await create("일반 D", false, "2026-10-13")
+    const reportOrder = await (await f.call("/api/reports/order")).json()
+    const order = await (await f.call("/api/notices/order")).json()
+    assert.deepEqual(order.ids, [b.id, a.id, d.id, c.id])
+    const before = f.db.prepare("SELECT * FROM notices ORDER BY id").all()
+    const ids = [a.id, b.id, c.id, d.id]
+    const put = (revision: number, values: unknown[], extra = {}) => f.call("/api/notices/order", "PUT", { revision, ids: values }, extra)
+    assert.equal((await put(order.revision, ids, { "X-CSRF-Token": "" })).status, 403)
+    assert.equal((await put(order.revision, ids, { Origin: "https://evil.example" })).status, 403)
+    assert.equal((await put(order.revision, [c.id, a.id, b.id, d.id])).status, 409, "pinned must stay above ordinary notices")
+    assert.equal((await put(order.revision, [a.id, a.id, c.id, d.id])).status, 400)
+    assert.equal((await put(order.revision, [a.id, b.id, c.id, crypto.randomUUID()])).status, 409)
+    assert.equal((await put(order.revision, [a.id, b.id, c.id])).status, 409, "filtered subsets cannot delete hidden IDs")
+    const changed = await put(order.revision, ids)
+    assert.equal(changed.status, 200, await changed.clone().text())
+    const saved = await changed.json()
+    assert.deepEqual(saved.ids, ids)
+    assert.equal(saved.revision, order.revision + 1)
+    assert.deepEqual((await (await f.call("/api/notices/order")).json()).ids, ids)
+    assert.deepEqual(await (await f.call("/api/reports/order")).json(), reportOrder)
+    assert.deepEqual(f.db.prepare("SELECT * FROM notices ORDER BY id").all(), before, "order must not edit notice contents or approval revisions")
+    assert.equal((await put(order.revision, [b.id, a.id, d.id, c.id])).status, 409)
+    const e = await create("새 일반 E", false, "2026-10-14")
+    assert.deepEqual((await (await f.call("/api/notices/order")).json()).ids, [a.id, b.id, e.id, c.id, d.id])
+    assert.equal((await put(saved.revision, ids)).status, 409, "a new notice invalidates old complete-list payloads")
+    assert.equal((await f.call(`/api/notices/${e.id}`, "PATCH", { revision: 1, action: "trash" })).status, 200)
+    assert.deepEqual((await (await f.call("/api/notices/order")).json()).ids, ids)
+    assert.equal((await put(saved.revision, [...ids, e.id])).status, 409, "trash cannot enter the active order")
+    assert.equal((await f.call(`/api/notices/${e.id}`, "PATCH", { revision: 2, action: "restore" })).status, 200)
+    assert.deepEqual((await (await f.call("/api/notices/order")).json()).ids, [a.id, b.id, e.id, c.id, d.id])
+    assert.equal((await f.call(`/api/notices/${c.id}`, "PATCH", { revision: 1, action: "edit", fields: { ...c, pinned: true } })).status, 200)
+    const pinnedNow = await (await f.call("/api/notices/order")).json()
+    assert.deepEqual(pinnedNow.ids, [a.id, b.id, c.id, e.id, d.id])
+    assert.equal((await put(pinnedNow.revision, [a.id, b.id, e.id, c.id, d.id])).status, 409)
+    assert.equal(f.db.prepare("SELECT count(*) AS n FROM mutation_checks").get()!.n, 0)
+  } finally { f.close() }
+})
 test("notice CRUD, image references, validation, revision protection and cascading deletion", async () => {
   const f = await fixture()
   try {

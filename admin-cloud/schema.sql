@@ -67,6 +67,7 @@ CREATE INDEX IF NOT EXISTS metadata_extraction_expiry ON metadata_extractions(ex
 CREATE TABLE IF NOT EXISTS mutation_checks(token TEXT PRIMARY KEY, valid INTEGER NOT NULL CHECK(valid=1));
 CREATE TABLE IF NOT EXISTS library_order(kind TEXT PRIMARY KEY, revision INTEGER NOT NULL, ids TEXT NOT NULL);
 INSERT OR IGNORE INTO library_order(kind,revision,ids) VALUES('reports',1,'[]');
+INSERT OR IGNORE INTO library_order(kind,revision,ids) VALUES('notices',1,'[]');
 CREATE TABLE IF NOT EXISTS notices (
   id TEXT PRIMARY KEY,
   revision INTEGER NOT NULL DEFAULT 1,

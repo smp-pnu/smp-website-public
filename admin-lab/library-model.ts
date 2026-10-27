@@ -62,7 +62,7 @@ export function filterReports(drafts: Draft[], query: LibraryQuery, order: strin
         : b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id)
     })
 }
-export function moveReport(ids: string[], from: string, to: string, placement?: DropPlacement) {
+export function moveListItem(ids: string[], from: string, to: string, placement?: DropPlacement) {
   const source = ids.indexOf(from),
     target = ids.indexOf(to)
   if (source < 0 || target < 0 || source === target) return ids

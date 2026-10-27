@@ -14,6 +14,12 @@ export type Notice = {
   trashedAt: string | null
 }
 export type NoticeSummary = Omit<Notice, "blocks"> & { excerpt: string }
+export function orderNotices(notices: NoticeSummary[], ids: string[]) {
+  const ranks = new Map(ids.map((id, index) => [id, index]))
+  return [...notices].sort((a, b) => Number(b.pinned) - Number(a.pinned)
+    || (ranks.get(a.id) ?? Infinity) - (ranks.get(b.id) ?? Infinity)
+    || b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
+}
 export const noticeLimits = {
   count: 100,
   blocks: 80,

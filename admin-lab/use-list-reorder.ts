@@ -6,7 +6,7 @@ type Gesture = { id: string; pointer: number; handle: HTMLElement; x: number; y:
 
 // Pointer capture makes the preview and insertion marker consistent across
 // browsers. Only the final valid drop invokes the server-backed move callback.
-export function useReportReorder(onMove: (from: string, to: string, placement: DropPlacement) => Promise<void>) {
+export function useListReorder(onMove: (from: string, to: string, placement: DropPlacement) => Promise<void>, canDrop?: (from: string, to: string) => boolean) {
   const table = useRef<HTMLDivElement>(null)
   const preview = useRef<HTMLDivElement>(null)
   const gesture = useRef<Gesture | null>(null)
@@ -37,10 +37,11 @@ export function useReportReorder(onMove: (from: string, to: string, placement: D
   }, [cancel])
   const targetAtPointer = (): Target | null => {
     const { x, y } = pointer.current
-    const row = document.elementFromPoint(x, y)?.closest<HTMLTableRowElement>("tr[data-report-id]")
-    if (!row || !table.current?.contains(row) || row.dataset.reportId === gesture.current?.id) return null
+    const row = document.elementFromPoint(x, y)?.closest<HTMLTableRowElement>("tr[data-reorder-id]")
+    if (!row || !table.current?.contains(row) || row.dataset.reorderId === gesture.current?.id) return null
+    if (canDrop && !canDrop(gesture.current!.id, row.dataset.reorderId!)) return null
     const { top, height } = row.getBoundingClientRect()
-    return { id: row.dataset.reportId!, placement: y < top + height / 2 ? "before" : "after" }
+    return { id: row.dataset.reorderId!, placement: y < top + height / 2 ? "before" : "after" }
   }
   const updateTarget = () => {
     const next = targetAtPointer()
