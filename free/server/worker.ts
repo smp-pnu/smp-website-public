@@ -141,6 +141,22 @@ async function handle(request: Request, env: Env, ctx: Context): Promise<Respons
   return new Response("Not found", { status: 404 })
 }
 
+async function housekeeping(env:Env,scheduledTime:number) {
+  if(Math.floor(scheduledTime/60000)%60!==0)return
+
+      // Housekeeping has its own hourly admission: an idle sync may skip this
+      // minute, and duplicate cron delivery must not repeat the deletes.
+      const now=Date.now(),nextHour=(Math.floor(now/3_600_000)+1)*3_600_000
+      const cleanup=await env.CMS_DB.prepare(`INSERT INTO free_controls(name,until_at) VALUES ('sync-housekeeping',?)
+        ON CONFLICT(name) DO UPDATE SET until_at=excluded.until_at WHERE until_at<=? RETURNING name`).bind(nextHour,now).first()
+      if(!cleanup) return
+      await env.CMS_DB.prepare("DELETE FROM free_budget WHERE key IN (SELECT key FROM free_budget WHERE expires_at < ? LIMIT 512)").bind(Date.now() - 86_400_000).run()
+      await env.CMS_DB.prepare("DELETE FROM free_events WHERE id IN (SELECT id FROM free_events WHERE expires_at < ? LIMIT 1000)").bind(Date.now()).run()
+      await env.CMS_DB.prepare("DELETE FROM free_webhook_setup WHERE expires_at < ?").bind(Date.now()).run()
+      await env.CMS_DB.prepare("DELETE FROM free_publication_checks WHERE id IN (SELECT id FROM free_publication_checks WHERE checked_at < ? LIMIT 512)").bind(Date.now()-60_000).run()
+    
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: Context) {
     if(env.SMP_SYNC_KIND) return new Response("Not found",{status:404})
@@ -160,6 +176,7 @@ export default {
     if (env.SMP_READ_ONLY === "1" || !kind || !["research","notice","members"].includes(kind)) return
     if(await adminMode(env.CMS_DB)) {
       if(kind==='research' && Math.floor((event.scheduledTime??Date.now())/60000)%15===0)await requestPublisher({...env,CMS_ADMIN_MODE:true})
+      if(kind==='research')await housekeeping(env,event.scheduledTime??Date.now())
       return
     }
     // Three independent CMS sources use three scheduled Workers in the SAME
@@ -172,17 +189,6 @@ export default {
       // delays. No new Cron Trigger or high-frequency workflow is created.
       if(kind==="research" && Math.floor((event.scheduledTime??Date.now())/60_000)%5===0) await requestPublisher(env)
     }
-    if(kind==="research" && Math.floor((event.scheduledTime??Date.now())/60_000)%60===0) {
-      // Housekeeping has its own hourly admission: an idle sync may skip this
-      // minute, and duplicate cron delivery must not repeat the deletes.
-      const now=Date.now(),nextHour=(Math.floor(now/3_600_000)+1)*3_600_000
-      const cleanup=await env.CMS_DB.prepare(`INSERT INTO free_controls(name,until_at) VALUES ('sync-housekeeping',?)
-        ON CONFLICT(name) DO UPDATE SET until_at=excluded.until_at WHERE until_at<=? RETURNING name`).bind(nextHour,now).first()
-      if(!cleanup) return
-      await env.CMS_DB.prepare("DELETE FROM free_budget WHERE key IN (SELECT key FROM free_budget WHERE expires_at < ? LIMIT 512)").bind(Date.now() - 86_400_000).run()
-      await env.CMS_DB.prepare("DELETE FROM free_events WHERE id IN (SELECT id FROM free_events WHERE expires_at < ? LIMIT 1000)").bind(Date.now()).run()
-      await env.CMS_DB.prepare("DELETE FROM free_webhook_setup WHERE expires_at < ?").bind(Date.now()).run()
-      await env.CMS_DB.prepare("DELETE FROM free_publication_checks WHERE id IN (SELECT id FROM free_publication_checks WHERE checked_at < ? LIMIT 512)").bind(Date.now()-60_000).run()
-    }
+    if(kind==='research')await housekeeping(env,event.scheduledTime??Date.now())
   },
 }

@@ -32,7 +32,7 @@ export async function cmsExport(
     throw new HttpError(404, "Not found");
   const hash = createHash("sha256").update(token).digest("hex");
   const grant = await env.CMS_DB.prepare(
-    `UPDATE cms_export_grants SET hits=hits+1 WHERE token_hash=? AND id=? AND expires_at>? AND hits<320
+    `UPDATE cms_export_grants SET hits=hits+1 WHERE token_hash=? AND id=? AND expires_at>? AND hits<400
     AND EXISTS(SELECT 1 FROM cms_jobs j JOIN cms_entries e ON e.id=j.id WHERE j.id=cms_export_grants.id AND j.revision=cms_export_grants.revision AND e.revision=j.revision AND e.trashed_at IS NULL)
     RETURNING source_id,source_revision`,
   )
