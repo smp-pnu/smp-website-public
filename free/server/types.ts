@@ -1,6 +1,8 @@
 import type { Database } from "../../cloudflare/bindings"
+import type { ContentItem } from "../../lib/content-model"
 export type Env = {
   CMS_DB: Database;
+  CMS_ADMIN_MODE?: boolean;
   ASSETS: { fetch: typeof fetch };
   API_RATE_LIMIT?: { limit(options: { key: string }): Promise<{ success: boolean }> };
   NOTION_TOKEN?: string;
@@ -19,6 +21,12 @@ export type Env = {
   PUBLISH_FETCH?: typeof fetch;
   NOTION_WORKLOAD?: "visitor" | "sync" | "publisher" | "webhook";
   NOTION_WAIT_UNTIL?: number;
+  // Dependency injection for explicitly isolated publisher previews only. No
+  // deployed config/service binding enables this; production remains Notion.
+  REPORT_PREVIEW?: {
+    published(id:string): Promise<ContentItem|null|undefined>;
+    pdf(request:Request,item:ContentItem): Promise<Response>;
+  };
 }
 export type Context = { waitUntil(task: Promise<unknown>): void }
 export class Busy extends Error { constructor(public seconds = 60) { super("Temporarily busy") } }

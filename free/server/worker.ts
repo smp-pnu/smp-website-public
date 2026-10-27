@@ -1,3 +1,6 @@
+import { Buffer } from "node:buffer"
+import { adminMode } from "../../cms/mode"
+import { managedPdf } from "../../cms/reader"
 import { fileUrl, normalizeId, type ContentKind, type NotionPage } from "../../lib/content-model"
 import { isTrustedAttachmentUrl } from "../../lib/pdf-source"
 import { publishedPdf } from "./pdf"
@@ -24,7 +27,7 @@ async function document(request:Request,env: Env,ctx:Context,name: string) {
   // version changes, or when publication freshness cannot be confirmed.
   const state=await env.CMS_DB.prepare(`SELECT version,(SELECT MIN(checked_at) FROM free_sync WHERE kind=? OR ?='search') AS checked_at FROM free_documents WHERE name=?`)
     .bind(name,name,name).first<{version:number;checked_at:number}>()
-  if(!state || (!__SMP_FIXTURE__ && Date.now()-state.checked_at>300_000)) return reply({error:"게시 상태를 확인하고 있습니다. 잠시 후 다시 시도해주세요."},503)
+  if(!state || (!__SMP_FIXTURE__ && !env.CMS_ADMIN_MODE && Date.now()-state.checked_at>300_000)) return reply({error:"게시 상태를 확인하고 있습니다. 잠시 후 다시 시도해주세요."},503)
   const cache=(globalThis as unknown as {caches?:{default:Cache}}).caches?.default
   const key=new Request(new URL(`/api/cache/${name}?version=${state.version}`,request.url))
   const hit=cache && await cache.match(key)
@@ -41,6 +44,7 @@ async function webhook(request: Request, env: Env, ctx: Context) {
   const verification = await captureWebhookVerification(raw, env)
   if (verification) return verification
   if (!validNotionSignature(raw, request.headers.get("x-notion-signature"), env.NOTION_WEBHOOK_VERIFICATION_TOKEN)) return reply({ error: "Unauthorized" }, 401)
+  if(env.CMS_ADMIN_MODE)return reply({received:true,ignored:true})
   await spend(env.CMS_DB, "webhook-day", 500, 86_400_000)
   const event = JSON.parse(raw)
   const eventId=typeof event.id==="string" && /^[a-zA-Z0-9_-]{1,128}$/.test(event.id)?event.id:null
@@ -73,11 +77,18 @@ async function handle(request: Request, env: Env, ctx: Context): Promise<Respons
   if (path === "/api/health") return reply({ ok: true, mode: __SMP_FIXTURE__ ? "fixture" : "free", readOnly: env.SMP_READ_ONLY === "1" })
   if (path.startsWith("/api/internal/")) return reply({ error: "Not found" },404)
 
+  if(path.startsWith("/api/")||/^\/(research|notice|sitemap-research\.xml|sitemap-notice\.xml|feed\.xml)(?:\/|$)/.test(path)) env={...env,CMS_ADMIN_MODE:await adminMode(env.CMS_DB)}
   if (path === "/api/notion/webhook" && request.method === "POST") return webhook(request, env, ctx)
   let decodedPath=path
   try { decodedPath=decodeURIComponent(path) } catch { return new Response("Not found",{status:404}) }
   if (decodedPath.startsWith("/_reader-pdfs")) return new Response("Not found",{status:404})
   if (!path.startsWith("/api/")) return publicPage(request,env,ctx,name=>document(request,env,ctx,name))
+  const media=/^\/api\/cms-media\/([a-f0-9]{32})$/.exec(path)
+  if(media&&env.CMS_ADMIN_MODE) {
+    const denied=await publicBudget(request,env);if(denied)return denied
+    const row=await env.CMS_DB.prepare(`SELECT a.data,a.mime,a.name FROM cms_assets a JOIN free_content c ON c.id=a.owner WHERE a.id=? AND (instr(c.blocks,?)>0 OR instr(c.item,?)>0)`).bind(media[1],`/api/cms-media/${media[1]}`,`/api/cms-media/${media[1]}`).first<{data:string;mime:string;name:string}>()
+    return row?new Response(Buffer.from(row.data,'base64'),{headers:{'Content-Type':row.mime,'Content-Security-Policy':'sandbox','Content-Disposition':`${row.mime.startsWith('image/')?'inline':'attachment'}; filename="attachment"; filename*=UTF-8''${encodeURIComponent(row.name)}`}}):new Response('Not found',{status:404})
+  }
   if(!/^\/api\/(search$|catalog\/(research|notice|members)$|member-photo\/[a-f0-9]{32}$|(detail|content)\/(research|notice)\/[a-f\d-]{32,36}(\/(pdf|file|block-file))?$)/.test(path)) return new Response("Not found",{status:404})
   const match = /^\/api\/(detail|content)\/(research|notice)\/([a-f\d-]{32,36})(?:\/(pdf|file|block-file))?$/.exec(path)
   const reference=match && normalizeId(match[3])
@@ -100,6 +111,9 @@ async function handle(request: Request, env: Env, ctx: Context): Promise<Respons
   const item = await visitorPublication(env, kind, id)
   if (!item) return new Response("Not found", { status: 404 })
   if (match[4] === "pdf") {
+    if (item.managedPdf && env.CMS_ADMIN_MODE)return managedPdf(request,item,env.CMS_DB,env.ASSETS)
+    if (item.managedPdf) return env.REPORT_PREVIEW
+      ? env.REPORT_PREVIEW.pdf(request,item) : new Response("Not found",{status:404})
     const pdfAt=Date.now()
     const prepared=await readerPdf(request,item,env,ctx)
     if(prepared) {
@@ -112,6 +126,7 @@ async function handle(request: Request, env: Env, ctx: Context): Promise<Respons
   if(match[4]==="block-file") {
     const block=normalizeId(url.searchParams.get("block")??"")
     if(!block || !await env.CMS_DB.prepare("SELECT block_id FROM free_media WHERE page_id=? AND block_id=?").bind(id,block).first()) return new Response("Not found",{status:404})
+    if(env.CMS_ADMIN_MODE)return new Response("Not found",{status:404})
     const value=await notion<{type:string;[key:string]:unknown}>(env,`blocks/${block}`)
     const target=value && fileUrl(value[value.type] as Parameters<typeof fileUrl>[0])
     if(!target || !isTrustedAttachmentUrl(target)) return new Response("Not found",{status:404})
@@ -124,6 +139,22 @@ async function handle(request: Request, env: Env, ctx: Context): Promise<Respons
     return new Response(null, { status: 307, headers: { ...headers, Location: file.url } })
   }
   return new Response("Not found", { status: 404 })
+}
+
+async function housekeeping(env:Env,scheduledTime:number) {
+  if(Math.floor(scheduledTime/60000)%60!==0)return
+
+      // Housekeeping has its own hourly admission: an idle sync may skip this
+      // minute, and duplicate cron delivery must not repeat the deletes.
+      const now=Date.now(),nextHour=(Math.floor(now/3_600_000)+1)*3_600_000
+      const cleanup=await env.CMS_DB.prepare(`INSERT INTO free_controls(name,until_at) VALUES ('sync-housekeeping',?)
+        ON CONFLICT(name) DO UPDATE SET until_at=excluded.until_at WHERE until_at<=? RETURNING name`).bind(nextHour,now).first()
+      if(!cleanup) return
+      await env.CMS_DB.prepare("DELETE FROM free_budget WHERE key IN (SELECT key FROM free_budget WHERE expires_at < ? LIMIT 512)").bind(Date.now() - 86_400_000).run()
+      await env.CMS_DB.prepare("DELETE FROM free_events WHERE id IN (SELECT id FROM free_events WHERE expires_at < ? LIMIT 1000)").bind(Date.now()).run()
+      await env.CMS_DB.prepare("DELETE FROM free_webhook_setup WHERE expires_at < ?").bind(Date.now()).run()
+      await env.CMS_DB.prepare("DELETE FROM free_publication_checks WHERE id IN (SELECT id FROM free_publication_checks WHERE checked_at < ? LIMIT 512)").bind(Date.now()-60_000).run()
+    
 }
 
 export default {
@@ -143,6 +174,11 @@ export default {
   async scheduled(event: {scheduledTime?:number}, env: Env, _ctx: Context) {
     const kind=env.SMP_SYNC_KIND
     if (env.SMP_READ_ONLY === "1" || !kind || !["research","notice","members"].includes(kind)) return
+    if(await adminMode(env.CMS_DB)) {
+      if(kind==='research' && Math.floor((event.scheduledTime??Date.now())/60000)%15===0)await requestPublisher({...env,CMS_ADMIN_MODE:true})
+      if(kind==='research')await housekeeping(env,event.scheduledTime??Date.now())
+      return
+    }
     // Three independent CMS sources use three scheduled Workers in the SAME
     // account. Request/API quotas remain shared. Each invocation handles only
     // one small source batch, rather than exceeding Free CPU with three.
@@ -153,17 +189,6 @@ export default {
       // delays. No new Cron Trigger or high-frequency workflow is created.
       if(kind==="research" && Math.floor((event.scheduledTime??Date.now())/60_000)%5===0) await requestPublisher(env)
     }
-    if(kind==="research" && Math.floor((event.scheduledTime??Date.now())/60_000)%60===0) {
-      // Housekeeping has its own hourly admission: an idle sync may skip this
-      // minute, and duplicate cron delivery must not repeat the deletes.
-      const now=Date.now(),nextHour=(Math.floor(now/3_600_000)+1)*3_600_000
-      const cleanup=await env.CMS_DB.prepare(`INSERT INTO free_controls(name,until_at) VALUES ('sync-housekeeping',?)
-        ON CONFLICT(name) DO UPDATE SET until_at=excluded.until_at WHERE until_at<=? RETURNING name`).bind(nextHour,now).first()
-      if(!cleanup) return
-      await env.CMS_DB.prepare("DELETE FROM free_budget WHERE key IN (SELECT key FROM free_budget WHERE expires_at < ? LIMIT 512)").bind(Date.now() - 86_400_000).run()
-      await env.CMS_DB.prepare("DELETE FROM free_events WHERE id IN (SELECT id FROM free_events WHERE expires_at < ? LIMIT 1000)").bind(Date.now()).run()
-      await env.CMS_DB.prepare("DELETE FROM free_webhook_setup WHERE expires_at < ?").bind(Date.now()).run()
-      await env.CMS_DB.prepare("DELETE FROM free_publication_checks WHERE id IN (SELECT id FROM free_publication_checks WHERE checked_at < ? LIMIT 512)").bind(Date.now()-60_000).run()
-    }
+    if(kind==='research')await housekeeping(env,event.scheduledTime??Date.now())
   },
 }

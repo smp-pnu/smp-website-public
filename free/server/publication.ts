@@ -13,6 +13,14 @@ const checks = new WeakMap<Env["CMS_DB"],ReturnType<typeof singleFlight<ContentI
 export async function visitorPublication(env:Env,kind:ContentKind,rawId:string) {
   const id=normalizeId(rawId)
   if(!id) return null
+  if (kind === "research" && env.REPORT_PREVIEW) {
+    const preview = await env.REPORT_PREVIEW.published(id)
+    if (preview !== undefined) return preview
+  }
+  if(env.CMS_ADMIN_MODE) {
+    const row=await env.CMS_DB.prepare("SELECT item FROM free_content WHERE id=? AND kind=?").bind(id,kind).first<{item:string}>()
+    return row?JSON.parse(row.item) as ContentItem:null
+  }
   const owner=source(env,kind)
   let flight=checks.get(env.CMS_DB)
   if(!flight) {flight=singleFlight<ContentItem|null>();checks.set(env.CMS_DB,flight)}

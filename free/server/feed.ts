@@ -8,7 +8,7 @@ export async function publicFeed(env:Env) {
   // Same publication-freshness window as the public catalogue. Never fetch
   // Notion for a feed request, expose members, or reuse an old body revision.
   const state=await env.CMS_DB.prepare("SELECT MIN(checked_at) AS checked_at,COUNT(*) AS sources FROM free_sync WHERE kind IN ('research','notice')").first<{checked_at:number;sources:number}>()
-  if(!state||state.sources!==2||env.SMP_FIXTURE!=="1"&&Date.now()-state.checked_at>300_000) return new Response("Feed temporarily unavailable",{status:503,headers:{"Retry-After":"60"}})
+  if(!env.CMS_ADMIN_MODE&&(!state||state.sources!==2||env.SMP_FIXTURE!=="1"&&Date.now()-state.checked_at>300_000)) return new Response("Feed temporarily unavailable",{status:503,headers:{"Retry-After":"60"}})
   const rows=await env.CMS_DB.prepare(`WITH latest AS (
     SELECT item,blocks,id FROM free_content
     WHERE kind IN ('research','notice') AND body_revision=revision AND blocks IS NOT NULL

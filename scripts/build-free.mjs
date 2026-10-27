@@ -47,12 +47,12 @@ await writeFile("dist/free/wrangler.json", JSON.stringify(config, null, 2))
 if(!fixture) for(const kind of ["research","notice","members"]) {
   const {assets,ratelimits,routes,...sync}=config
   await writeFile(`dist/free/sync-${kind}.json`,JSON.stringify({...sync,name:`smp-sync-${kind}`,workers_dev:false,
-    vars:{...config.vars,SMP_SYNC_KIND:kind},triggers:{crons:["* * * * *"]}},null,2))
+    vars:{...config.vars,SMP_SYNC_KIND:kind},triggers:{crons:process.env.SMP_CMS_ADMIN_BUILD==="1"?(kind==="research"?["*/15 * * * *"]:[]):["* * * * *"]}},null,2))
 }
 let files = 0, bytes = 0, readerFiles=0, readerBytes=0
 async function inspect(dir) { for (const name of await readdir(dir)) { const file=path.join(dir,name), info=await stat(file); if(info.isDirectory()) await inspect(file); else { files++; bytes+=info.size; if(info.size>25*1024*1024) throw new Error(`Oversized asset: ${name}`); if(path.relative(client,file).startsWith('_reader-pdfs/')) {readerFiles++;readerBytes+=info.size;if(info.size>(name.endsWith('.bin')?1:24)*1024*1024)throw new Error('Reader PDF exceeds safety limit')} } } }
 await inspect(client)
-if(readerFiles>readerLimits.assetFiles || readerBytes>readerLimits.packBytes+readerLimits.bytes)throw new Error("Reader PDF storage safety limit exceeded")
+if(readerFiles>readerLimits.assetFiles || readerBytes>readerLimits.packBytes+readerLimits.bytes+readerLimits.managedBytes)throw new Error("Reader PDF storage safety limit exceeded")
 if (files > 18_000) throw new Error("Static file safety limit exceeded")
 const worker = await readFile("dist/free/worker.js", "utf8")
 if (/react-dom|renderToReadableStream|@vercel\/blob|napi-rs\/canvas/.test(worker)) throw new Error("Heavy runtime dependency entered Worker")

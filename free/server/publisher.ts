@@ -12,7 +12,7 @@ export async function requestPublisher(env: Env) {
   try {
     const claimed = await env.CMS_DB.prepare(`INSERT INTO free_controls(name,until_at)
       SELECT 'publisher-dispatch',? WHERE
-        (EXISTS(SELECT 1 FROM free_jobs WHERE attempts<5 AND next_at<=? AND lease_until<=?)
+        (EXISTS(SELECT 1 FROM ${env.CMS_ADMIN_MODE?"cms_jobs":"free_jobs"} WHERE attempts<5 AND next_at<=? AND lease_until<=?)
           OR EXISTS(SELECT 1 FROM free_controls WHERE name LIKE 'publish-at:%' AND until_at<=?))
         AND NOT EXISTS(SELECT 1 FROM free_controls WHERE name='publisher' AND until_at>?)
       ON CONFLICT(name) DO UPDATE SET until_at=excluded.until_at

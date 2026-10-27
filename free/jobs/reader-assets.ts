@@ -7,10 +7,10 @@ import type { PagePackAsset } from '../../lib/pdf-page-pack'
 // Application safeguards, below free static-file and runner/cache capacity.
 // All complete editions are retained; only optional duplicate PDFs rotate.
 export const readerAssetBudget = readerLimits
-type Candidate={id:string;date:string;cover:unknown}
+type Candidate={id:string;date:string;cover:unknown;requiredOriginal?:boolean}
 export function selectReaderAssets(records:Candidate[]) {
-  const selected: {id:string;url:string;bytes:number;chunkSize?:number;pagePack?:PagePackAsset;packSource?:string}[]=[],seen=new Set<string>()
-  let bytes=0,files=0,packBytes=0,packFiles=0,pdfFiles=0
+  const selected: {id:string;url:string;bytes:number;chunkSize?:number;pagePack?:PagePackAsset;packSource?:string;requiredOriginal?:boolean}[]=[],seen=new Set<string>()
+  let bytes=0,managedBytes=0,files=0,packBytes=0,packFiles=0,pdfFiles=0
   const candidates=[...records].sort((a,b)=>b.date.localeCompare(a.date)||a.id.localeCompare(b.id)).filter(row=>{
     if(seen.has(row.id))return false
     seen.add(row.id)
@@ -25,14 +25,14 @@ export function selectReaderAssets(records:Candidate[]) {
     selected.push({id:row.id,url:row.reader?.pdf?.url??`/_reader-pdfs/${row.id}/${source.key}.pdf`,bytes:0,pagePack:pack,packSource:source.key})
     packBytes+=pack.bytes;packFiles++;files++
   }
-  for(const row of candidates) {
+  for(const row of [...candidates].sort((a,b)=>Number(!!b.requiredOriginal)-Number(!!a.requiredOriginal))) {
     const asset=row.reader?.pdf,existing=selected.find(value=>value.id===row.id)
-    if(!asset || pdfFiles>=readerAssetBudget.files || bytes+asset.bytes>readerAssetBudget.bytes)continue
+    if(!asset || (row.requiredOriginal ? managedBytes+asset.bytes>readerAssetBudget.managedBytes : pdfFiles>=readerAssetBudget.files || bytes+asset.bytes>readerAssetBudget.bytes)){if(row.requiredOriginal)throw Error("Managed PDF storage budget exceeded; current site retained");continue}
     const count=readerPdfParts(asset).length
-    if(files+count>readerAssetBudget.assetFiles)continue
-    const value={id:row.id,url:asset.url,bytes:asset.bytes,...(asset.chunkSize?{chunkSize:asset.chunkSize}:{})}
+    if(files+count>readerAssetBudget.assetFiles){if(row.requiredOriginal)throw Error("Managed PDF file budget exceeded");continue}
+    const value={id:row.id,url:asset.url,bytes:asset.bytes,requiredOriginal:row.requiredOriginal,...(asset.chunkSize?{chunkSize:asset.chunkSize}:{})}
     if(existing)Object.assign(existing,value);else selected.push(value)
-    bytes+=asset.bytes;files+=count;pdfFiles++
+    if(row.requiredOriginal)managedBytes+=asset.bytes;else {bytes+=asset.bytes;pdfFiles++} files+=count
   }
   return selected
 }
@@ -87,6 +87,7 @@ export async function prepareReaderAssets(records:Candidate[],origin:URL,deadlin
       }
     } catch { /* Optional acceleration, never a reason to block publishing. */ }
   }
+  for(const asset of selectReaderAssets(records))if(asset.requiredOriginal && readerPdfParts(asset).some(part=>!keep.has(part.url.slice('/_reader-pdfs/'.length))))throw Error('Cannot recover an approved PDF; current deployment retained')
   for(const dir of await readdir(root,{withFileTypes:true})) {
     if(!dir.isDirectory() || !/^[a-f0-9]{32}$/.test(dir.name))continue
     for(const name of await readdir(`${root}/${dir.name}`))if(/^[a-f0-9]{64}(\.pdf|\.pack|\.\d{4}\.bin)$/.test(name) && !keep.has(`${dir.name}/${name}`))await rm(`${root}/${dir.name}/${name}`)

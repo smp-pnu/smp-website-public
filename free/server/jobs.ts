@@ -4,12 +4,14 @@ import { limitedBody } from "../../lib/webhook-security"
 import { spend } from "./budget"
 import { safeJobError } from "./job-errors"
 import { published, notion, source } from "./notion"
-import { rebuildDocuments } from "./catalog"
+import { adminMode } from "../../cms/mode"
+import { rebuildDocuments,notionSourceSql } from "./catalog"
 import { preparedReader } from "../../lib/report-reader"
 import type { Env } from "./types"
 const json = (body: unknown, status = 200) => Response.json(body, { status })
 export async function internal(request: Request, env: Env, options: {libraryMigration?: boolean} = {}) {
   const path = new URL(request.url).pathname
+  if(await adminMode(env.CMS_DB))return json({error:"Notion publishing is archived"},409)
   if (path === "/api/internal/status" && request.method === "GET") {
     const [sync, queue, budget] = await Promise.all([
       env.CMS_DB.prepare("SELECT kind,checked_at FROM free_sync").all(),
@@ -76,7 +78,7 @@ export async function internal(request: Request, env: Env, options: {libraryMigr
   await env.CMS_DB.batch([
     env.CMS_DB.prepare("DELETE FROM free_media WHERE page_id=?").bind(id),
     env.CMS_DB.prepare("INSERT INTO free_media(page_id,block_id) SELECT ?,value FROM json_each(?)").bind(id,JSON.stringify(media)),
-    env.CMS_DB.prepare("UPDATE free_content SET blocks=?,body_revision=?,cover=? WHERE id=? AND revision=?")
+    env.CMS_DB.prepare(`UPDATE free_content SET blocks=?,body_revision=?,cover=? WHERE ${notionSourceSql} AND id=? AND revision=?`)
       .bind(JSON.stringify(input.blocks),lease.revision,cover?JSON.stringify(cover):null,id,lease.revision),
     env.CMS_DB.prepare(`INSERT INTO free_report_covers(id,revision,cover)
       SELECT id,revision,cover FROM free_content WHERE id=? AND revision=? AND kind='research' AND cover IS NOT NULL

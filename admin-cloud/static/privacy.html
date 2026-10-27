@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <title>Google Drive 연결 및 개인정보 안내 · SMP 관리자</title>
+  <style>
+    :root { color-scheme: light; font: 16px/1.8 system-ui, sans-serif; color: #1e293b; background: #f8fafc; }
+    body { margin: 0; } main { max-width: 740px; margin: auto; padding: 40px 24px 72px; }
+    nav, small { color: #64748b; } a { color: #235b92; text-underline-offset: .2em; }
+    h1 { font-size: 1.85rem; line-height: 1.4; } h2 { font-size: 1.2rem; margin-top: 32px; }
+    li { margin: 8px 0; } code { font-size: .9em; } footer { border-top: 1px solid #cbd5e1; margin-top: 32px; padding-top: 20px; }
+  </style>
+</head>
+<body><main>
+  <nav><a href="/">SMP 사이트 관리</a> · Google Drive 연결 안내</nav>
+  <h1>Google Drive 연결 및 개인정보 안내</h1>
+  <p>SMP Admin Drive Trial은 부산대학교 금융투자학회 SMP의 담당자가 리포트와 공지 초안을 관리하는 시험 앱입니다. Google 연결은 PDF 원본 저장을 위한 기능이며, 관리자 로그인에는 별도의 패스키를 사용합니다. 이 앱의 초안은 현재 공식 홈페이지나 Notion에 자동 게시되지 않습니다.</p>
+  <h2>접근하는 정보와 이용 목적</h2>
+  <ul>
+    <li><strong>Google 계정 이메일·저장 용량:</strong> 허용된 학회 계정인지 확인하고, 업로드 전 잔여 용량을 확인합니다.</li>
+    <li><strong>Drive 파일:</strong> <code>drive.file</code> 권한으로 앱이 만든 파일 또는 사용자가 앱에 명시적으로 허용한 파일만 다룹니다. 현재 앱은 전용 비공개 폴더에 새 PDF를 저장·조회하고, 삭제 절차에 따라 휴지통으로 이동합니다. 기존 Notion 자료나 Drive 전체 파일 목록을 가져오지 않습니다.</li>
+    <li><strong>연결 정보:</strong> OAuth 연결 키와 갱신 토큰은 서버에서 암호화해 보관하며, 담당자가 매번 Google에 로그인하지 않아도 승인한 저장 기능을 수행하는 데 사용합니다.</li>
+    <li><strong>관리자 자료:</strong> 리포트 제목·기업명·종목코드·표지·수정 이력, 공지 초안·사진과 등록한 패스키의 공개 키·기기 이름을 보관합니다. Touch ID 정보와 기기 잠금번호는 받지 않습니다.</li>
+  </ul>
+  <h2>저장 위치와 외부 처리</h2>
+  <p>Drive 연결 후 새 PDF 원본은 학회 Google Drive에, 글 정보·표지·사진·이력·암호화된 연결 정보는 Cloudflare에 저장합니다. 연결 전에 등록한 시험 PDF는 Cloudflare에 남을 수 있습니다. 새 자료의 공개 공유 권한을 자동으로 만들지 않습니다.</p>
+  <p>AI 입력 후보 추출은 기본적으로 꺼져 있습니다. 담당자가 전송할 내용을 확인하고 동의한 경우에만, PDF 앞 3쪽에서 추출한 텍스트 중 최대 12KB를 Cloudflare Workers AI에 전송합니다. 이메일·전화번호 패턴을 가리지만 모든 개인정보를 자동으로 찾는 것은 아니므로 담당자가 내용을 확인해야 합니다. 이 기능 없이 직접 입력할 수 있습니다.</p>
+  <p>학회는 Google에서 받은 데이터를 광고나 판매에 이용하지 않으며, 별도의 AI 학습 데이터로 제공하지 않습니다. Google API에서 받은 정보의 이용·이전은 <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>의 Limited Use 요구사항을 따릅니다. Google·Cloudflare는 해당 서비스 제공을 위해 데이터를 처리합니다.</p>
+  <h2>보관과 삭제</h2>
+  <p>현재 자료와 이전 승인본에서 참조하는 원본은 보존합니다. 관리자 휴지통의 글은 복원할 수 있습니다. 글을 영구 삭제하면 원본은 30일간 격리되며, 이후 참조·소유권·공유 상태를 확인한 파일만 관리자 접속 시 Drive 휴지통으로 이동합니다. Drive 휴지통에 들어간 파일에는 Google의 보관 정책이 적용됩니다. 수정 이력은 별도 보관되므로 파일 삭제가 모든 이력을 즉시 삭제하는 것은 아닙니다.</p>
+  <p>보안 작업 이력은 최대 90일·200건으로 제한합니다. 연결을 유지하는 동안 갱신 토큰을 보관하며, Google 연결을 다시 승인하면 저장된 연결 정보를 교체합니다.</p>
+  <h2>연결 철회와 문의</h2>
+  <p><a href="https://myaccount.google.com/connections">Google 계정의 서드 파티 연결</a>에서 SMP Admin Drive Trial의 접근 권한을 철회할 수 있습니다. 철회하면 새 저장·조회 등 Google 연결 기능이 중단되지만, 이미 저장된 PDF와 관리자 자료가 자동으로 삭제되지는 않습니다. 연결 정보와 자료의 삭제 요청은 학회 담당자에게 문의해 주세요.</p>
+  <footer>운영: 부산대학교 금융투자학회 SMP<br>문의: <a href="mailto:smpwebsitemange@gmail.com">smpwebsitemange@gmail.com</a><br><small>최종 수정: 2026년 10월 27일</small></footer>
+</main></body>
+</html>

@@ -1,3 +1,4 @@
+import {adminMode} from "../../cms/mode"
 import {mkdir,writeFile} from "node:fs/promises"
 import {normalizeId,type NotionPage} from "../../lib/content-model"
 import {defaultRecruitment,parseRecruitment,type Recruitment} from "../../lib/recruitment"
@@ -11,7 +12,7 @@ export async function prepareRecruitment(env:Env) {
   const id=await adminConfig(env.CMS_DB,"recruitment_page")
   const saved=await adminConfig(env.CMS_DB,"recruitment_validated")
   let config:Recruitment=saved?JSON.parse(saved):defaultRecruitment
-  if(id&&normalizeId(id)) {
+  if(!await adminMode(env.CMS_DB)&&id&&normalizeId(id)) {
     try {
       const page=await notion<NotionPage>(env,`pages/${id}`)
       if(!page || normalizeId(page.id)!==normalizeId(id))throw new Error("Recruitment unavailable")
