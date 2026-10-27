@@ -7,6 +7,7 @@ import { ArrowRight } from "lucide-react"
 import { readApi, peekApi, SEARCH_CACHE_TTL } from "@/lib/client-api-cache"
 import { SearchField } from "@/components/search-field"
 import { siteSearchMatches, type SiteSearchEntry } from "@/lib/site-search-query"
+import { internalHref } from "@/lib/internal-href"
 
 type SearchIndex = { entries: SiteSearchEntry[]; partial: boolean }
 
@@ -26,9 +27,10 @@ export function SiteSearchForm({ onNavigate }: { onNavigate: () => void }) {
     }
   }, [isNavigating, onNavigate])
   function navigate(href: string) {
-    if (isNavigating) return
+    const target = internalHref(href)
+    if (isNavigating || !target) return
     navigationStarted.current = true
-    startNavigation(() => router.push(href))
+    startNavigation(() => router.push(target))
   }
   useEffect(() => {
     let mounted = true
@@ -61,7 +63,7 @@ export function SiteSearchForm({ onNavigate }: { onNavigate: () => void }) {
         }} />
     <div id={`${id}-results`} role="listbox" aria-label="검색결과 미리보기" hidden={!expanded}
       className="mt-2 max-h-[42svh] overflow-y-auto overscroll-contain divide-y divide-site-line-soft rounded-[4px] border border-site-line bg-site-surface [scrollbar-color:#475569_transparent] [scrollbar-width:thin]">
-      {matches.map((item, i) => <Link key={`${item.href}-${i}`} href={item.href} prefetch={false}
+      {matches.map((item, i) => <Link key={`${item.href}-${i}`} href={internalHref(item.href) ?? "/search"} prefetch={false}
         id={`${id}-option-${i}`} role="option" aria-selected={active === i}
         onNavigate={event => { event.preventDefault(); navigate(item.href) }}
         onMouseEnter={() => setActive(i)}
