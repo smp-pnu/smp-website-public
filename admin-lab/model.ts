@@ -14,7 +14,7 @@ export type Draft = {
 export type Assets = { id: string; pdf: Blob; cover: Blob }
 export const emptyFields = (): Fields => ({ title: "", company: "", ticker: "", date: "", semester: "", author: "", industry: "", reportType: "기업분석", targetYear: "", targetPrice: "", upside: "", notRated: false })
 export const sizeLabel = (bytes: number) => bytes < 1024 * 1024 ? `${Math.ceil(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`
-export const statusOf = (draft: Draft) => draft.trashedAt ? "휴지통" : draft.approvedRevision === draft.revision ? "시험 승인" : "검토 대기"
+export const statusOf = (draft: Draft) => draft.trashedAt ? "휴지통" : draft.approvedRevision === draft.revision ? "입력 승인" : "검토 대기"
 
 export function validateFile(file: Pick<File, "name" | "size" | "type">) {
   if (!/\.pdf$/i.test(file.name)) throw Error("PDF 파일만 추가할 수 있어요.")

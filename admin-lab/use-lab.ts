@@ -227,7 +227,7 @@ export function useLab() {
     save: (draft: Draft, fields: Fields) =>
       change(draft, { type: "edit", fields }, `초안을 ${storageLabel}에 저장했어요.`),
     approve: (draft: Draft, reviewed: boolean) =>
-      change(draft, { type: "approve", reviewed }, "시험 승인했어요. 운영 사이트에는 게시되지 않아요."),
+      change(draft, { type: "approve", reviewed }, "입력 승인했어요. 운영 사이트에는 게시되지 않아요."),
     trash: (draft: Draft, trashed: boolean) =>
       change(
         draft,

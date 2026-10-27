@@ -71,7 +71,7 @@ test("approval requires manual review and complete fields; edits invalidate appr
   assert.throws(() => approveDraft(original, false, now), /확인/)
   assert.throws(() => approveDraft({ ...original, fields: emptyFields() }, true, now), /제목/)
   const approved = approveDraft(original, true, now)
-  assert.equal(statusOf(approved), "시험 승인")
+  assert.equal(statusOf(approved), "입력 승인")
   const edited = editDraft(approved, { ...approved.fields, title: "수정본" }, now)
   assert.equal(statusOf(edited), "검토 대기")
   assert.equal(edited.revision, 2)

@@ -27,7 +27,7 @@ export async function jsonBody(request: Request) {
 }
 function pdfPages(bytes: Uint8Array, signal: AbortSignal) {
   return new Promise<number>((resolve, reject) => {
-    const worker = new Worker(new URL("./pdf-check.mjs", import.meta.url), { workerData: bytes, resourceLimits: { maxOldGenerationSizeMb: 128 } })
+    const worker = new Worker(new URL("./pdf-check.mjs", import.meta.url), { workerData: bytes, execArgv: [], resourceLimits: { maxOldGenerationSizeMb: 128 } })
     const finish = (error?: Error, pages?: number) => {
       clearTimeout(timer); signal.removeEventListener("abort", cancel); void worker.terminate()
       error ? reject(error) : resolve(pages!)
@@ -36,7 +36,7 @@ function pdfPages(bytes: Uint8Array, signal: AbortSignal) {
     const timer = setTimeout(() => finish(new HttpError(422, "PDF 검증 시간이 초과됐어요. 최적화한 파일로 다시 시도해 주세요.")), 20_000)
     signal.addEventListener("abort", cancel, { once: true })
     if (signal.aborted) { cancel(); return }
-    worker.once("error", () => finish(new HttpError(422, "PDF 검증에 실패했어요.")))
+    worker.once("error", error => { console.error("[PDF validation worker]", error.name, error.message.slice(0,160)); finish(new HttpError(422, "PDF 검증에 실패했어요.")) })
     worker.once("exit", code => { if (code !== 0) finish(new HttpError(422, "PDF 검증을 완료하지 못했어요.")) })
     worker.once("message", result => {
       if (result.error || !Number.isSafeInteger(result.pages) || result.pages < 1 || result.pages > limits.pages) finish(new HttpError(422, result.error ?? "120페이지 이하의 PDF가 필요해요."))

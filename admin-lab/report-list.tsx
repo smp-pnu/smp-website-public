@@ -57,7 +57,7 @@ export function ReportList({
   const tabs: { value: Filter; label: string; count: number }[] = [
     { value: "all", label: "전체", count: active.length },
     { value: "review", label: "검토 대기", count: active.length - approved },
-    { value: "approved", label: "시험 승인", count: approved },
+    { value: "approved", label: "입력 승인", count: approved },
     { value: "trash", label: "휴지통", count: allDrafts.length - active.length },
   ]
   const source = criteria.filter === "trash" ? allDrafts.filter((d) => d.trashedAt) : active

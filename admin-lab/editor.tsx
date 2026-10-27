@@ -341,7 +341,7 @@ export function DraftEditor({
                 onClick={async () => {
                   if (
                     await confirm(
-                      "직접 수정한 입력값을 PDF에서 다시 추출한 후보로 바꿀까요? 시험 승인도 해제됩니다. 원본 PDF와 표지는 유지됩니다.",
+                      "직접 수정한 입력값을 PDF에서 다시 추출한 후보로 바꿀까요? 입력 승인도 해제됩니다. 원본 PDF와 표지는 유지됩니다.",
                     )
                   )
                     void action(() => onReanalyze(draft))
@@ -405,8 +405,7 @@ export function DraftEditor({
           <>
             {approved && !dirty ? (
               <p className="approved-message">
-                <Check size={17} /> 이 버전은 시험 승인을 완료했어요. 실제 게시 연결은 아직
-                없습니다.
+                <Check size={17} /> 이 버전은 입력 승인을 완료했어요. 게시 관리에서 공개할 수 있습니다.
               </p>
             ) : (
               <>
@@ -434,7 +433,7 @@ export function DraftEditor({
                 onClick={() => action(() => onApprove(draft, reviewed))}
               >
                 <Check size={17} />
-                {approved ? "시험 승인 완료" : "검토 완료 · 시험 승인"}
+                {approved ? "입력 승인 완료" : "검토 완료 · 입력 승인"}
               </button>
               <button
                 className="icon-button"
@@ -450,8 +449,7 @@ export function DraftEditor({
               </button>
             </div>
             <small>
-              시험 승인은 {serverMode ? "시험 서버의" : "로컬"} 상태만 바꿉니다. Notion·Drive·운영
-              사이트에 전송하지 않습니다.
+              입력 승인 후 ‘게시 목록에 추가’를 눌러 게시 관리로 이동하세요. 공개하려면 게시 관리에서 ‘게시’를 눌러야 합니다.
             </small>
           </>
         )}

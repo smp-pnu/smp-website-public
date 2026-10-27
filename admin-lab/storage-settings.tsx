@@ -257,8 +257,7 @@ export function StorageSettings({
               3회 이후 자동 재시도를 멈춥니다.
             </p>
             <div className="settings-note">
-              현재 시험 승인은 운영 사이트에 게시되지 않습니다. Notion의 게시·삭제 연동도
-              유지됩니다.
+              게시 관리에서 승인한 내용만 공개됩니다. 보관 중인 PDF는 해당 게시물의 휴지통 보관 기간이 지난 뒤 정리합니다.
             </div>
           </section>
         </div>

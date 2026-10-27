@@ -192,7 +192,7 @@ function UploadApp({
         })()
       }}
       onNotices={
-        cloudMode
+        cloudMode && !onCmsReturn
           ? () => {
               void (async () => {
                 if (await canLeave()) {

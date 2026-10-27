@@ -123,9 +123,9 @@ export function AdminFrame({
           <span>부산대학교 금융투자학회</span>
           <div>
             <span className="environment-badge">
-              {cmsEnabled ? (cmsActive ? "공식 사이트 관리" : "전환 준비") : cloudMode ? "온라인 시험" : serverMode ? "로컬 서버 시험" : "로컬 시험"}
+              {cmsEnabled ? (cmsActive ? "공식 사이트 관리" : "전환 준비") : cloudMode ? "관리자" : serverMode ? "로컬 서버 시험" : "로컬 시험"}
             </span>
-            <span className="environment-note">{cmsEnabled ? (cmsActive ? "승인한 내용만 게시됩니다" : "공식 사이트 전환 전") : "운영 사이트 게시 안 됨"}</span>
+            <span className="environment-note">{cmsEnabled ? (cmsActive ? "승인한 내용만 게시됩니다" : "공식 사이트 전환 전") : "입력 승인 후 게시 관리에서 공개합니다"}</span>
           </div>
         </header>
         <main id="admin-main" className="admin-main" tabIndex={-1}>
