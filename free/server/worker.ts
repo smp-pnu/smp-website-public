@@ -100,6 +100,8 @@ async function handle(request: Request, env: Env, ctx: Context): Promise<Respons
   const item = await visitorPublication(env, kind, id)
   if (!item) return new Response("Not found", { status: 404 })
   if (match[4] === "pdf") {
+    if (item.managedPdf) return env.REPORT_PREVIEW
+      ? env.REPORT_PREVIEW.pdf(request,item) : new Response("Not found",{status:404})
     const pdfAt=Date.now()
     const prepared=await readerPdf(request,item,env,ctx)
     if(prepared) {

@@ -38,7 +38,9 @@ export function isTrustedAttachmentUrl(value: string) {
 
 export type PdfSource = { name: string; url: string; query: string }
 
-export function getPdfSources(item: Pick<ContentItem, "title" | "attachments" | "externalUrl">): PdfSource[] {
+export function getPdfSources(item: Pick<ContentItem, "title" | "attachments" | "externalUrl"> & Partial<Pick<ContentItem, "id" | "managedPdf">>): PdfSource[] {
+  if (item.managedPdf && /^[a-f0-9]{32}$/.test(item.id ?? "") && /^[a-f0-9]{64}$/.test(item.managedPdf.identity))
+    return [{ name: item.managedPdf.name, url: `https://pnusmp.com/api/content/research/${item.id}/pdf?edition=${item.managedPdf.identity}`, query: "index=0" }]
   const files = item.attachments.flatMap((file, index) => {
     const driveUrl = driveDownloadUrl(file.url)
     if (driveUrl) return [{ name: file.name, url: driveUrl, query: `index=${index}` }]

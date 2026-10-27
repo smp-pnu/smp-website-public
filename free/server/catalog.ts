@@ -15,8 +15,11 @@ export function searchEntry(item: NonNullable<ReturnType<typeof toContentItem>>)
   return { title: item.title, text: [item.category,item.summary,item.author,item.company,item.ticker,item.industry,industrySector(item.industry)].filter(Boolean).join(" · "), href:contentHref(item),label:item.kind==="research"?"리포트":"공지" }
 }
 export async function rebuildDocuments(env: Env, kinds: readonly Kind[] = ["research","notice","members"]) {
+  await env.CMS_DB.batch(documentStatements(env,kinds))
+}
+export function documentStatements(env:Env,kinds:readonly Kind[]=["research","notice","members"]) {
   // Aggregate on D1, without decoding the full catalogue in the Worker.
-  await env.CMS_DB.batch([
+  return [
     ...kinds.map(kind=>kind==="members" ? env.CMS_DB.prepare(`INSERT INTO free_documents(name,body,version)
       SELECT 'members','{"state":"ready","items":'||json_group_array(json(CASE
         WHEN json_extract(item,'$.image')='/api/member-photo/'||id THEN
@@ -28,7 +31,7 @@ export async function rebuildDocuments(env: Env, kinds: readonly Kind[] = ["rese
     env.CMS_DB.prepare(`INSERT INTO free_documents(name,body,version) SELECT 'search','{"partial":false,"entries":'||json_group_array(json(entry))||'}', ? FROM
       (SELECT search_entry AS entry FROM free_content UNION ALL SELECT value FROM json_each(?)) WHERE true
       ON CONFLICT(name) DO UPDATE SET body=excluded.body,version=free_documents.version+1 WHERE free_documents.body<>excluded.body`).bind(Date.now(),JSON.stringify(staticEntries.map(item=>({...item,label:item.href.startsWith('/achievements#')?'수상':'페이지'})))),
-  ])
+  ]
 }
 export async function enqueue(env: Env,id: string,revision: string) {
   await env.CMS_DB.prepare(`INSERT INTO free_jobs(id,revision,next_at) VALUES (?,?,?)

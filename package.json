@@ -19,6 +19,7 @@
     "deploy:free": "node scripts/deploy-free.mjs",
     "cms:manage": "node --import tsx --conditions=react-server free/jobs/manage.ts",
     "cms:prepare-migration": "node --import tsx scripts/prepare-cms-migration.mjs",
+    "cms:preview-reports": "node --import tsx --conditions=react-server scripts/preview-admin-publication.mjs",
     "publish:free": "node --import tsx --conditions=react-server free/jobs/publish.ts",
     "seed:free:fixture": "node --import tsx --conditions=react-server free/jobs/seed-fixture.ts",
     "test:free:http": "node tests/free-http.mjs",

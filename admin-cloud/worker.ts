@@ -14,6 +14,7 @@ import { ContentOrderStore } from "./content-order"
 import { ReportVersions } from "./report-versions"
 import { DriveConnection, type DriveFetch } from "./drive/connection"
 import { DriveUploads } from "./drive/uploads"
+import { publicationExport } from "./publication-export"
 
 export interface Env extends AuthEnv {
   ADMIN_DB: Database
@@ -21,6 +22,7 @@ export interface Env extends AuthEnv {
   ORIGIN: string
   AI?: AiBinding
   DRIVE_ACCOUNT_EMAIL?: string
+  REPORT_EXPORT_KEY?: string
 }
 export const headers = {
   "Cache-Control": "no-store",
@@ -94,8 +96,9 @@ export function createHandler(clock = Date.now, driveFetch: DriveFetch = fetch) 
         // OAuth redirects cannot carry our SameSite=Strict login cookie. The
         // one-time PKCE state only creates a pending grant; a signed-in CSRF-
         // protected confirmation is still required before any Drive writes.
-        const authResponse =
-          url.pathname === "/api/storage/drive/callback" && request.method === "GET"
+        const authResponse = url.pathname.startsWith("/api/publisher/")
+            ? await publicationExport(request,env,drive,now)
+            : url.pathname === "/api/storage/drive/callback" && request.method === "GET"
             ? await connection.callback(url)
             : await new Passkeys(env, now).handle(request, () => jsonBody(request))
         if (authResponse) {

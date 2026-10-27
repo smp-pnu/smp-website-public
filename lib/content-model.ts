@@ -61,6 +61,8 @@ export type ContentItem = {
   attachments: { name: string; url: string }[]
   externalUrl: string | null
   editedAt?: string
+  // Approved CMS editions use an internal PDF route, never a private Drive URL.
+  managedPdf?: { name: string; identity: string }
 }
 
 export function plainText(value: RichText[] = []) {
