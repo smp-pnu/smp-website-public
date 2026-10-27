@@ -7,6 +7,7 @@ import { ArrowRight } from "lucide-react"
 import { readApi, peekApi, SEARCH_CACHE_TTL } from "@/lib/client-api-cache"
 import { SearchField } from "@/components/search-field"
 import { siteSearchMatches, type SiteSearchEntry } from "@/lib/site-search-query"
+import { internalHref } from "@/lib/internal-href"
 
 type SearchIndex = { entries: SiteSearchEntry[]; partial: boolean }
 
@@ -26,9 +27,10 @@ export function SiteSearchForm({ onNavigate }: { onNavigate: () => void }) {
     }
   }, [isNavigating, onNavigate])
   function navigate(href: string) {
-    if (isNavigating) return
+    const target = internalHref(href)
+    if (isNavigating || !target) return
     navigationStarted.current = true
-    startNavigation(() => router.push(href))
+    startNavigation(() => router.push(target))
   }
   useEffect(() => {
     let mounted = true
@@ -61,9 +63,12 @@ export function SiteSearchForm({ onNavigate }: { onNavigate: () => void }) {
         }} />
     <div id={`${id}-results`} role="listbox" aria-label="검색결과 미리보기" hidden={!expanded}
       className="mt-2 max-h-[42svh] overflow-y-auto overscroll-contain divide-y divide-site-line-soft rounded-[4px] border border-site-line bg-site-surface [scrollbar-color:#475569_transparent] [scrollbar-width:thin]">
-      {matches.map((item, i) => <Link key={`${item.href}-${i}`} href={item.href} prefetch={false}
+      {matches.map((item, i) => {
+        const href = internalHref(item.href)
+        if (!href) return null
+        return <Link key={`${href}-${i}`} href={href} prefetch={false}
         id={`${id}-option-${i}`} role="option" aria-selected={active === i}
-        onNavigate={event => { event.preventDefault(); navigate(item.href) }}
+        onNavigate={event => { event.preventDefault(); navigate(href) }}
         onMouseEnter={() => setActive(i)}
         className={`group flex items-start gap-3 px-3 py-3 transition-colors hover:bg-white/[0.05] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-site-accent sm:gap-4 sm:px-4 ${active === i ? "bg-white/[0.05]" : ""}`}>
         <span className="mt-0.5 min-w-12 shrink-0 rounded-[2px] border border-sky-200/15 bg-sky-200/[0.04] px-2 py-1 text-center text-[11px] leading-4 text-site-accent/80">{item.label}</span>
@@ -72,7 +77,7 @@ export function SiteSearchForm({ onNavigate }: { onNavigate: () => void }) {
           <span className="mt-1 block truncate text-xs leading-5 text-site-muted">{item.text}</span>
         </span>
         <ArrowRight aria-hidden="true" className="mt-1 hidden h-4 w-4 shrink-0 text-site-muted transition-colors group-hover:text-site-accent sm:block" strokeWidth={1.5} />
-      </Link>)}
+      </Link>})}
     </div>
     {expanded && <div className="mt-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-site-line pt-3 text-xs text-site-muted">
       <span role="status">{isNavigating ? "검색결과를 여는 중입니다…" : failed || index?.partial ? "일부 미리보기를 불러오지 못했습니다. 전체 검색을 이용해주세요." : !index ? "검색 목록을 불러오는 중입니다…" : !matches.length ? "일치하는 결과가 없습니다." : <span className="hidden sm:inline">↑ ↓ 선택 <span className="mx-2 text-white/20">/</span> Enter 이동</span>}</span>

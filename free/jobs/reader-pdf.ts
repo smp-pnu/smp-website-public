@@ -12,13 +12,18 @@ const execute = promisify(execFile)
 let pythonReady: Promise<string> | undefined
 function python() {
   return pythonReady ??= (async () => {
-    if (process.env.SMP_PDF_PYTHON) return process.env.SMP_PDF_PYTHON
+    const check = resolve("scripts/check-pdf-runtime.py")
+    if (process.env.SMP_PDF_PYTHON) {
+      await execute(process.env.SMP_PDF_PYTHON, [check], {timeout:10000})
+      return process.env.SMP_PDF_PYTHON
+    }
     const binary = resolve(".smp-tools/pdf/bin/python")
-    try { await execute(binary, ["-c", "import pikepdf; assert pikepdf.__version__ == '10.17.0'"], {timeout:10000}); return binary } catch {}
+    try { await execute(binary, [check], {timeout:10000}); return binary } catch {}
     if (process.env.SMP_ALLOW_PDF_TOOL_INSTALL !== "1") throw new Error("PDF optimizer is not installed")
     // Runs only for a changed PDF on the publisher, not every scheduled check.
     await execute("python3", ["-m","venv",".smp-tools/pdf"], {timeout:30000})
     await execute(binary, ["-m","pip","install","--only-binary=:all:","--disable-pip-version-check","-r","scripts/pdf-requirements.txt"], {timeout:120000,maxBuffer:1024*1024})
+    await execute(binary, [check], {timeout:10000})
     return binary
   })()
 }
