@@ -749,8 +749,9 @@ export function CmsConsole({
             </button>
           </div>
           <p id="cms-order-help" className="sr-only">
-            손잡이를 끌어서 파란 삽입선에 놓으세요. 위·아래 버튼으로도 이동할 수
-            있습니다.
+            {section === "members"
+              ? "같은 기수에서는 회장, 부회장, 기장, 가나다순으로 자동 정렬됩니다."
+              : "손잡이를 끌어서 파란 삽입선에 놓으세요. 위·아래 버튼으로도 이동할 수 있습니다."}
           </p>
           <div
             ref={reorder.table}
