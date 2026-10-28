@@ -27,7 +27,9 @@ export async function readApi<T>(path: string, ttl = 300_000): Promise<T> {
   const active = pending.get(path)
   if (active) return active as Promise<T>
   const work = (async () => {
-    const response = await fetch(path, { credentials: "same-origin", cache: "no-store", signal: AbortSignal.timeout(20_000) })
+    const response = await fetch(path, { credentials: "same-origin", cache: "no-store", signal: AbortSignal.timeout(20_000) }).catch(()=>{
+      throw new Error("인터넷 연결 또는 서버 응답을 확인하지 못했습니다. 잠시 후 다시 시도해주세요.")
+    })
     if (!response.ok) {
       const error=new ApiError(response.status,Number(response.headers.get("retry-after"))||60)
       if(response.status===429) paused.set(path,{until:Date.now()+Math.max(1,error.retryAfter)*1000,error})

@@ -25,6 +25,8 @@ jobs:
       - run: npm install --global pnpm@12.3.4 --ignore-scripts
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
+      - run: node --import tsx tests/admin-cms-render.mjs
+      - run: pnpm build:admin:cloud
       - run: pnpm audit --audit-level=high
       - run: pnpm build
       - run: pnpm test:bundles

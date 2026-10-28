@@ -1,32 +1,59 @@
-import type { ReactNode } from "react"
-import { FileText, KeyRound, ExternalLink, LogOut, Megaphone, HardDrive, Users, Calendar, Upload, LayoutDashboard } from "lucide-react"
-import { cloudMode, serverMode } from "./mode"
-import { limits, sizeLabel } from "./model"
+import { useEffect, useRef, type ReactNode } from "react";
+import {
+  FileText,
+  KeyRound,
+  ExternalLink,
+  LogOut,
+  Megaphone,
+  HardDrive,
+  Users,
+  Calendar,
+  Upload,
+  LayoutDashboard,
+} from "lucide-react";
+import { cloudMode, serverMode } from "./mode";
+import { limits, sizeLabel } from "./model";
 
 type Props = {
-  children: ReactNode
-  embedded?: boolean
-  active: "reports" | "security" | "notices" | "storage" | "members" | "recruitment" | "dashboard" | "upload"
-  onDashboard?: () => void
-  cmsEnabled?: boolean
-  cmsActive?: boolean
-  onMembers?: () => void
-  onRecruitment?: () => void
-  onUpload?: () => void
-  onReports?: () => void
-  onNotices?: () => void
-  onSecurity?: () => void
-  onStorage?: () => void
-  onLogout?: () => Promise<void>
-  busy?: boolean
-  stored?: number
-  count?: number
-  countLimit?: number
-}
+  children: ReactNode;
+  viewKey?: string;
+  embedded?: boolean;
+  active:
+    | "reports"
+    | "security"
+    | "notices"
+    | "storage"
+    | "members"
+    | "recruitment"
+    | "dashboard"
+    | "upload";
+  onDashboard?: () => void;
+  cmsEnabled?: boolean;
+  cmsActive?: boolean;
+  onMembers?: () => void;
+  onRecruitment?: () => void;
+  onUpload?: () => void;
+  onReports?: () => void;
+  onNotices?: () => void;
+  onSecurity?: () => void;
+  onStorage?: () => void;
+  onLogout?: () => Promise<void>;
+  busy?: boolean;
+  stored?: number;
+  count?: number;
+  countLimit?: number;
+};
 export function AdminFrame({
   children,
+  viewKey,
   embedded,
-  active, cmsEnabled, cmsActive, onMembers, onRecruitment, onUpload, onDashboard,
+  active,
+  cmsEnabled,
+  cmsActive,
+  onMembers,
+  onRecruitment,
+  onUpload,
+  onDashboard,
   onReports,
   onNotices,
   onSecurity,
@@ -37,10 +64,26 @@ export function AdminFrame({
   count,
   countLimit = limits.drafts,
 }: Props) {
-  if (embedded) return <>{children}</>
+  const main = useRef<HTMLElement>(null);
+  const previousView = useRef(viewKey ?? active);
+  useEffect(() => {
+    const current = viewKey ?? active;
+    if (previousView.current === current) return;
+    previousView.current = current;
+    main.current?.focus({ preventScroll: true });
+    main.current?.scrollIntoView({ block: "start", behavior: "instant" });
+  }, [viewKey, active]);
+  if (embedded) return <>{children}</>;
   return (
     <div className="admin-shell">
-      <a className="skip-link" href="#admin-main">
+      <a
+        className="skip-link"
+        href="#admin-main"
+        onClick={(event) => {
+          event.preventDefault();
+          document.getElementById("admin-main")?.focus();
+        }}
+      >
         본문으로 이동
       </a>
       <aside className="admin-sidebar">
@@ -49,7 +92,17 @@ export function AdminFrame({
           <span>사이트 관리</span>
         </div>
         <nav aria-label="관리 메뉴">
-          {onDashboard && <button className={active==='dashboard'?'active':''} aria-current={active==='dashboard'?'page':undefined} disabled={busy} onClick={onDashboard}><LayoutDashboard size={17}/>운영 현황</button>}
+          {onDashboard && (
+            <button
+              className={active === "dashboard" ? "active" : ""}
+              aria-current={active === "dashboard" ? "page" : undefined}
+              disabled={busy}
+              onClick={onDashboard}
+            >
+              <LayoutDashboard size={17} />
+              운영 현황
+            </button>
+          )}
           <button
             className={active === "reports" ? "active" : ""}
             aria-current={active === "reports" ? "page" : undefined}
@@ -70,9 +123,39 @@ export function AdminFrame({
               공지사항
             </button>
           )}
-          {onMembers && <button className={active==='members'?'active':''} aria-current={active==='members'?'page':undefined} onClick={onMembers} disabled={busy}><Users size={17}/>회원 명단</button>}
-          {onRecruitment && <button className={active==='recruitment'?'active':''} aria-current={active==='recruitment'?'page':undefined} onClick={onRecruitment} disabled={busy}><Calendar size={17}/>모집 안내</button>}
-          {onUpload && <button className={active==='upload'?'active':''} aria-current={active==='upload'?'page':undefined} onClick={onUpload} disabled={busy}><Upload size={17}/>PDF 등록</button>}
+          {onMembers && (
+            <button
+              className={active === "members" ? "active" : ""}
+              aria-current={active === "members" ? "page" : undefined}
+              onClick={onMembers}
+              disabled={busy}
+            >
+              <Users size={17} />
+              회원 명단
+            </button>
+          )}
+          {onRecruitment && (
+            <button
+              className={active === "recruitment" ? "active" : ""}
+              aria-current={active === "recruitment" ? "page" : undefined}
+              onClick={onRecruitment}
+              disabled={busy}
+            >
+              <Calendar size={17} />
+              모집 안내
+            </button>
+          )}
+          {onUpload && (
+            <button
+              className={active === "upload" ? "active" : ""}
+              aria-current={active === "upload" ? "page" : undefined}
+              onClick={onUpload}
+              disabled={busy}
+            >
+              <Upload size={17} />
+              PDF 등록
+            </button>
+          )}
           {onSecurity && (
             <button
               className={active === "security" ? "active" : ""}
@@ -105,18 +188,30 @@ export function AdminFrame({
                   리포트 {count} / {countLimit}개
                 </span>
               </div>
-              <progress value={stored} max={limits.totalBytes} aria-label="시험 자료 저장 용량" />
+              <progress
+                value={stored}
+                max={limits.totalBytes}
+                aria-label="시험 자료 저장 용량"
+              />
               <small>
                 {sizeLabel(stored)} / {sizeLabel(limits.totalBytes)}
               </small>
             </div>
           )}
-          <a href="https://pnusmp.com" target="_blank" rel="noopener noreferrer">
+          <a
+            href="https://pnusmp.com"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             공식 홈페이지
             <ExternalLink size={14} />
           </a>
           {onLogout && (
-            <button className="logout-button" disabled={busy} onClick={() => void onLogout()}>
+            <button
+              className="logout-button"
+              disabled={busy}
+              onClick={() => void onLogout()}
+            >
               <LogOut size={15} />
               로그아웃
             </button>
@@ -128,15 +223,29 @@ export function AdminFrame({
           <span>부산대학교 금융투자학회</span>
           <div>
             <span className="environment-badge">
-              {cmsEnabled ? (cmsActive ? "공식 사이트 관리" : "전환 준비") : cloudMode ? "관리자" : serverMode ? "로컬 서버 시험" : "로컬 시험"}
+              {cmsEnabled
+                ? cmsActive
+                  ? "공식 사이트 관리"
+                  : "전환 준비"
+                : cloudMode
+                  ? "관리자"
+                  : serverMode
+                    ? "로컬 서버 시험"
+                    : "로컬 시험"}
             </span>
-            <span className="environment-note">{cmsEnabled ? (cmsActive ? "승인한 내용만 게시됩니다" : "공식 사이트 전환 전") : "입력 승인 후 게시 관리에서 공개합니다"}</span>
+            <span className="environment-note">
+              {cmsEnabled
+                ? cmsActive
+                  ? "승인한 내용만 게시됩니다"
+                  : "공식 사이트 전환 전"
+                : "입력 승인 후 게시 관리에서 공개합니다"}
+            </span>
           </div>
         </header>
-        <main id="admin-main" className="admin-main" tabIndex={-1}>
+        <main ref={main} id="admin-main" className="admin-main" tabIndex={-1}>
           {children}
         </main>
       </div>
     </div>
-  )
+  );
 }
