@@ -20,7 +20,7 @@ try { await cp(covers, path.join(client,"report-covers"), { recursive: true, fil
 const readerPdfs=path.join(root,".smp-cache/reader-pdfs")
 await stageReaderAssets(readerPdfs,path.join(client,"_reader-pdfs"),fixture)
 run("scripts/prerender-free.mjs",fixture?["--fixture"]:[])
-const policy = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+const policy = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://static.cloudflareinsights.com; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; font-src 'self' data:; connect-src 'self' https://cloudflareinsights.com; worker-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 await writeFile(path.join(client,"_headers"), `/*\n  Content-Security-Policy: ${policy}\n  X-Content-Type-Options: nosniff\n  X-Frame-Options: DENY\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()\n  Strict-Transport-Security: max-age=31536000\n${fixture ? "  X-Robots-Tag: noindex, nofollow, noarchive\n" : ""}/api/health\n  Content-Type: application/json; charset=utf-8\n  Cache-Control: public, max-age=300\n/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n/report-covers/*\n  Cache-Control: public, max-age=31536000, immutable\n/pdfjs/*\n  Cache-Control: public, max-age=31536000, immutable\n`)
 await build({ entryPoints: ["free/server/worker.ts"], outfile: "dist/free/worker.js", bundle: true, platform: "neutral", target: "es2022", format: "esm", minify: true,
   external: ["node:*"], define: { __SMP_FIXTURE__: String(fixture) }, alias: fixture ? { "@/lib/upstream-fetch": path.join(root,"tests/cloudflare/fixture.ts") } : {},
@@ -39,7 +39,7 @@ const config = {
     { pattern: "pnusmp.com", custom_domain: true },
     { pattern: "www.pnusmp.com", custom_domain: true },
   ] }),
-  ratelimits: [{ name: "API_RATE_LIMIT", namespace_id: "1001", simple: { limit: 1200, period: 60 } }],
+  ratelimits: [{ name: "API_RATE_LIMIT", namespace_id: "1001", simple: { limit: 1200, period: 60 } },{name:"SITE_EVENT_RATE_LIMIT",namespace_id:"2026102801",simple:{limit:20,period:60}}],
   workers_dev: true, preview_urls: false,
   triggers: { crons: [] },
 }

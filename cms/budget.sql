@@ -40,3 +40,18 @@ BEGIN SELECT RAISE(ABORT,'SMP_CMS_HISTORY_IMMUTABLE'); END;
 CREATE TRIGGER IF NOT EXISTS cms_asset_limit BEFORE INSERT ON cms_assets
 WHEN (SELECT COALESCE(sum(bytes),0) FROM cms_assets)+NEW.bytes>104857600 OR NEW.bytes>1400000
 BEGIN SELECT RAISE(ABORT,'SMP_CMS_ASSET_LIMIT'); END;
+
+-- statement
+-- Analytics is optional: stop collecting at the cap without affecting readers.
+CREATE TRIGGER IF NOT EXISTS cms_site_budget BEFORE INSERT ON cms_site_receipts
+WHEN COALESCE((SELECT events FROM cms_site_days WHERE day=NEW.budget_day),0)>=2000
+BEGIN SELECT RAISE(IGNORE); END;
+-- statement
+CREATE TRIGGER IF NOT EXISTS cms_site_aggregate AFTER INSERT ON cms_site_receipts
+BEGIN
+ INSERT INTO cms_site_days(day,events) VALUES(NEW.budget_day,1)
+ ON CONFLICT(day) DO UPDATE SET events=events+1;
+ INSERT INTO cms_site_counts(day,report,kind,bucket,count,total_ms)
+ VALUES(NEW.day,NEW.report,NEW.kind,NEW.bucket,1,NEW.ms)
+ ON CONFLICT(day,report,kind,bucket) DO UPDATE SET count=count+1,total_ms=total_ms+NEW.ms;
+END;

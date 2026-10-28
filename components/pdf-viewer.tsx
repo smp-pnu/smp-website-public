@@ -2,7 +2,8 @@
 
 import dynamic from "next/dynamic"
 import Image from "next/image"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useState, useRef } from "react"
+import { observePdf } from "@/lib/site-events"
 import type { ReaderPreview } from "@/lib/report-reader"
 
 const PdfCanvas = dynamic(() => import("./pdf-canvas"), {
@@ -20,6 +21,8 @@ export function PdfViewer(props: PdfViewerProps) {
 }
 
 function PdfReader({ url, preview }: PdfViewerProps) {
+  const measured=useRef<(result:'ready'|'failed')=>void>(()=>{})
+  useEffect(()=>{measured.current=observePdf(url)},[url])
   const canPack=Boolean(preview?.reader?.pack && (preview.reader.packSource || preview.reader.transport))
   const [packReady,setPackReady]=useState(false),[canvasReady,setCanvasReady]=useState(false)
   const [packFailed,setPackFailed]=useState(false)
@@ -41,9 +44,10 @@ function PdfReader({ url, preview }: PdfViewerProps) {
   const imageUrl=image?.url??(page===1?preview?.url:undefined)
   const fallbackUrl=page===1?preview?.fallbackUrl:undefined
   const selectedUrl=imageUrl && !failedImages.includes(imageUrl)?imageUrl:fallbackUrl && !failedImages.includes(fallbackUrl)?fallbackUrl:undefined
-  const showReader = useCallback((renderedPage:number) => { if(renderedPage===page)setCanvasReady(true) }, [page])
-  const showPack = useCallback((renderedPage:number) => { if(renderedPage===page)setPackReady(true) }, [page])
-  const showPreview = useCallback(() => setCanvasReady(false), [])
+  const showReader = useCallback((renderedPage:number) => { if(renderedPage===page){setCanvasReady(true);measured.current('ready')} }, [page])
+  const showPack = useCallback((renderedPage:number) => { if(renderedPage===page){setPackReady(true);measured.current('ready')} }, [page])
+  const showFailure=useCallback(()=>{setCanvasReady(true);measured.current('failed')},[])
+  const showPreview = useCallback(() => {setCanvasReady(false);measured.current=observePdf(url)}, [url])
   const fallback = useCallback(()=>{setPackFailed(true);setPackReady(false)},[])
   return <>
     <div className="relative">
@@ -67,7 +71,7 @@ function PdfReader({ url, preview }: PdfViewerProps) {
         <PdfPackedReader url={url} preview={preview.reader} page={page} onPageChange={setPage} onReady={showPack} onFallback={fallback} />
       </div>}
       {needOriginal && <div className={canvasReady ? undefined : "pointer-events-none absolute inset-0 opacity-0"} inert={!canvasReady} aria-hidden={!canvasReady}>
-        <PdfCanvas url={url} rangeOnly={preview?.reader?.rangeOnly} transport={preview?.reader?.transport} page={page} onPageChange={setPage} onReady={showReader} onRetry={showPreview} />
+        <PdfCanvas url={url} rangeOnly={preview?.reader?.rangeOnly} transport={preview?.reader?.transport} page={page} onPageChange={setPage} onReady={showReader} onFailure={showFailure} onRetry={showPreview} />
       </div>}
     </div>
     <noscript><p className="p-6 text-slate-300">PDF 미리보기를 사용하려면 JavaScript를 켜주세요. 위 다운로드 버튼으로도 파일을 받을 수 있습니다.</p></noscript>

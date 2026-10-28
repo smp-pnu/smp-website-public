@@ -6,9 +6,13 @@ import { NetworkTransition } from "@/components/network-transition"
 import "./style.css"
 import "@/app/fonts/body-font"
 import { updatePageMetadata } from "./seo"
+import { observeDownloads } from "@/lib/site-events"
+import { installWebAnalytics } from './web-analytics'
 
 const contentRoute=(name:keyof typeof import("./content-routes"))=>async()=>({Component:(await import("./content-routes"))[name]})
 function Layout() {
+  useEffect(observeDownloads,[])
+  useEffect(installWebAnalytics,[])
   const { pathname,search } = useLocation()
   useEffect(() => { document.getElementById("root")?.removeAttribute("data-prerender");if(!/^\/(research|notice)\/[a-f\d-]+$/.test(pathname)) updatePageMetadata(pathname+search) }, [pathname,search])
   return <NetworkTransition><HomeBackground /><Outlet /><ScrollRestoration /></NetworkTransition>

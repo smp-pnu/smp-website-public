@@ -16,6 +16,8 @@ try {
     const statements=source.includes('-- statement')?source.split('-- statement').slice(1):source.split(';')
     await db.batch(statements.filter(s=>s.trim()).map(s=>db.prepare(s)))
   }
+  await db.batch((await readFile('cms/schema.sql','utf8')).split(';').filter(s=>s.trim()).map(s=>db.prepare(s)))
+  await db.batch((await readFile('cms/budget.sql','utf8')).split('-- statement').filter(s=>s.trim()).map(s=>db.prepare(s)))
   const sql=(s,...p)=>db.prepare(s).bind(...p).run()
   await sql("INSERT INTO free_controls(name,until_at) VALUES('cms-source-admin',1)")
   const id='a'.repeat(32), notice='b'.repeat(32)
@@ -50,6 +52,16 @@ try {
   assert.match((await request(`/research/${id}`)).headers.get('server-timing'),/miss/)
   await sql("UPDATE free_documents SET version=version+1,body=? WHERE name='research'",JSON.stringify({items:[{...item,title:'목록 수정'}]}))
   assert.match(await(await request('/research')).text(),/목록 수정/)
+  // Real route + D1 triggers: analytics does not use the content API budget,
+  // duplicate ready callbacks and cross-origin calls cannot inflate counts.
+  await sql('INSERT INTO cms_site_snapshot(id,started_at,payload) VALUES(1,?,?)',Date.now(),JSON.stringify({checkedAt:Date.now()}))
+  const eventBody=JSON.stringify({events:[{id:'c'.repeat(32)+':start',report:id,kind:'start',ms:0},{id:'c'.repeat(32)+':result',report:id,kind:'ready',ms:2300}]})
+  const eventHeaders={origin:'https://pnusmp.com','sec-fetch-site':'same-origin','content-type':'application/json'}
+  for(let i=0;i<2;i++)assert.equal((await request('/api/site-events',{method:'POST',headers:eventHeaders,body:eventBody})).status,204)
+  assert.equal((await db.prepare('SELECT sum(count) n FROM cms_site_counts').first()).n,2)
+  assert.equal((await request('/api/site-events',{method:'POST',headers:{...eventHeaders,origin:'https://other.test'},body:eventBody})).status,204)
+  assert.equal((await request('/api/site-events')).status,405)
+  assert.equal((await db.prepare('SELECT count(*) n FROM cms_site_receipts').first()).n,2)
   // Delete/withdraw invalidates all old details immediately, independent of TTL.
   await sql('DELETE FROM free_content WHERE id=?',id)
   assert.ok(await version()>before)

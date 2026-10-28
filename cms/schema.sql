@@ -33,3 +33,19 @@ CREATE TABLE IF NOT EXISTS cms_cloud_usage (
  id INTEGER PRIMARY KEY CHECK(id=1), payload TEXT CHECK(payload IS NULL OR (json_valid(payload) AND length(payload)<=131072)),
  refresh_after INTEGER NOT NULL DEFAULT 0, lease_until INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS cms_site_receipts (
+ id TEXT PRIMARY KEY, day TEXT NOT NULL, budget_day TEXT NOT NULL, report TEXT NOT NULL,
+ kind TEXT NOT NULL CHECK(kind IN ('download','start','ready','failed')),
+ bucket INTEGER NOT NULL, ms INTEGER NOT NULL, expires_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS cms_site_receipts_expiry ON cms_site_receipts(expires_at);
+CREATE TABLE IF NOT EXISTS cms_site_days (day TEXT PRIMARY KEY, events INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS cms_site_counts (
+ day TEXT NOT NULL, report TEXT NOT NULL, kind TEXT NOT NULL, bucket INTEGER NOT NULL,
+ count INTEGER NOT NULL, total_ms INTEGER NOT NULL, PRIMARY KEY(day,report,kind,bucket)
+);
+CREATE TABLE IF NOT EXISTS cms_site_snapshot (
+ id INTEGER PRIMARY KEY CHECK(id=1), started_at INTEGER NOT NULL,
+ payload TEXT CHECK(payload IS NULL OR (json_valid(payload) AND length(payload)<=262144)),
+ refresh_after INTEGER NOT NULL DEFAULT 0, lease_until INTEGER NOT NULL DEFAULT 0
+);

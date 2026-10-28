@@ -5,6 +5,7 @@ export type Env = {
   CMS_ADMIN_MODE?: boolean;
   ASSETS: { fetch: typeof fetch };
   API_RATE_LIMIT?: { limit(options: { key: string }): Promise<{ success: boolean }> };
+  SITE_EVENT_RATE_LIMIT?: { limit(options: { key: string }): Promise<{ success: boolean }> };
   NOTION_TOKEN?: string;
   NOTION_REPORTS_DATA_SOURCE_ID?: string;
   NOTION_NOTICES_DATA_SOURCE_ID?: string;

@@ -18,6 +18,7 @@ import { queueDriveCleanup } from "../../lib/drive-cleanup-relay"
 import { captureWebhookVerification } from "./webhook-setup"
 import { publicPage, readDetail } from "./pages"
 import { rendered } from "./render-cache"
+import { siteEvents } from "./site-events"
 
 declare const __SMP_FIXTURE__: boolean
 const headers = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer", "Cross-Origin-Resource-Policy": "same-origin" }
@@ -76,6 +77,7 @@ async function webhook(request: Request, env: Env, ctx: Context) {
 async function handle(request: Request, env: Env, ctx: Context): Promise<Response> {
   const url = new URL(request.url), path = url.pathname
   if (path === "/api/health") return reply({ ok: true, mode: __SMP_FIXTURE__ ? "fixture" : "free", readOnly: env.SMP_READ_ONLY === "1" })
+  if (path === '/api/site-events') return siteEvents(request,env)
   if (path.startsWith("/api/internal/")) return reply({ error: "Not found" },404)
 
   if(path.startsWith("/api/")||/^\/(research|notice|sitemap-research\.xml|sitemap-notice\.xml|feed\.xml)(?:\/|$)/.test(path)) env={...env,CMS_ADMIN_MODE:await adminMode(env.CMS_DB)}

@@ -20,6 +20,7 @@ import { publicationExport } from "./publication-export"
 import { dashboardData, driveCapacity } from "./dashboard"
 import { dashboardSnapshot } from "./dashboard-cache"
 import { readCloudUsage } from "../cms/cloudflare-usage"
+import { readSiteAnalytics } from "../cms/site-analytics"
 
 export interface Env extends AuthEnv {
   CMS_DB?: Database
@@ -128,6 +129,9 @@ export function createHandler(clock = Date.now, driveFetch: DriveFetch = fetch) 
           } else if (path === "/api/dashboard/cloudflare" && method === "GET") {
             if (!env.CMS_DB) throw new HttpError(409, "게시 관리 연결을 확인해 주세요.")
             response = json(await readCloudUsage(env.CMS_DB))
+          } else if (path === '/api/dashboard/site' && method === 'GET') {
+            if (!env.CMS_DB) throw new HttpError(409, '게시 관리 연결을 확인해 주세요.')
+            response = json(await readSiteAnalytics(env.CMS_DB))
           } else if (path.startsWith("/api/cms/")) {
             response = await cmsApi(request,env,drive,()=>jsonBody(request,256*1024),max=>bodyBytes(request,max),now)
           } else if (path === "/api/storage/status" && method === "GET") {
