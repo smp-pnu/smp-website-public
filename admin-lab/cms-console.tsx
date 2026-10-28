@@ -18,6 +18,8 @@ import { StorageSettings } from "./storage-settings";
 import { OperationsDashboard } from "./operations-dashboard";
 import { MemberImport } from "./member-import";
 import { MemberCohorts } from "./member-cohorts";
+import { UploadApp } from "./upload-app";
+import { SecuritySettings, type SecurityControls } from "./security-settings";
 import { useListReorder } from "./use-list-reorder";
 import { DragHandle, DragPreview } from "./reorder-ui";
 import type { DropPlacement } from "./library-model";
@@ -76,17 +78,15 @@ function Field({
 }
 export function CmsConsole({
   active,
-  onUpload,
   onLogout,
-  onSecurity,
+  security,
 }: {
   active: boolean;
-  onUpload: (target?: string) => void;
   onLogout?: () => Promise<void>;
-  onSecurity?: () => void;
+  security?: SecurityControls;
 }) {
-  const [section, setSection] = useState<Kind | "storage" | "recruitment" | "dashboard">(
-      "dashboard",
+  const [section, setSection] = useState<Kind | "storage" | "recruitment" | "dashboard" | "upload" | "security">(
+      () => location.hash === "#storage" ? "storage" : "dashboard",
     ),
     [q, setQ] = useState(""),
     [group, setGroup] = useState(""),
@@ -110,13 +110,16 @@ export function CmsConsole({
     [batchResult, setBatchResult] = useState<BatchResult|null>(null),
     [stopping, setStopping] = useState(false);
   const [memberImportOpen, setMemberImportOpen] = useState(false);
+  const [uploadTarget,setUploadTarget] = useState<string|undefined>(undefined);
+  const [childBusy,setChildBusy] = useState(false),[childDirty,setChildDirty] = useState(false);
+  const navigationBusy = busy || childBusy || (section === "security" && !!security?.busy);
   const cohortOverview = useRef({ query: "", filter: "all" });
   const running = useRef(false), stopBatch = useRef(false);
   const checkedIds = new Set(checked.map(e=>e.id));
   const visibleChecked = data.items.filter(e=>checkedIds.has(e.id)).length;
   const confirm = useConfirmation(),
     dirty =
-      !!selected && JSON.stringify(form) !== JSON.stringify(selected.draft);
+      childDirty || (!!selected && JSON.stringify(form) !== JSON.stringify(selected.draft));
   const run = async (work: () => Promise<void>) => {
     if (running.current) return;
     running.current = true;
@@ -138,7 +141,7 @@ export function CmsConsole({
     void api("/storage/maintenance", { method: "POST" }).catch(() => {});
   }, []);
   useEffect(() => {
-    if (section === "storage" || section === "recruitment" || section === "dashboard" || (section === "members" && !group)) {
+    if (section === "storage" || section === "recruitment" || section === "dashboard" || section === "upload" || section === "security" || (section === "members" && !group)) {
       setLoading(false);
       return;
     }
@@ -199,10 +202,11 @@ export function CmsConsole({
     };
   }, [selected?.id, selected?.pending, dirty]);
   const canLeave = async () =>
-    !busy && !running.current && ((!dirty && !memberImportOpen) || (await confirm("저장하지 않은 변경·가져오기 내용을 닫고 이동할까요?")));
+    !navigationBusy && !running.current && ((!dirty && !memberImportOpen) || (await confirm("저장하지 않은 변경·가져오기 내용을 닫고 이동할까요?")));
   const go = async (next: typeof section, state = "all") => {
-    if (!(await canLeave())) return;
+    if (!(await canLeave())) return false;
     setSection(next);
+    setChildDirty(false);
     cohortOverview.current = { query: "", filter: state };
     setMemberImportOpen(false);
     setData({ items: [], total: 0, groups: [] });
@@ -214,6 +218,18 @@ export function CmsConsole({
     setFilter(state);
     setError("");
     setMessage("");
+    return true;
+  };
+  const openUpload = async (target?:string) => {
+    if (await go("upload")) setUploadTarget(target);
+  };
+  const importUpload = async (id:string) => {
+    if (running.current) return;
+    running.current=true;setBusy(true);
+    try {
+      await request("/import-upload","POST",{id,target:uploadTarget});
+      setSection("research");setUploadTarget(undefined);setChildDirty(false);reload();
+    } finally {running.current=false;setBusy(false)}
   };
   const openCohort = (generation: number, fresh = false) => {
     if (busy) return;
@@ -332,14 +348,11 @@ export function CmsConsole({
       });
     },
     reorder = useListReorder(move);
-  const create = () =>
-    run(async () => {
+  const create = () => {
+    if (section === "research") {void openUpload();return;}
+    return run(async () => {
       setChecked([]);setBatchResult(null);
-      if (section === "research") {
-        onUpload();
-        return;
-      }
-      if (section === "storage" || section === "recruitment" || section === "dashboard") return;
+      if (section !== "members" && section !== "notice") return;
       const item =
         section === "members"
           ? {
@@ -374,6 +387,7 @@ export function CmsConsole({
       setForm(e.draft);
       reload();
     });
+  };
   const change = (key: string, value: unknown) =>
     setForm((p) => (p ? { ...p, item: { ...p.item, [key]: value } } : p));
   const uploadPhoto = async (file: File) =>
@@ -404,17 +418,13 @@ export function CmsConsole({
       onNotices={() => void go("notice")}
       onMembers={() => void go("members")}
       onRecruitment={() => void go("recruitment")}
-      onUpload={() => {
-        void canLeave().then((ok) => {
-          if (ok) onUpload();
-        });
-      }}
+      onUpload={() => void openUpload()}
       onStorage={() => void go("storage")}
       onSecurity={
-        onSecurity
+        security
           ? () => {
-              void canLeave().then((ok) => {
-                if (ok) onSecurity();
+              void go("security").then((ok) => {
+                if (ok) security.onOpen();
               });
             }
           : undefined
@@ -426,7 +436,7 @@ export function CmsConsole({
             }
           : undefined
       }
-      busy={busy}
+      busy={navigationBusy}
     >
       {error && (
         <p className="error-panel" role="alert">
@@ -439,11 +449,15 @@ export function CmsConsole({
         </p>
       )}
       {section === "dashboard" ? (
-        <OperationsDashboard onNavigate={(kind,state)=>void go(kind,state)} onStorage={()=>void go("storage")} onUpload={()=>onUpload()} />
+        <OperationsDashboard onNavigate={(kind,state)=>void go(kind,state)} onStorage={()=>void go("storage")} onUpload={()=>void openUpload()} />
+      ) : section === "security" ? (
+        security ? <SecuritySettings {...security}/> : <p>로그인·인수인계를 지원하지 않는 환경입니다.</p>
+      ) : section === "upload" ? (
+        <UploadApp key={uploadTarget??"new"} onCmsReturn={()=>void go("research")} onCmsImport={importUpload} onBusy={setChildBusy} onDirty={setChildDirty}/>
       ) : section === "storage" ? (
         <StorageSettings onBusy={setBusy} onChange={reload} />
       ) : section === "recruitment" ? (
-        <RecruitmentEditor active={active} />
+        <RecruitmentEditor active={active} onBusy={setChildBusy} onDirty={setChildDirty}/>
       ) : section === "members" && memberImportOpen ? (
         <MemberImport initialGeneration={group} onBusy={setBusy}
           onClose={()=>void canLeave().then(ok=>{if(ok)setMemberImportOpen(false)})}
@@ -481,7 +495,7 @@ export function CmsConsole({
               {section === "research" && (
                 <button
                   disabled={busy || dirty || !!selected.trashedAt}
-                  onClick={() => onUpload(selected.id)}
+                  onClick={() => void openUpload(selected.id)}
                 >
                   PDF 교체
                 </button>
@@ -1001,16 +1015,22 @@ const localDateTime = (value: string | null | undefined) =>
   value
     ? new Date(Date.parse(value) + 9 * 3600000).toISOString().slice(0, 16)
     : "";
-function RecruitmentEditor({ active }: { active: boolean }) {
+function RecruitmentEditor({ active,onBusy,onDirty }: { active: boolean;onBusy:(busy:boolean)=>void;onDirty:(dirty:boolean)=>void }) {
   const [value, setValue] = useState<Recruitment | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [done, setDone] = useState(false),
     confirm = useConfirmation();
+  const [savedValue,setSavedValue] = useState<Recruitment|null>(null);
+  const dirty = !!value && JSON.stringify(value)!==JSON.stringify(savedValue);
+  useEffect(()=>{onBusy(busy);return()=>onBusy(false)},[busy,onBusy]);
+  useEffect(()=>{onDirty(dirty);return()=>onDirty(false)},[dirty,onDirty]);
   useEffect(() => {
+    let live = true;
     void request("/recruitment")
-      .then(setValue)
-      .catch((e) => setError(e.message));
+      .then(v=>{if(live){setValue(v);setSavedValue(v)}})
+      .catch((e) => {if(live)setError(e.message)});
+    return ()=>{live=false};
   }, []);
   const labels: Record<string, string> = {
     period: "일정 표시",
@@ -1057,7 +1077,8 @@ function RecruitmentEditor({ active }: { active: boolean }) {
               setBusy(true);
               setError("");
               try {
-                setValue(await request("/recruitment", "PUT", value));
+                const saved = await request("/recruitment", "PUT", value);
+                setValue(saved);setSavedValue(saved);
                 setDone(true);
               } catch (e) {
                 setError((e as Error).message);

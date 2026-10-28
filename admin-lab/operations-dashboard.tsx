@@ -119,7 +119,8 @@ function DashboardDetails({data,onNavigate}:Props & {data:DashboardData}) {
         <p className="ops-footnote">이전 방식으로 연결된 리포트 {o.legacyReports}개는 원본 크기를 따로 기록하지 않아 위 합계에 포함하지 않습니다. 같은 Google 계정의 파일은 Google 전체 용량에 포함됩니다.</p>
       </section>
     </div>
-    <section className="ops-panel"><header><h2>용량이 큰 원본</h2><span className="ops-muted">관리자 보관 원본 중 상위 10개</span></header>
+    <section className="ops-panel"><header><h2>관리자 보관 PDF · 용량순</h2><span className="ops-muted">용량이 큰 파일 10개</span></header>
+      <p className="ops-footnote">새 관리자에 저장하거나 이관한 PDF 원본만 표시합니다. 기존 Drive 폴더에 연결된 리포트 전체 목록은 아닙니다. ‘DB’는 이전에 데이터베이스에 직접 보관한 원본을 뜻합니다.</p>
       {data.files.length?<div className="ops-files"><table><thead><tr><th>파일</th><th>저장 위치</th><th>용량</th></tr></thead><tbody>{data.files.map((f,i)=><tr key={i}><td>{f.name}{f.retained===1&&<small>교체·삭제 후 보관분</small>}</td><td>{f.provider==='drive'?'Drive':'DB'}</td><td>{capacityLabel(f.bytes)}</td></tr>)}</tbody></table></div>:<p className="ops-muted">관리자에서 새로 저장한 PDF 원본이 없습니다.</p>}
     </section>
   </>
