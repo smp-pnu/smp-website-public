@@ -473,3 +473,18 @@ test("cutover atomically preserves public IDs, keeps a rollback snapshot and fen
     f.close();
   }
 });
+
+test('list pagination clamps after deletion and handles fractional, empty and out-of-range requests',async()=>{
+ const f=fixture();
+ try {
+  const entries=[];
+  for(let i=0;i<41;i++)entries.push(await f.store.create('notice',structuredClone(f.payload)));
+  assert.equal((await f.store.list('notice',new URLSearchParams({page:'99'}))).page,2);
+  assert.equal((await f.store.list('notice',new URLSearchParams({page:'1.9'}))).page,1);
+  await f.store.change(entries[0].id,1,'trash');
+  const last=await f.store.list('notice',new URLSearchParams({page:'2'}));
+  assert.equal(last.page,1);assert.equal(last.items.length,40);
+  const empty=await f.store.list('notice',new URLSearchParams({page:'99',q:'not found'}));
+  assert.equal(empty.page,1);assert.equal(empty.total,0);assert.equal(empty.items.length,0);
+ }finally{f.close()}
+});

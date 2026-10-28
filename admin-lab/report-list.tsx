@@ -5,6 +5,7 @@ import { statusOf } from "./model"
 import { useCover } from "./use-lab"
 import { DragHandle, DragPreview } from "./reorder-ui"
 import { useListReorder } from "./use-list-reorder"
+import { ListPagination } from "./list-pagination"
 import { pageSize, type LibraryQuery, type BatchAction, type Filter, type Sort, type DropPlacement } from "./library-model"
 
 type Props = {
@@ -318,29 +319,8 @@ export function ReportList({
       )}
       <footer className="list-footer">
         <span>{drafts.length}개 리포트</span>
-        <nav className="pagination" aria-label="리포트 목록 페이지">
-          <button
-            disabled={current === 1 || loading}
-            onClick={() => {
-              setPage(current - 1)
-              setSelected([])
-            }}
-          >
-            이전
-          </button>
-          <span>
-            {current} / {pages}
-          </span>
-          <button
-            disabled={current === pages || loading}
-            onClick={() => {
-              setPage(current + 1)
-              setSelected([])
-            }}
-          >
-            다음
-          </button>
-        </nav>
+        <ListPagination page={current} pages={pages} disabled={loading}
+          onPage={next=>{setPage(next);setSelected([])}} />
       </footer>
     </section>
   )

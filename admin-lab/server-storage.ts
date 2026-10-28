@@ -5,6 +5,9 @@ export function setApiSession(session: Session | null) { csrf = session?.csrf ??
 export class ApiConnectionError extends Error {
   constructor(message = "서버 연결이 끊겼어요. 인터넷 연결을 확인하고 다시 시도해 주세요.") { super(message); this.name = "ApiConnectionError" }
 }
+export class ApiResponseError extends Error {
+  constructor(message:string, readonly status:number) { super(message); this.name="ApiResponseError" }
+}
 export async function api(path: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers)
   if (options.method && options.method !== "GET") headers.set("X-CSRF-Token", csrf)
@@ -28,7 +31,7 @@ export async function api(path: string, options: RequestInit = {}) {
   if (!response.ok) {
     const data = await response.json().catch(() => ({}))
     if (response.status === 401 && !["/login", "/setup"].includes(path)) { setApiSession(null); window.dispatchEvent(new Event("admin-session-expired")) }
-    throw Error(data.error ?? "시험 서버에 연결하지 못했어요.")
+    throw new ApiResponseError(data.error ?? "시험 서버에 연결하지 못했어요.",response.status)
   }
   return response
 }
