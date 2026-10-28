@@ -47,10 +47,15 @@ export async function dashboardData(admin: Database, cms: Database, now = Date.n
       ai:hits.get(`metadata-day:${day}`)??0,aiLimit:metadataDailyLimit,resetsAt:(day+1)*86400000},
   }
 }
-export function driveCapacity(connection: DriveConnection) {
-  return dashboardSnapshot<DriveCapacity>(connection.env.ADMIN_DB,"drive",600_000,async()=>{
+export async function driveCapacity(connection: DriveConnection, reportsFolderId?: string) {
+  const snapshot = await dashboardSnapshot<DriveCapacity>(connection.env.ADMIN_DB,"drive",600_000,async()=>{
     const grant = await connection.grant()
     if (!grant?.folderId) return {connected:false,email:null,folderUrl:null,quota:null}
-    return { connected:true,email:grant.email,folderUrl:validFileId(grant.folderId)?`https://drive.google.com/drive/folders/${grant.folderId}`:null,quota:await connection.quotaDetails() }
+    return { connected:true,email:grant.email,folderUrl:null,quota:await connection.quotaDetails() }
   },connection.now)
+  // The archive shortcut is independent of the app-owned upload destination.
+  // Apply it after reading the quota cache so old snapshots cannot restore the trial link.
+  const folderUrl = reportsFolderId && validFileId(reportsFolderId)
+    ? `https://drive.google.com/drive/folders/${reportsFolderId}` : null
+  return {...snapshot,value:snapshot.value?{...snapshot.value,folderUrl}:null}
 }

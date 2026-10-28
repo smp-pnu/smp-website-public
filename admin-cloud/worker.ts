@@ -30,6 +30,7 @@ export interface Env extends AuthEnv {
   ORIGIN: string
   AI?: AiBinding
   DRIVE_ACCOUNT_EMAIL?: string
+  DRIVE_REPORTS_FOLDER_ID?: string
   REPORT_EXPORT_KEY?: string
   REPORT_EXPORT_SCOPE?: string
 }
@@ -126,7 +127,7 @@ export function createHandler(clock = Date.now, driveFetch: DriveFetch = fetch) 
             if (!env.CMS_DB) throw new HttpError(409, "게시 관리 연결을 확인해 주세요.")
             response = json(await dashboardSnapshot(env.ADMIN_DB,"overview",60_000,()=>dashboardData(env.ADMIN_DB,env.CMS_DB!,now),now))
           } else if (path === "/api/dashboard/drive" && method === "GET") {
-            response = json(await driveCapacity(connection))
+            response = json(await driveCapacity(connection,env.DRIVE_REPORTS_FOLDER_ID))
           } else if (path === "/api/dashboard/cloudflare" && method === "GET") {
             if (!env.CMS_DB) throw new HttpError(409, "게시 관리 연결을 확인해 주세요.")
             response = json(await readCloudUsage(env.CMS_DB))
