@@ -120,6 +120,25 @@ test("new notices publish in the same manual order as the administrator list", a
     assert.deepEqual(publicItems().map(i => i.id),[first.id,second.id]);
   } finally { f.close(); }
 });
+test("member generation filters sort numerically while semester filters stay chronological", async () => {
+  const f = fixture();
+  try {
+    for (const generation of [1, 9, 10, 38, 39, 40]) {
+      await f.store.create("members", {
+        item: { id: "", name: `점검${generation}`, generation, group: "members", department: "점검", year: "26", roles: [] },
+        blocks: [], cover: null,
+      });
+    }
+    assert.deepEqual((await f.store.list("members", new URLSearchParams())).groups, ["40", "39", "38", "10", "9", "1"]);
+    for (const semester of ["2025-2", "2026-1", "2026-2"]) {
+      const payload = structuredClone(f.payload);
+      (payload.item as ContentItem).semester = semester;
+      await f.store.create("notice", payload);
+    }
+    assert.deepEqual((await f.store.list("notice", new URLSearchParams())).groups, ["2026-2", "2026-1", "2025-2"]);
+  } finally { f.close(); }
+});
+
 test("every CMS insertion path enforces the entry cap atomically", async () => {
   const f=fixture();
   try {

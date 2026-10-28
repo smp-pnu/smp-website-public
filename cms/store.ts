@@ -132,7 +132,7 @@ export class CmsStore {
       .all<Row>();
     const groups = await this.db
       .prepare(
-        `SELECT DISTINCT COALESCE(json_extract(draft,'$.item.semester'),CAST(json_extract(draft,'$.item.generation') AS TEXT)) AS name FROM cms_entries WHERE kind=? AND trashed_at IS NULL ORDER BY name DESC`,
+        `SELECT name FROM (SELECT DISTINCT COALESCE(json_extract(draft,'$.item.semester'),CAST(json_extract(draft,'$.item.generation') AS TEXT)) AS name FROM cms_entries WHERE kind=? AND trashed_at IS NULL) ORDER BY ${kind === "members" ? "CAST(name AS INTEGER) DESC," : ""}name DESC`,
       )
       .bind(kind)
       .all<{ name: string | null }>();
