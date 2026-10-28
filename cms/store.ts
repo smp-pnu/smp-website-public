@@ -95,7 +95,7 @@ export class CmsStore {
   }
   async list(kind: Kind, params: URLSearchParams) {
     const q = (params.get("q") ?? "").slice(0, 150),
-      page = Math.max(1, Math.min(100, Number(params.get("page")) || 1)),
+      requestedPage = Math.floor(Math.max(1, Math.min(100, Number(params.get("page")) || 1))),
       trash = params.get("trash") === "1",
       group = (params.get("group") ?? "").slice(0, 30),
       state = params.get("state") ?? "all";
@@ -119,6 +119,7 @@ export class CmsStore {
       .prepare(`SELECT count(*) AS n FROM cms_entries e WHERE ${where}`)
       .bind(...values)
       .first<{ n: number }>();
+    const page = Math.min(requestedPage, Math.max(1, Math.ceil((total?.n ?? 0) / 40)));
     const projection = `SELECT e.id,e.kind,json_object('item',json_extract(e.draft,'$.item'),'blocks',json('[]'),'cover',NULL) AS draft,e.revision,e.approved_revision,e.updated_at,e.trashed_at,e.source,e.rank,j.id IS NOT NULL AS pending,j.error FROM cms_entries e LEFT JOIN cms_jobs j ON j.id=e.id`;
     const ordering =
       kind === "members"

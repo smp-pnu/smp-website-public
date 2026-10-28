@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowUp, ArrowDown, Plus, RefreshCw } from "lucide-react";
 import type { Entry, Kind, Payload } from "../cms/model";
 import type { ContentItem } from "../lib/content-model";
@@ -18,6 +18,9 @@ import { StorageSettings } from "./storage-settings";
 import { useListReorder } from "./use-list-reorder";
 import { DragHandle, DragPreview } from "./reorder-ui";
 import type { DropPlacement } from "./library-model";
+import { ListPagination } from "./list-pagination";
+import { CmsBulkControls, PageSelection } from "./cms-bulk-controls";
+import { actionLabels, canApply, runCmsBatch, selectEntries, type BatchProgress, type BatchResult, type CmsAction } from "./cms-bulk";
 const names = { research: "리포트", notice: "공지사항", members: "회원 명단" };
 const status = (e: Entry) =>
   e.trashedAt
@@ -99,11 +102,19 @@ export function CmsConsole({
     [message, setMessage] = useState(""),
     [loading, setLoading] = useState(true),
     [tick, setTick] = useState(0);
+  const [checked, setChecked] = useState<Entry[]>([]),
+    [batchProgress, setBatchProgress] = useState<BatchProgress|null>(null),
+    [batchResult, setBatchResult] = useState<BatchResult|null>(null),
+    [stopping, setStopping] = useState(false);
+  const running = useRef(false), stopBatch = useRef(false);
+  const checkedIds = new Set(checked.map(e=>e.id));
+  const visibleChecked = data.items.filter(e=>checkedIds.has(e.id)).length;
   const confirm = useConfirmation(),
     dirty =
       !!selected && JSON.stringify(form) !== JSON.stringify(selected.draft);
   const run = async (work: () => Promise<void>) => {
-    if (busy) return;
+    if (running.current) return;
+    running.current = true;
     setBusy(true);
     setError("");
     setMessage("");
@@ -112,10 +123,12 @@ export function CmsConsole({
     } catch (e) {
       setError((e as Error).message);
     } finally {
+      running.current = false;
       setBusy(false);
     }
   };
   const reload = useCallback(() => setTick((n) => n + 1), []);
+  useEffect(()=>{setChecked([]);setBatchResult(null)},[section,q,group,filter]);
   useEffect(() => {
     void api("/storage/maintenance", { method: "POST" }).catch(() => {});
   }, []);
@@ -132,7 +145,10 @@ export function CmsConsole({
           `/${section}?${new URLSearchParams({ q, group, state: filter === "trash" ? "all" : filter, trash: filter === "trash" ? "1" : "0", page: String(page) })}`,
         )
           .then((v) => {
-            if (live) setData(v);
+            if (live) {
+              setData(v);
+              if(v.page !== page) setPage(v.page);
+            }
           })
           .catch((e) => {
             if (live) setError(e.message);
@@ -150,14 +166,14 @@ export function CmsConsole({
   }, [section, q, group, filter, page, tick]);
   useEffect(() => {
     const leave = (e: BeforeUnloadEvent) => {
-      if (dirty) {
+      if (dirty || batchProgress) {
         e.preventDefault();
         e.returnValue = "";
       }
     };
     window.addEventListener("beforeunload", leave);
     return () => window.removeEventListener("beforeunload", leave);
-  }, [dirty]);
+  }, [dirty, !!batchProgress]);
   useEffect(() => {
     if (!selected?.pending || dirty) return;
     let live = true;
@@ -178,7 +194,7 @@ export function CmsConsole({
     };
   }, [selected?.id, selected?.pending, dirty]);
   const canLeave = async () =>
-    !dirty || (await confirm("저장하지 않은 변경을 버리고 이동할까요?"));
+    !running.current && (!dirty || (await confirm("저장하지 않은 변경을 버리고 이동할까요?")));
   const go = async (next: typeof section) => {
     if (!(await canLeave())) return;
     setSection(next);
@@ -196,9 +212,42 @@ export function CmsConsole({
     if (!(await canLeave())) return;
     await run(async () => {
       const e = await request(`/entry/${id}`);
+      setChecked([]);setBatchResult(null);
       setSelected(e);
       setForm(e.draft);
       setPreview(false);
+    });
+  };
+  const toggleChecked = (entries:Entry[], value:boolean) => {
+    if(busy || loading) return;
+    try {setChecked(selectEntries(checked,entries,value));setError("")}
+    catch(e) {setError((e as Error).message)}
+  };
+  const bulkAction = async (action:CmsAction) => {
+    if(busy || loading) return;
+    const targets = checked.filter(e=>canApply(e,action));
+    if(!targets.length) return;
+    const explanations:Record<CmsAction,string> = {
+      approve:active ? "저장된 초안을 공식 사이트에 공개합니다. PDF는 전체 페이지 준비 후 공개됩니다." : "전환 준비본으로 승인합니다. 공식 사이트에는 아직 반영되지 않습니다.",
+      withdraw:"공식 사이트에서 내려갑니다. 저장된 초안과 파일은 유지됩니다.",
+      trash:"공식 사이트에서도 내려가며 휴지통으로 이동합니다. 30일 동안 복원할 수 있습니다. 이후 앱이 보관하는 파일을 정리하며, 이전 Drive 원본은 보존합니다.",
+      restore:"휴지통에서 비공개 초안으로 복원합니다. 다시 공개하려면 공개 버튼을 눌러 주세요.",
+    };
+    if(!await confirm(`${targets.length}개를 ${actionLabels[action]} 처리할까요? ${explanations[action]}${checked.length>targets.length?` 이미 해당 상태이거나 준비 중인 ${checked.length-targets.length}개는 제외합니다.`:""}`,{
+      title:`선택 자료 ${actionLabels[action]}`,acceptLabel:`${targets.length}개 ${actionLabels[action]}`,
+      preview:targets.map(e=>title(e)).join("\n"),previewLabel:"처리할 자료 목록",
+    })) return;
+    await run(async()=>{
+      stopBatch.current=false;setStopping(false);setBatchResult(null);
+      try {
+        const result = await runCmsBatch(targets,action,
+          (entry,name)=>request(`/entry/${entry.id}/${name}`,"POST",{revision:entry.revision}),
+          setBatchProgress,()=>stopBatch.current);
+        setBatchResult(result);
+        const left = new Set([...result.failures.map(e=>e.id),...result.remaining]);
+        setChecked(previous=>previous.filter(e=>left.has(e.id)));
+        setMessage(`${result.completed.length}개 ${actionLabels[action]} 요청을 완료했습니다.${result.pending?` 이 중 ${result.pending}개는 PDF 준비 후 공개됩니다.`:""}${result.remaining.length?` ${result.remaining.length}개는 아직 처리하지 않았습니다.`:""}`);
+      } finally {setBatchProgress(null);reload()}
     });
   };
   const action = async (name: "approve" | "withdraw" | "trash" | "restore") => {
@@ -257,6 +306,7 @@ export function CmsConsole({
     reorder = useListReorder(move);
   const create = () =>
     run(async () => {
+      setChecked([]);setBatchResult(null);
       if (section === "research") {
         onUpload();
         return;
@@ -698,6 +748,7 @@ export function CmsConsole({
             ].map(([k, v]) => (
               <button
                 key={k}
+                disabled={busy}
                 aria-pressed={filter === k}
                 onClick={() => {
                   setFilter(k);
@@ -711,6 +762,7 @@ export function CmsConsole({
           <div className="cms-filters">
             <input
               aria-label="관리 자료 검색"
+              disabled={busy}
               placeholder={
                 section === "members"
                   ? "이름 검색"
@@ -724,6 +776,7 @@ export function CmsConsole({
             />
             <select
               aria-label="기간·기수"
+              disabled={busy}
               value={group}
               onChange={(e) => {
                 setGroup(e.target.value);
@@ -748,6 +801,15 @@ export function CmsConsole({
               <RefreshCw size={16} />
             </button>
           </div>
+          {batchResult?.failures.length ? <details className="cms-bulk-errors" open>
+            <summary>{batchResult.failures.length}개 항목을 처리하지 못했습니다</summary>
+            <p>실패하거나 미처리한 항목은 선택을 유지했습니다. 변경된 자료는 다시 선택한 후 처리해 주세요.</p>
+            <ul>{batchResult.failures.map(e=><li key={e.id}><strong>{e.title}</strong> — {e.message}</li>)}</ul>
+          </details> : null}
+          <CmsBulkControls entries={checked} visibleCount={visibleChecked} trash={filter==="trash"}
+            disabled={busy || loading} progress={batchProgress} stopping={stopping}
+            onAction={action=>void bulkAction(action)} onClear={()=>setChecked([])}
+            onStop={()=>{stopBatch.current=true;setStopping(true)}} />
           <p id="cms-order-help" className="sr-only">
             {section === "members"
               ? "같은 기수에서는 회장, 부회장, 기장, 가나다순으로 자동 정렬됩니다."
@@ -761,6 +823,8 @@ export function CmsConsole({
             <table className="report-table managed-table">
               <thead>
                 <tr>
+                  <th className="select-column"><PageSelection count={visibleChecked} total={data.items.length} disabled={busy || loading}
+                    onChange={value=>toggleChecked(data.items,value)} /></th>
                   {section !== "members" && <th>순서</th>}
                   <th>{section === "members" ? "이름" : "제목"}</th>
                   <th>상태</th>
@@ -777,12 +841,15 @@ export function CmsConsole({
                       key={e.id}
                       data-reorder-id={e.id}
                       className={[
+                        checkedIds.has(e.id) ? "is-selected" : "",
                         reorder.dragged === e.id ? "is-drag-source" : "",
                         reorder.target?.id === e.id
                           ? `drop-${reorder.target.placement}`
                           : "",
                       ].join(" ")}
                     >
+                      <td className="select-column"><input type="checkbox" aria-label={`${title(e)} 선택`}
+                        disabled={busy || loading} checked={checkedIds.has(e.id)} onChange={event=>toggleChecked([e],event.target.checked)} /></td>
                       {section !== "members" && (
                         <td className="order-column">
                           <div className="order-controls">
@@ -790,13 +857,14 @@ export function CmsConsole({
                               reorder={reorder}
                               id={e.id}
                               title={title(e)}
-                              disabled={busy || loading || filter === "trash"}
+                              disabled={busy || loading || !!checked.length || filter === "trash"}
                               helpId="cms-order-help"
                             />
                             <button
                               disabled={
                                 busy ||
                                 loading ||
+                                !!checked.length ||
                                 index === 0 ||
                                 filter === "trash"
                               }
@@ -815,6 +883,7 @@ export function CmsConsole({
                               disabled={
                                 busy ||
                                 loading ||
+                                !!checked.length ||
                                 index === data.items.length - 1 ||
                                 filter === "trash"
                               }
@@ -878,23 +947,7 @@ export function CmsConsole({
             }
             subtitle="게시 순서"
           />
-          <div className="cms-pagination">
-            <button
-              disabled={page <= 1 || loading}
-              onClick={() => setPage((p) => p - 1)}
-            >
-              이전
-            </button>
-            <span>
-              {page} / {Math.max(1, Math.ceil(data.total / 40))}
-            </span>
-            <button
-              disabled={page * 40 >= data.total || loading}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              다음
-            </button>
-          </div>
+          <ListPagination page={page} pages={Math.max(1, Math.ceil(data.total / 40))} disabled={loading || busy} onPage={setPage} />
         </>
       )}
     </AdminFrame>

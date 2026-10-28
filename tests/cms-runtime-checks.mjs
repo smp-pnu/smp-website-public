@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict'
 import sharp from 'sharp'
 import {sortContent} from '../lib/content-model.ts'
+import {runCmsBatch} from '../admin-lab/cms-bulk.ts'
 export async function checkCmsManagement({call,cms,mf,origin,jar,csrf}) {
   const published=async(kind)=>JSON.parse((await cms.prepare('SELECT body FROM free_documents WHERE name=?').bind(kind).first()).body).items
   const notice=title=>({item:{id:'',kind:'notice',title,date:'2020-01-01',summary:'',author:'SMP',category:'공지',pinned:false,externalUrl:null,attachments:[]},blocks:[],cover:null})
@@ -47,5 +48,17 @@ export async function checkCmsManagement({call,cms,mf,origin,jar,csrf}) {
   await call(`/api/cms/entry/${m.id}/approve`,'POST',{revision:4});assert.ok((await published('members')).some(x=>x.id===m.id))
   const search=(await cms.prepare("SELECT body FROM free_documents WHERE name='search'").first()).body
   assert.ok(search.includes('수정 학과'));assert.ok(search.includes('CMS edited A'))
+  // The browser batch runner goes through the same real session/CSRF endpoints.
+  // Exercise whole batches for both notices and members, including restoration
+  // staying private and no mutation of an unrelated published row.
+  for(const [kind,ids] of [['notice',[a.id,b.id]],['members',members.map(e=>e.id)]]) {
+    for(const action of ['withdraw','approve','trash','restore','approve']) {
+      const entries=await Promise.all(ids.map(async id=>(await call(`/api/cms/entry/${id}`)).json()))
+      const result=await runCmsBatch(entries,action,async(e,name)=>(await call(`/api/cms/entry/${e.id}/${name}`,'POST',{revision:e.revision})).json(),()=>{})
+      assert.equal(result.completed.length,ids.length);assert.deepEqual(result.failures,[])
+      const visible=(await published(kind)).filter(e=>ids.includes(e.id))
+      assert.equal(visible.length,action==='approve'?ids.length:0)
+    }
+  }
   console.log(JSON.stringify({cmsRuntime:'pass',checks:['session/CSRF','notice create/edit/approve','upload image','manual order','stale revision rejection','trash/restore stays private','member CRUD and role ordering','public catalogue/search projection']}))
 }
