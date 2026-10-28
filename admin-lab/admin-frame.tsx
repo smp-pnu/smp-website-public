@@ -160,7 +160,7 @@ export function AdminFrame({
               disabled={busy}
             >
               <Upload size={17} />
-              PDF 등록
+              리포트 등록
             </button>
           )}
           {onSecurity && (

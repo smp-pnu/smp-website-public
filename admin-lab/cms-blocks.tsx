@@ -428,7 +428,7 @@ export function CmsBlocks({
       </div>
       <small>
         사진은 자동 압축합니다. PDF·ZIP 첨부는 1.4 MB 이하입니다. 리포트 PDF는
-        ‘PDF 등록’에서 올려주세요.
+        ‘리포트 등록’에서 올려주세요.
       </small>
     </fieldset>
   );
