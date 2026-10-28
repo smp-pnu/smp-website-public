@@ -82,7 +82,7 @@ export function DriveCard({data,onStorage}:{data:DriveCapacity;onStorage:()=>voi
         <div><dt>Gmail·Photos 등</dt><dd>{q.other===null?"확인 불가":capacityLabel(q.other)}</dd></div></dl>
       <p className="ops-footnote">이 사이트 외의 파일·메일·사진도 포함한 계정 전체 용량입니다. Drive 휴지통도 공간을 사용합니다.</p>
     </>}
-    <div className="ops-links">{data.folderUrl&&<a href={data.folderUrl} target="_blank" rel="noopener noreferrer">PDF 전용 폴더 <ArrowUpRight size={14}/></a>}
+    <div className="ops-links">{data.folderUrl&&<a href={data.folderUrl} target="_blank" rel="noopener noreferrer">리포트 Drive 폴더 <ArrowUpRight size={14}/></a>}
       <a href="https://drive.google.com/drive/quota" target="_blank" rel="noopener noreferrer">Drive 용량순 보기 <ArrowUpRight size={14}/></a>
       <a href="https://one.google.com/storage" target="_blank" rel="noopener noreferrer">Google 전체 용량 <ArrowUpRight size={14}/></a></div>
     <p className="ops-footnote">학회 계정으로 열어 주세요. 사이트 자료 삭제는 리포트·공지 관리에서 진행해야 연결 정보도 함께 정리됩니다.</p>

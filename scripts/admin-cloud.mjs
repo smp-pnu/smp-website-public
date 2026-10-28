@@ -16,8 +16,9 @@ const routes = [{ pattern: 'admin.pnusmp.com', custom_domain: true, zone_id: '5b
 let target = {}
 try { target = JSON.parse(await readFile(path.join(root, '.smp-tools/admin-cloud-target.json'), 'utf8')) } catch (e) { if (e.code !== 'ENOENT') throw e }
 if (target.driveAccountEmail !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target.driveAccountEmail)) throw Error('Invalid trial Drive account allowlist')
+if (target.driveReportsFolderId !== undefined && !/^[A-Za-z0-9_-]{10,200}$/.test(target.driveReportsFolderId)) throw Error('Invalid report archive folder ID')
 const ratelimits = [{ name: "AUTH_LIMITER", namespace_id: "2026102701", simple: { limit: 20, period: 60 } }]
-const vars = { ORIGIN: origin, ...(target.driveAccountEmail ? {DRIVE_ACCOUNT_EMAIL: target.driveAccountEmail} : {}) }
+const vars = { ORIGIN: origin, ...(target.driveAccountEmail ? {DRIVE_ACCOUNT_EMAIL: target.driveAccountEmail} : {}), ...(target.driveReportsFolderId ? {DRIVE_REPORTS_FOLDER_ID: target.driveReportsFolderId} : {}) }
 if (mode === 'build') {
   const require = createRequire(import.meta.url), pdfRoot = path.dirname(require.resolve('pdfjs-dist/package.json'))
   const assets = path.join(root, 'dist/admin-lab-assets/pdfjs')
