@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 import type { ContentBlock } from "../lib/notion-model";
 import type { RichText } from "../lib/content-model";
@@ -143,18 +143,36 @@ export function CmsBlocks({
   blocks,
   onChange,
   disabled = false,
+  onBusy,
 }: {
   id: string;
   blocks: ContentBlock[];
   onChange: (blocks: ContentBlock[]) => void;
   disabled?: boolean;
+  onBusy?: (busy: boolean) => void;
 }) {
   const [kind, setKind] = useState("paragraph"),
     [uploading, setUploading] = useState(false),
     [error, setError] = useState("");
+  const mounted = useRef(true),
+    currentUpload = useRef<AbortController | null>(null);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      currentUpload.current?.abort();
+    };
+  }, []);
+  useEffect(() => {
+    onBusy?.(uploading);
+    return () => onBusy?.(false);
+  }, [uploading, onBusy]);
   const change = (index: number, b: ContentBlock) =>
     onChange(blocks.map((v, i) => (i === index ? b : v)));
   const upload = async (file: File) => {
+    if (currentUpload.current) return;
+    const controller = new AbortController();
+    currentUpload.current = controller;
     setUploading(true);
     setError("");
     try {
@@ -167,6 +185,7 @@ export function CmsBlocks({
           "X-File-Name": encodeURIComponent(file.name),
         },
         body,
+        signal: controller.signal,
       });
       const { url } = await r.json(),
         type = image
@@ -174,6 +193,7 @@ export function CmsBlocks({
           : file.type === "application/pdf"
             ? "pdf"
             : "file";
+      if (!mounted.current || controller.signal.aborted) return;
       onChange([
         ...blocks,
         {
@@ -188,9 +208,11 @@ export function CmsBlocks({
         },
       ]);
     } catch (e) {
-      setError((e as Error).message);
+      if (mounted.current && !controller.signal.aborted)
+        setError((e as Error).message);
     } finally {
-      setUploading(false);
+      currentUpload.current = null;
+      if (mounted.current) setUploading(false);
     }
   };
   return (

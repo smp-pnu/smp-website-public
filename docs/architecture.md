@@ -1,42 +1,52 @@
 # 코드 구조와 변경 안내
 
-> 2026-10-27 관리자 CMS 전환 이후 현재 사용법과 운영 기준은 [관리자 CMS 운영](admin-cms.md)을 따릅니다. 이 문서의 Notion 동기화·시험 운영 설명은 이전 구조의 기록입니다.
+현재 콘텐츠 관리 기준은 관리자 CMS입니다. Notion은 이관 기록으로 보존하며, 운영 사용법은 [관리자 CMS 운영](admin-cms.md)을 따릅니다. 공개 화면은 Cloudflare의 `free/`, 관리자 화면은 `admin-lab/`에서 실행됩니다. Next.js `app/`는 공유 화면과 호환성 검사용 경로이며, 이전 동기화 코드는 복구 절차를 검토하기 전 일괄 삭제하지 않습니다.
 
-실제 운영 진입점은 `free/`입니다. Next.js `app/`와 Vercel 관련 모듈은 이전 경로의 호환성 검사에 남아 있으며 현재 Cloudflare 요청을 처리하지 않습니다. 화면과 콘텐츠 규칙을 공유하므로 확인 없이 일괄 삭제하지 않습니다. [과거 구조 기록](legacy-vercel-architecture.md)은 현재 설정 지침이 아닙니다.
+## 변경할 위치
 
-| 변경할 내용 | 담당 위치 |
+| 책임 | 위치 |
 | --- | --- |
-| 운영 화면 조합·클라이언트 경로 | `free/client/` |
-| 공통 화면 | `components/` |
-| 공개·정렬·분류·검색·PDF 규칙 | `lib/content-model.ts`, `content-query.ts`, `wics.ts`, `pdf-*.ts` |
-| HTTP 경로·웹훅·동기화 진입 | `free/server/worker.ts` |
-| 종류별 변경 조회·중복 실행 방지 | `free/server/sync.ts` |
-| D1 공개 목록·수정 버전·삭제 방어 | `free/server/catalog.ts` |
-| Notion 요청·공통 예산·단건 검증 공유 | `free/server/notion.ts`, `budget.ts`, `publication.ts` |
-| HTML/상세·검색엔진 메타데이터 | `free/server/pages.ts`, `free/seo/` |
-| 공개 검증 후 PDF 임시 재사용 | `free/server/pdf.ts` |
-| 작업 임대·실패 상태·완료 검증 | `free/server/jobs.ts`, `job-errors.ts` |
-| 자동 게시 실행 요청 | `free/server/publisher.ts` |
-| PDF·이미지 준비와 배포 | `free/jobs/prepare.ts`, `publish.ts`, `publication-assets.ts` |
-| 전체 대조·예약 공개·누락 복구 | `free/jobs/reconcile.ts` |
-| 관리 상태·중단 글 재시도·PDF 새로 확인 | `free/jobs/manage.ts`, `maintenance.ts` |
-| 정적 빌드·Worker 배포 | `scripts/build-free.mjs`, `deploy-free.mjs` |
-| Drive 휴지통 연동 | `scripts/drive-cleanup/Code.gs`, `lib/drive-cleanup-relay.ts` |
+| 공개 사이트 경로와 초기 화면 유지 | `free/client/main.tsx` |
+| 공개 목록·상세·검색·명단 | `free/client/pages/` |
+| 공통 메뉴·본문·PDF 뷰어 | `components/` |
+| 검색·정렬·공개 표시 규칙 | `lib/`의 도메인별 모듈 |
+| 관리자 공통 메뉴·레이아웃 | `admin-lab/admin-frame.tsx` |
+| 관리자 주소·뒤로가기·입력 보호 | `admin-lab/admin-navigation.ts`, `use-admin-history.ts` |
+| 관리자 화면 연결 | `admin-lab/cms-console.tsx` |
+| 관리자 목록 조회·편집·일괄 작업 상태 | `admin-lab/cms/use-*.ts` |
+| 관리자 목록·편집·모집 안내 UI | `admin-lab/cms/*-editor.tsx`, `entry-list.tsx` |
+| 관리자 인증 포함 통신 | `admin-lab/server-storage.ts`, `cms/api.ts` |
+| 관리자 스타일 | `admin-lab/styles/` — `style.css`의 선언 순서로 조합 |
+| 작성·승인·공개 모델·보관 정리 | `cms/` |
+| 관리자 인증·Drive·업로드 | `admin-cloud/` |
+| 공개 읽기 API·캐시·검색엔진 HTML | `free/server/`, `free/seo/` |
+| PDF 변환·정적 게시 | `cms/publish.ts`, `free/jobs/`, `scripts/build-free.mjs` |
 
-## 유지할 경계
+## 화면과 상태의 경계
 
-- Worker는 요청/공개 확인/가벼운 동기화만 담당합니다. Sharp·Canvas·PDF 렌더러는 Node 게시 작업에만 둡니다. 방문자 조회가 이미지 생성이나 전체 CMS 조회를 유발하지 않도록 합니다.
-- D1 변경 저장·목록 재작성·실제 게시 완료를 구분합니다. 원본 수정 버전이 바뀌면 오래된 본문은 숨깁니다. 웹훅 원문은 서명을 검증하고 이벤트 안의 과거 데이터 대신 현재 Notion을 읽습니다.
-- 상세·PDF의 성공한 단건 검증은 최대 60초 재사용하고 매번 현재 DB 소속/버전을 확인합니다. 비공개/삭제 알림이 반영되면 캐시를 즉시 무효화하고 만료 후 장애 시 닫힌 상태로 실패합니다. 게시 완료 검사는 캐시를 쓰지 않습니다.
-- PDF는 위 검증 뒤에만 내부 Cache API를 조회합니다. 요청된 32 MiB 이하의 전체 PDF만 네이티브 스트림으로 5분 보관하며, 현재 소속·수정 버전·원본 주소·파일명이 캐시 키에 포함됩니다. 범위 요청은 저장된 전체 파일에서 읽고, 캐시가 없으면 요청한 구간만 Drive로 전달합니다. 브라우저 응답은 계속 `private, no-store`입니다. 캐시 장애 때는 검증된 원본 스트리밍으로 복귀하며 새 저장소·예약 작업은 만들지 않습니다.
-- D1 마이그레이션은 Worker 배포 전에 Node 게시 작업에서 보장합니다. 새 열/테이블은 기존 운영 데이터에 적용 가능한 방식으로 추가하고, 변경된 쿼리는 SQLite 기반 실제 SQL 테스트로 검증합니다.
-- 관리자 작업은 보호된 GitHub 워크플로에서 실행합니다. 공개 `/api/internal/*` 경로는 404를 유지하고 임의 명령·브랜치·파일 주소를 입력받는 관리 API는 만들지 않습니다.
-- 공개 상태·커버 재사용·삭제는 별개입니다. 삭제 자동화의 소유자·폴더·다른 글 참조 검사와 10건 안전 정지는 유지합니다. [운영 안내](operations.md), [표지](report-covers.md), [Drive 삭제](drive-cleanup.md)를 함께 갱신하세요.
+`cms-console`은 화면 연결과 이동 허용 여부만 조정합니다. 목록은 조회 훅, 편집은 편집 훅, 일괄 처리는 선택 훅이 소유합니다. 보기 컴포넌트에서 별도의 저장 API나 세션 처리를 만들지 않습니다. 공유 작업 실행기는 중복 저장을 막고 오류를 같은 위치에 표시합니다.
 
-## 개발과 확인
+관리자 주소에는 메뉴, 검색어, 학기·기수, 상태, 페이지, 편집 항목 ID를 보관합니다. 새로고침·뒤로가기에서도 같은 화면을 복원합니다. 본문·비밀번호·토큰을 주소나 브라우저 저장소에 넣지 않습니다. 화면 이동은 공통 `canLeave` 확인을 통과해야 하며, 사진·파일 업로드와 일괄 처리 중 이동은 허용하지 않습니다.
 
-`pnpm dev`/`build`는 이전 Next.js 경로입니다. 현재 Cloudflare 화면은 `pnpm build:free:fixture`로 운영 자료와 분리해 빌드합니다. `free/client`와 공유 컴포넌트를 바꾸면 이 빌드 결과를 반드시 확인하세요.
+목록 요청은 조회 조건별로 구분하고 이전 요청을 취소합니다. 로딩, 빈 목록, 실패를 따로 표시하며 새 조건의 응답이 도착하기 전에는 이전 자료를 수정 대상으로 사용하지 않습니다. 검색 입력은 짧게 모아서 요청하고, 관리자 대시보드 등 목록이 없는 화면에서는 목록 조회를 하지 않습니다. PDF 준비 상태는 해당 편집 화면이 보이고 수정 중이 아닐 때만 기존 간격으로 확인하며 요청이 겹치지 않게 합니다.
 
-기본 검사: `pnpm typecheck`, `pnpm test`, `pnpm build:free:fixture`. 공유 Next.js 화면 변경에는 `pnpm build`와 `pnpm test:bundles`도 실행합니다. CI가 이 검사와 의존성 보안 감사를 수행합니다. 운영 배포는 검증된 PR을 `main`에 병합하면 보호된 게시 워크플로가 수행합니다. 수동 운영 절차는 [운영 안내](operations.md)를 따릅니다.
+공개 페이지는 목록·상세·검색·명단 코드를 각각 지연 로드합니다. 공통 API 캐시의 중복 요청 방지, 메모리 상한, 만료, 429 대기 규칙을 유지합니다. 실패 화면의 재시도 버튼은 이 규칙 안에서 재요청합니다. 경로를 분리하더라도 목록 복귀의 검색·페이지·스크롤 복원과 초기 HTML 유지 기능을 보존해야 합니다.
 
-`seed:free:fixture`, `test:free:http`는 합성 DB 전용입니다. 운영 DB를 테스트 데이터로 덮어쓰지 않고, 실제 Notion/Drive에 100명 부하를 발생시키지 않습니다. 테스트에서 단위 검증한 요청 감소율과 운영에서 측정한 결과를 구분해 기록합니다.
+관리자 CSS는 기본 요소, 공통 틀, 목록, 업로드·편집, 설정, 반응형, 선택·페이지 이동, 저장소, CMS 순서로 나눕니다. 임의의 마지막 덮어쓰기 규칙을 계속 추가하지 말고 담당 파일을 수정합니다. 휴대폰 폭·긴 제목·짧은 화면에서 버튼 겹침, 가로 넘침, 확인창 스크롤을 확인합니다.
+
+## 서버와 무료 운영 경계
+
+- 관리자 요청은 기존 세션·CSRF·권한·요청 크기 검사를 거칩니다. UI에서 버튼을 숨기는 것만으로 권한을 구현하지 않습니다.
+- 작성 초안과 공개 승인본을 분리합니다. 저장 성공과 실제 게시 완료는 다른 상태이며, 같은 승인본을 중복 게시하지 않습니다.
+- PDF 변환은 게시 작업에서 수행합니다. 방문자 조회는 AI 호출·PDF 생성·Notion 전체 조회를 유발하지 않습니다.
+- Worker는 가벼운 인증·조회·공개 확인을 담당합니다. Canvas·Sharp·전체 PDF 렌더러를 공개 Worker 번들에 넣지 않습니다.
+- 공개 API는 현재 공개 여부를 확인한 뒤 캐시나 파일을 사용합니다. 비공개·삭제 처리, 서명 확인, 삭제 대상 소유·참조 확인을 UI 변경과 함께 완화하지 않습니다.
+- DB, 업로드, AI, 변환, 정적 파일 수의 기존 상한을 유지합니다. 새 반복 호출·예약 작업·유료 서비스를 UI 개선에 묶어 추가하지 않습니다. 구체적인 운영 상한은 [관리자 CMS 운영](admin-cms.md)을 따릅니다.
+
+## 개발과 회귀 확인
+
+`pnpm dev`는 합성 DB를 사용하는 Cloudflare 로컬 화면입니다. `pnpm dev:next`는 이전 Next.js 경로입니다. 실제 운영 DB에 테스트 글·회원·부하 데이터를 넣지 않습니다.
+
+기본 확인은 `pnpm test`, `pnpm typecheck`, `pnpm build:free:fixture`입니다. 관리자 변경은 `pnpm build:admin:cloud`, `node --import tsx tests/admin-cms-render.mjs`, `pnpm test:admin:cloud`, 저장 경로 변경은 `pnpm test:admin:drive`로 추가 검증합니다. 공유 공개 컴포넌트는 `pnpm build`와 `pnpm test:bundles`도 검사합니다. `pnpm dev` 실행 후 `pnpm test:free:http`로 실제 로컬 HTTP 경로를 확인합니다.
+
+브라우저에서는 공개 사이트의 검색 → 목록 → 상세 → 복귀, 관리자 등록 → 저장 → 게시 → 수정 → 비공개 → 휴지통 → 복원을 합성 자료로 확인합니다. 수정 중 메뉴 이동·뒤로가기, 확인 취소 후 초점, 모바일에서 긴 제목·필터·페이지 이동도 함께 확인합니다. 자동 검사의 성공을 실제 브라우저나 운영 부하 측정으로 표현하지 않습니다.
