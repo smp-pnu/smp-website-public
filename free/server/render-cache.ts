@@ -2,6 +2,8 @@ import type { ContentKind } from "../../lib/content-model"
 import type { Env } from "./types"
 
 type Entry = {body:string; headers:[string,string][]; bytes:number; expires:number}
+type RenderedContent = {body:string; headers:HeadersInit}
+const respond = (value:Response|RenderedContent) => value instanceof Response ? value : new Response(value.body,{headers:value.headers})
 
 // Isolate-local, bounded memoization only. Nothing is stored in the CDN or the
 // browser: every hit still passes admission and a live database version check.
@@ -21,10 +23,14 @@ export class RenderCache {
     return response
   }
 
-  async put(key:string, response:Response, now = Date.now()) {
-    if (response.status !== 200 || response.headers.has("set-cookie") || !/^(text\/html|application\/json)\b/.test(response.headers.get("content-type") ?? "")) return
-    const body = await response.clone().text()
-    const headers = [...response.headers.entries()]
+  put(key:string, value:Response|RenderedContent, now = Date.now()) {
+    // Save the already-rendered string before constructing a Response. Cloning
+    // a stream and decoding it again made cold requests needlessly expensive.
+    // Errors, redirects and other Response objects always bypass this cache.
+    if (value instanceof Response) return
+    const fields = new Headers(value.headers)
+    if (fields.has("set-cookie") || !/^(text\/html|application\/json)\b/.test(fields.get("content-type") ?? "")) return
+    const body = value.body, headers = [...fields.entries()]
     // Conservative UTF-16 accounting, including keys/headers. One unusually
     // large notice cannot evict every other page or retain an unbounded body.
     const bytes = 2 * (body.length + key.length + headers.reduce((n,[k,v]) => n+k.length+v.length, 0))
@@ -52,19 +58,20 @@ function bindingId(binding:object) {
 
 // Call only AFTER method/origin/rate/publication admission. Legacy Notion
 // freshness checks must keep running, so only the managed CMS uses this cache.
-export async function rendered(request:Request, env:Env, kind:ContentKind, render:()=>Promise<Response>) {
+export async function rendered(request:Request, env:Env, kind:ContentKind, render:()=>Promise<Response|RenderedContent>) {
   const url = new URL(request.url)
-  if (!env.CMS_ADMIN_MODE || env.REPORT_PREVIEW || url.search.length > 512) return render()
+  if (!env.CMS_ADMIN_MODE || env.REPORT_PREVIEW || url.search.length > 512) return respond(await render())
   const state = await env.CMS_DB.prepare(`SELECT r.version,d.version AS catalogue FROM free_render_versions r
     JOIN free_documents d ON d.name=r.kind WHERE r.kind=?`).bind(kind).first<{version:number;catalogue:number}>()
   // No cached fallback on a failed version lookup. Missing documents also use
   // the normal unavailable/404 handling rather than a previous response.
-  if (!state) return render()
+  if (!state) return respond(await render())
   const key = `${bindingId(env.CMS_DB)}:${bindingId(env.ASSETS)}:${kind}:${state.version}:${state.catalogue}:${url.href}`
   const hit = cache.get(key)
   if (hit) return hit
-  const response = await render()
-  await cache.put(key,response)
+  const value = await render()
+  cache.put(key,value)
+  const response = respond(value)
   response.headers.append("Server-Timing", 'render-cache;desc="miss"')
   return response
 }

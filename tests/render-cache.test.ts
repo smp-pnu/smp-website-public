@@ -6,16 +6,16 @@ import {createContentSearchIndex, findContentMatches, selectContentPage} from ".
 
 test("render cache bounds memory and entries, expires, and never retains error/private responses", async()=>{
   const cache=new RenderCache(1000,2,100)
-  const response=()=>new Response("x".repeat(100),{headers:{"content-type":"text/html"}})
+  const response=()=>({body:"x".repeat(100),headers:{"content-type":"text/html"}})
   await cache.put("a",response(),0);await cache.put("b",response(),0)
   assert.ok(cache.get("a",10))
   await cache.put("c",response(),10)
   assert.equal(cache.get("b",11),null);assert.ok(cache.get("a",11))
   assert.equal(cache.get("a",100),null)
-  await cache.put("large",new Response("x".repeat(600),{headers:{"content-type":"text/html"}}),10)
+  await cache.put("large",{body:"x".repeat(600),headers:{"content-type":"text/html"}},10)
   assert.equal(cache.get("large",11),null)
   for(const status of [301,404,429,503]) await cache.put(String(status),new Response("x",{status,headers:{"content-type":"text/html"}}),10)
-  await cache.put("cookie",new Response("x",{headers:{"content-type":"text/html","set-cookie":"private=1"}}),10)
+  await cache.put("cookie",{body:"x",headers:{"content-type":"text/html","set-cookie":"private=1"}},10)
   for(const key of ["301","404","429","503","cookie"]) assert.equal(cache.get(key,11),null)
   assert.ok(cache.get("c",11))
 })
@@ -24,7 +24,7 @@ test("each response is independent and a failed version read cannot serve a prev
   let unavailable=false,version=1,calls=0
   const env={CMS_ADMIN_MODE:true,CMS_DB:{prepare(){return {bind(){return this},async first(){if(unavailable)throw Error("unavailable");return {version,catalogue:1}}}}},ASSETS:{fetch}}
   const request=new Request("https://pnusmp.com/notice")
-  const render=async()=>{calls++;return Response.json({calls})}
+  const render=async()=>{calls++;return {body:JSON.stringify({calls}),headers:{"content-type":"application/json"}}}
   const first=await rendered(request,env as never,"notice",render)
   first.headers.set("test","changed");await first.text()
   const hit=await rendered(request,env as never,"notice",render)
