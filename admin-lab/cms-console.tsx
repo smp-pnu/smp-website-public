@@ -18,7 +18,8 @@ import { StorageSettings } from "./storage-settings";
 import { OperationsDashboard } from "./operations-dashboard";
 import { MemberImport } from "./member-import";
 import { MemberCohorts } from "./member-cohorts";
-import { UploadApp } from "./upload-app";
+import { CmsUpload } from "./cms-upload";
+import {adminSection,writeAdminSection,saveUploadReturn,readUploadReturn,clearUploadReturn,type AdminSection} from "./admin-navigation";
 import { SecuritySettings, type SecurityControls } from "./security-settings";
 import { useListReorder } from "./use-list-reorder";
 import { DragHandle, DragPreview } from "./reorder-ui";
@@ -85,9 +86,7 @@ export function CmsConsole({
   onLogout?: () => Promise<void>;
   security?: SecurityControls;
 }) {
-  const [section, setSection] = useState<Kind | "storage" | "recruitment" | "dashboard" | "upload" | "security">(
-      () => location.hash === "#storage" ? "storage" : "dashboard",
-    ),
+  const [section, setSection] = useState<AdminSection>(()=>adminSection(location.hash)),
     [q, setQ] = useState(""),
     [group, setGroup] = useState(""),
     [filter, setFilter] = useState("all"),
@@ -110,7 +109,9 @@ export function CmsConsole({
     [batchResult, setBatchResult] = useState<BatchResult|null>(null),
     [stopping, setStopping] = useState(false);
   const [memberImportOpen, setMemberImportOpen] = useState(false);
-  const [uploadTarget,setUploadTarget] = useState<string|undefined>(undefined);
+  const [uploadTarget,setUploadTarget] = useState<string|undefined>(()=>readUploadReturn()?.target);
+  const [uploadTitle,setUploadTitle] = useState<string|undefined>(()=>readUploadReturn()?.title);
+  const [uploadReturn,setUploadReturn] = useState(()=>readUploadReturn());
   const [childBusy,setChildBusy] = useState(false),[childDirty,setChildDirty] = useState(false);
   const navigationBusy = busy || childBusy || (section === "security" && !!security?.busy);
   const cohortOverview = useRef({ query: "", filter: "all" });
@@ -136,6 +137,10 @@ export function CmsConsole({
     }
   };
   const reload = useCallback(() => setTick((n) => n + 1), []);
+  // Direct links and refreshes must load the same key list as menu navigation.
+  const openSecurity = useRef(security?.onOpen);
+  openSecurity.current = security?.onOpen;
+  useEffect(() => {if(section === "security") openSecurity.current?.()}, [section]);
   useEffect(()=>{setChecked([]);setBatchResult(null)},[section,q,group,filter]);
   useEffect(() => {
     void api("/storage/maintenance", { method: "POST" }).catch(() => {});
@@ -206,6 +211,7 @@ export function CmsConsole({
   const go = async (next: typeof section, state = "all") => {
     if (!(await canLeave())) return false;
     setSection(next);
+    writeAdminSection(next);
     setChildDirty(false);
     cohortOverview.current = { query: "", filter: state };
     setMemberImportOpen(false);
@@ -221,14 +227,17 @@ export function CmsConsole({
     return true;
   };
   const openUpload = async (target?:string) => {
-    if (await go("upload")) setUploadTarget(target);
+    const title = target && selected ? (selected.draft.item as ContentItem).title : undefined;
+    if (await go("upload")) {setUploadTarget(target);setUploadTitle(title);clearUploadReturn();setUploadReturn(null);}
   };
   const importUpload = async (id:string) => {
     if (running.current) return;
     running.current=true;setBusy(true);
     try {
-      await request("/import-upload","POST",{id,target:uploadTarget});
-      setSection("research");setUploadTarget(undefined);setChildDirty(false);reload();
+      const entry:Entry = await request("/import-upload","POST",{id,target:uploadTarget});
+      setSection("research");writeAdminSection("research");setUploadTarget(undefined);setUploadTitle(undefined);setChildDirty(false);
+      clearUploadReturn();setUploadReturn(null);setSelected(entry);setForm(entry.draft);
+      setMessage("리포트 초안을 준비했습니다. 내용을 확인하고 ‘게시’를 눌러 공개하세요.");reload();
     } finally {running.current=false;setBusy(false)}
   };
   const openCohort = (generation: number, fresh = false) => {
@@ -422,17 +431,13 @@ export function CmsConsole({
       onStorage={() => void go("storage")}
       onSecurity={
         security
-          ? () => {
-              void go("security").then((ok) => {
-                if (ok) security.onOpen();
-              });
-            }
+          ? () => void go("security")
           : undefined
       }
       onLogout={
         onLogout
           ? async () => {
-              if (await canLeave()) await onLogout();
+              if (await canLeave()) {try {await onLogout()} catch(e){setError((e as Error).message)}}
             }
           : undefined
       }
@@ -453,9 +458,13 @@ export function CmsConsole({
       ) : section === "security" ? (
         security ? <SecuritySettings {...security}/> : <p>로그인·인수인계를 지원하지 않는 환경입니다.</p>
       ) : section === "upload" ? (
-        <UploadApp key={uploadTarget??"new"} onCmsReturn={()=>void go("research")} onCmsImport={importUpload} onBusy={setChildBusy} onDirty={setChildDirty}/>
+        <CmsUpload key={uploadTarget??"new"} target={uploadTarget} targetTitle={uploadTitle}
+          onBack={()=>void go("research")} onImport={importUpload} onBusy={setChildBusy} onDirty={setChildDirty}
+          onStorage={()=>void go("storage").then(ok=>{if(ok){saveUploadReturn(uploadTarget,uploadTitle);setUploadReturn(readUploadReturn())}})}
+          onOpen={async id=>{if(!await go("research"))return;await open(id)}}/>
       ) : section === "storage" ? (
-        <StorageSettings onBusy={setBusy} onChange={reload} />
+        <StorageSettings onBusy={setBusy} onChange={reload}
+          onReturnUpload={uploadReturn?()=>void go("upload").then(ok=>{if(ok){setUploadTarget(uploadReturn.target);setUploadTitle(uploadReturn.title);clearUploadReturn();setUploadReturn(null)}}):undefined}/>
       ) : section === "recruitment" ? (
         <RecruitmentEditor active={active} onBusy={setChildBusy} onDirty={setChildDirty}/>
       ) : section === "members" && memberImportOpen ? (
@@ -831,7 +840,7 @@ export function CmsConsole({
                 setPage(1);
               }}
             />
-            <select
+            {section !== "notice" && <select
               aria-label="기간·기수"
               disabled={busy}
               value={group}
@@ -848,7 +857,7 @@ export function CmsConsole({
                   {section === "members" ? "기" : ""}
                 </option>
               ))}
-            </select>
+            </select>}
             <button
               disabled={loading || busy}
               onClick={reload}
@@ -886,7 +895,7 @@ export function CmsConsole({
                   <th>상태</th>
                   {section === "members" && <th>기수</th>}
                   <th>
-                    {section === "members" ? "직책" : "학기 · 분류"}
+                    {section === "members" ? "직책" : section === "notice" ? "분류" : "학기 · 분류"}
                   </th>
                 </tr>
               </thead>

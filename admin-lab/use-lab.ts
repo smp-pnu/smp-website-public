@@ -227,12 +227,12 @@ export function useLab() {
     save: (draft: Draft, fields: Fields) =>
       change(draft, { type: "edit", fields }, `초안을 ${storageLabel}에 저장했어요.`),
     approve: (draft: Draft, reviewed: boolean) =>
-      change(draft, { type: "approve", reviewed }, "입력 승인했어요. 운영 사이트에는 게시되지 않아요."),
+      change(draft, { type: "approve", reviewed }, "입력 검토를 완료했어요. 리포트 초안에서 ‘게시’를 누르기 전까지는 비공개입니다."),
     trash: (draft: Draft, trashed: boolean) =>
       change(
         draft,
         { type: "trash", trashed },
-        trashed ? "시험 초안을 휴지통으로 옮겼어요." : "검토 대기 상태로 복원했어요.",
+        trashed ? "등록 초안을 휴지통으로 옮겼어요." : "검토 대기 상태로 복원했어요.",
       ),
     remove: (draft: Draft) =>
       change(draft, { type: "remove" }, cloudMode?'초안을 삭제했어요. 원본 파일은 30일 보류 후 참조 여부를 확인해 정리합니다.':`${storageLabel}에서 PDF와 초안을 삭제했어요.`),

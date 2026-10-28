@@ -17,13 +17,16 @@ type Status = {
 export function StorageSettings({
   onBusy,
   onChange,
+  onReturnUpload,
 }: {
   onBusy: (busy: boolean) => void
   onChange: () => void
+  onReturnUpload?: () => void
 }) {
   const [status, setStatus] = useState<Status | null>(null),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState("")
+    [error, setError] = useState(""),
+    [message,setMessage] = useState("")
   const [quota, setQuota] = useState<{ limit: number; usage: number; remaining: number } | null>(
     null,
   )
@@ -72,6 +75,9 @@ export function StorageSettings({
           {error}
         </p>
       )}
+      {message&&<p className="success-panel" role="status">{message}</p>}
+      {onReturnUpload&&<div className="settings-note"><p>PDF 등록에서 저장소 연결을 확인하고 있습니다. 연결을 마친 뒤 등록을 계속하세요. 선택했던 파일은 다시 선택해야 합니다.</p><button disabled={busy||!status?.connected||status.pending} onClick={onReturnUpload}>PDF 등록 계속하기</button></div>}
+      {status?.pending&&<p className="settings-note" role="status">Google 승인은 받았지만 아직 연결을 저장하지 않았습니다. 아래 ‘Drive 연결 완료’를 눌러 주세요.</p>}
       {!status ? (
         <p role="status">저장소 상태를 확인하는 중…</p>
       ) : (
@@ -199,8 +205,7 @@ export function StorageSettings({
             {status.pending && (
               <div className="settings-note">
                 <p>
-                  Google 승인이 준비됐습니다. 연결을 완료하면 학회 계정에 관리자 시험용 비공개
-                  폴더를 준비합니다.
+                  Google 승인이 준비됐습니다. 연결을 완료하면 학회 계정의 비공개 PDF 폴더를 사용합니다. 기존 폴더와 자료는 유지합니다.
                 </p>
                 <button
                   className="primary"
@@ -208,7 +213,8 @@ export function StorageSettings({
                   onClick={() =>
                     void run(async () => {
                       await api("/storage/drive/confirm", { method: "POST" })
-                      history.replaceState(null, "", location.pathname + "#storage")
+                      history.replaceState(null, "", location.pathname + "#storage");
+                      setMessage("Drive 연결이 완료됐습니다. PDF 등록 메뉴에서 파일을 선택해 주세요.")
                     })
                   }
                 >
