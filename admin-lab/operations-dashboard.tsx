@@ -5,6 +5,7 @@ import { api } from "./server-storage"
 import { capacityLabel, type DashboardData, type DriveCapacity, type Snapshot } from "./dashboard-model"
 import "./operations-dashboard.css"
 import { CloudflareUsage } from "./cloudflare-usage"
+import { SiteAnalytics } from "./site-analytics"
 
 const names: Record<Kind,string> = {research:"리포트",notice:"공지사항",members:"회원 명단"}
 const time = (value: number | null) => value ? new Date(value).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}) : "아직 확인하지 못함"
@@ -46,6 +47,7 @@ export function OperationsDashboard(props: Props) {
       <SnapshotNote snapshot={overview.snapshot} error={overview.error} label="운영 현황"/>
       {!overview.snapshot?.value && !overview.error && !overview.snapshot && <p role="status">관리 자료를 확인하는 중…</p>}
       {overview.snapshot?.value && <ContentSummary data={overview.snapshot.value} {...props}/>}
+      <SiteAnalytics refresh={tick}/>
       <CloudflareUsage refresh={tick}/>
       <div className="ops-columns">
         <section className="ops-panel ops-drive">
