@@ -1,3 +1,4 @@
+import { LoadingState } from "./ui/loading";
 import {useEffect,useState,type ReactNode} from "react"
 import {Cloud,ArrowUpRight} from "lucide-react"
 import {api} from "./server-storage"
@@ -39,7 +40,7 @@ export function CloudflareUsage({refresh}:{refresh:number}) {
     <header><h2><Cloud size={18}/> Cloudflare 사용량</h2><a className="ops-external" href="https://dash.cloudflare.com/" target="_blank" rel="noopener noreferrer">Cloudflare 열기 <ArrowUpRight size={14}/></a></header>
     <p className="ops-muted">계정 전체 · 무료 플랜 기준 · 일일 사용량은 매일 오전 9시(KST) 초기화</p>
     {state.error&&<p className="ops-warning" role="alert">사용량을 불러오지 못했습니다. {state.value?'이전 확인값을 표시합니다.':''} {state.error}</p>}
-    {!state.value&&!state.error&&<p role="status">저장된 Cloudflare 사용량을 확인하는 중…</p>}
+    {!state.value&&!state.error&&<LoadingState label="저장된 Cloudflare 사용량을 확인하는 중…" />}
     {state.value&&<CloudflareDetails data={state.value}/>}
     <p className="ops-footnote">기존 자동 게시 작업에서 15분 간격으로 수집합니다. 작업 지연이나 통계 반영 지연이 있을 수 있습니다. 새로고침은 저장된 값만 불러옵니다.</p>
   </section>

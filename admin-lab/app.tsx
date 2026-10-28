@@ -1,3 +1,4 @@
+import { LoadingState } from "./ui/loading";
 import { useEffect, useState } from "react"
 import { CmsConsole } from "./cms-console"
 import { UploadApp } from "./upload-app"
@@ -16,7 +17,7 @@ export function App(props: {username?:string; onLogout?:()=>Promise<void>; secur
     return()=>{live=false}
   },[])
   if(cloudMode) {
-    if(loading)return <main className="fatal" role="status">관리 자료를 불러오는 중…</main>
+    if(loading)return <main className="admin-starting"><LoadingState label="관리 자료를 불러오는 중…" rows={4}/></main>
     if(error||!cms)return <main className="fatal"><h1>관리 자료에 연결하지 못했습니다.</h1><p role="alert">{error||"잠시 후 다시 연결해 주세요."}</p><button onClick={()=>location.reload()}>다시 연결</button></main>
     return <CmsConsole active={cms.active} onLogout={props.onLogout} security={props.security}/>
   }

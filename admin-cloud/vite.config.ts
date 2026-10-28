@@ -6,5 +6,5 @@ export default mergeConfig(base, { mode: "admin-cloud", build: {
   // This small, single-purpose admin loads the PDF analyzer with the screen.
   // Tabs left open across a deployment must not request deleted hashed chunks.
   rolldownOptions: { output: { codeSplitting: false } },
-  chunkSizeWarningLimit: 900, // scripts/admin-cloud.mjs also enforces raw/gzip budgets.
+  chunkSizeWarningLimit: 1020, // scripts/admin-cloud.mjs also enforces raw/gzip budgets.
 } })

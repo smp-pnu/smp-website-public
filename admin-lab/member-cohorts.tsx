@@ -1,3 +1,4 @@
+import { LoadingState, InlineLoading } from "./ui/loading";
 import { useEffect, useState } from "react";
 import { api } from "./server-storage";
 import type { MemberCohort } from "../cms/member-cohorts";
@@ -152,7 +153,7 @@ export function MemberCohorts({
       )}
       <p className="field-help">
         {loading
-          ? "기수별 현황을 불러오는 중…"
+          ? <InlineLoading>기수별 현황을 불러오는 중…</InlineLoading>
           : `${items.length}개 기수 · ${items.reduce((n, c) => n + c.total, 0).toLocaleString()}명`}
         {filter === "trash"
           ? " · 휴지통 인원 기준"
@@ -220,6 +221,7 @@ export function MemberCohorts({
             ))}
           </tbody>
         </table>
+        {loading && !items.length && <LoadingState label="기수별 명단을 준비하는 중…" rows={5} />}
         {!loading && !error && !items.length && (
           <p className="empty-state">
             조건에 맞는 기수가 없습니다. 기수를 추가하거나 엑셀 명단을

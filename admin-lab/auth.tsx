@@ -1,3 +1,4 @@
+import { LoadingState, InlineLoading } from "./ui/loading";
 import { useEffect, useState, type ReactNode } from "react"
 import { LockKeyhole, ShieldCheck } from "lucide-react"
 import { api, setApiSession, type Session } from "./server-storage"
@@ -23,7 +24,7 @@ export function AuthGate({ children }: { children: (session: Session, logout: ()
   const logout = async () => {
     await api("/logout", { method: "POST" }); setApiSession(null); setSession(null); setError(""); setPassword("")
   }
-  if (loading) return <main className="auth-shell"><p>로그인 상태를 확인하고 있어요…</p></main>
+  if (loading) return <main className="auth-shell"><section className="auth-card"><div className="admin-brand"><strong>SMP</strong><span>사이트 관리</span></div><LoadingState label="로그인 상태를 확인하고 있어요…" rows={2}/></section></main>
   if (session) return children(session, logout)
   return <main className="auth-shell"><section className="auth-card">
     <div className="admin-brand"><strong>SMP</strong><span>사이트 관리</span></div>
@@ -46,7 +47,7 @@ export function AuthGate({ children }: { children: (session: Session, logout: ()
         <label>비밀번호<input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete={setup ? "new-password" : "current-password"} required minLength={setup ? 10 : undefined} maxLength={128}/>{setup && <small>10자 이상의 긴 비밀번호를 사용해 주세요.</small>}</label>
         {setup && <label>비밀번호 확인<input type="password" value={repeat} onChange={e => setRepeat(e.target.value)} autoComplete="new-password" required minLength={10} maxLength={128}/></label>}
         {error && <p className="error-panel" role="alert">{error}</p>}
-        <button className="primary" type="submit">{busy ? "확인 중…" : setup ? "관리자 설정하고 시작" : "로그인"}</button>
+        <button className="primary" type="submit">{busy ? <InlineLoading>확인 중…</InlineLoading> : setup ? "관리자 설정하고 시작" : "로그인"}</button>
       </fieldset>
     </form>
     <p className="auth-note"><ShieldCheck size={16}/> 이 Mac의 시험 서버에만 연결됩니다. 기존 학회 계정의 비밀번호를 그대로 사용하지 마세요.</p>

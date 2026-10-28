@@ -18,3 +18,6 @@ export const status = (e: Entry) =>
             : "비공개 초안";
 export const title = (e: Entry) =>
   "name" in e.draft.item ? e.draft.item.name : e.draft.item.title;
+export const statusTone = (e: Entry) =>
+  e.trashedAt ? "muted" : e.error ? "error" : e.pending ? "pending" :
+  e.approvedRevision === e.revision ? "ready" : e.approvedRevision ? "edited" : "draft";

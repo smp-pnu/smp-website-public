@@ -1,3 +1,6 @@
+import { LoadingState, InlineLoading } from "../ui/loading";
+import { EmptyState } from "../ui/empty-state";
+import { AdminSelect } from "../ui/select";
 import { ArrowLeft, ArrowUp, ArrowDown, Plus, RefreshCw } from "lucide-react";
 import type { Entry, Kind } from "../../cms/model";
 import type { ContentItem } from "../../lib/content-model";
@@ -8,7 +11,7 @@ import { DragHandle, DragPreview } from "../reorder-ui";
 import { ListPagination } from "../list-pagination";
 import { CmsBulkControls, PageSelection } from "../cms-bulk-controls";
 import type { BatchProgress, BatchResult, CmsAction } from "../cms-bulk";
-import { names, status, title } from "./presentation";
+import { names, status, statusTone, title } from "./presentation";
 import type { EntryListData } from "./use-entry-list";
 type Props = {
   section: Kind;
@@ -86,7 +89,7 @@ export function EntryList({
           <h1>{section === "members" ? `${group}기 명단` : names[section]}</h1>
           <p>
             {loading
-              ? "자료를 불러오는 중…"
+              ? <InlineLoading>자료를 불러오는 중…</InlineLoading>
               : loadError
                 ? "목록을 불러오지 못했습니다."
                 : `${data.total.toLocaleString()}건`}{" "}
@@ -158,12 +161,12 @@ export function EntryList({
           }}
         />
         {section !== "notice" && (
-          <select
+          <AdminSelect
             aria-label="기간·기수"
             disabled={busy}
             value={group}
-            onChange={(e) => {
-              onGroup(e.target.value);
+            onValueChange={(next) => {
+              onGroup(next);
             }}
           >
             {section !== "members" && <option value="">전체 학기</option>}
@@ -179,7 +182,7 @@ export function EntryList({
                 {section === "members" ? "기" : ""}
               </option>
             ))}
-          </select>
+          </AdminSelect>
         )}
         <button
           disabled={loading || busy}
@@ -350,7 +353,7 @@ export function EntryList({
                   </td>
                   <td>
                     <span
-                      className={`status-badge ${e.approvedRevision === e.revision ? "ready" : ""}`}
+                      className={`status-badge ${statusTone(e)}`}
                     >
                       {status(e)}
                     </span>
@@ -367,16 +370,14 @@ export function EntryList({
           </tbody>
         </table>
         {loading && (
-          <p className="empty-state" role="status">
-            자료를 불러오는 중…
-          </p>
+          <LoadingState rows={5} />
         )}
         {!loading && !loadError && !data.items.length && (
-          <p className="empty-state">
+          <EmptyState title="조건에 맞는 자료가 없습니다.">
             {section === "members"
               ? "조건에 맞는 회원이 없습니다. ‘엑셀로 가져오기’ 또는 ‘회원 추가’로 명단을 등록하세요."
-              : "조건에 맞는 자료가 없습니다."}
-          </p>
+                : "검색어나 게시 상태를 바꿔 보세요. 새 자료는 오른쪽 위 버튼에서 등록할 수 있습니다."}
+          </EmptyState>
         )}
       </div>
       <DragPreview

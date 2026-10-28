@@ -32,7 +32,7 @@
 .list-toolbar .sort-field {
   margin-left: 0;
 }
-.list-toolbar .sort-field select {
+.list-toolbar .sort-field .ui-select {
   max-width: 190px;
 }
 .library-hint {
@@ -420,7 +420,7 @@
   .list-toolbar .sort-field {
     flex: 1;
   }
-  .list-toolbar .sort-field select {
+  .list-toolbar .sort-field .ui-select {
     width: 100%;
     max-width: none;
   }

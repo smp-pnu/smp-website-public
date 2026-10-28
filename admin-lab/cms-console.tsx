@@ -1,3 +1,4 @@
+import { InlineLoading } from "./ui/loading";
 import { useEntryEditor } from "./cms/use-entry-editor";
 import { useEntrySelection } from "./cms/use-entry-selection";
 import { useCmsTask } from "./cms/use-cms-task";
@@ -290,6 +291,7 @@ export function CmsConsole({
       }
       busy={navigationBusy}
     >
+      {busy && !batch.batchProgress && <div className="upload-progress"><InlineLoading>요청을 처리하는 중…</InlineLoading></div>}
       {error && (
         <p className="error-panel" role="alert">
           {error}

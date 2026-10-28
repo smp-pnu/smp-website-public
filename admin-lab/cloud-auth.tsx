@@ -1,3 +1,4 @@
+import { LoadingState, InlineLoading } from "./ui/loading";
 import { useEffect, useState, type ReactNode } from "react"
 import { startAuthentication, startRegistration } from "@simplewebauthn/browser"
 import { api, setApiSession, type Session } from "./server-storage"
@@ -61,7 +62,7 @@ export function CloudAuthGate({ children }: { children: (session: Session, logou
     if (mode === "add") setKeys(await (await api("/auth/keys")).json())
   }
   const logout = async () => { await api("/logout", { method: "POST" }); accept(null); setError("") }
-  if (loading) return <main className="auth-shell"><p>로그인 상태를 확인하고 있어요…</p></main>
+  if (loading) return <main className="auth-shell"><section className="auth-card"><div className="admin-brand"><strong>SMP</strong><span>사이트 관리</span></div><LoadingState label="로그인 상태를 확인하고 있어요…" rows={2}/></section></main>
   if (recoveryCode) return <main className="auth-shell"><section className="auth-card">
     <h1>복구 코드를 보관해 주세요</h1><p>기기 분실 또는 관리자 인수인계에 쓰는 일회용 코드입니다. 이 화면을 닫으면 다시 확인할 수 없으므로 안전한 곳에 보관하세요.</p>
     <label className="recovery-code">복구 코드<input readOnly value={recoveryCode} onFocus={e => e.target.select()} aria-label="복구 코드"/></label>
@@ -103,7 +104,7 @@ export function CloudAuthGate({ children }: { children: (session: Session, logou
       <label>기기 이름<input value={label} onChange={e => setLabel(e.target.value)} placeholder="예: 관리자 Mac" required maxLength={60}/></label></>}
       {recover && <p>복구를 완료하면 기존 패스키와 모든 로그인이 해제됩니다. 저장한 리포트는 유지됩니다.</p>}
       {error && <p className="error-panel" role="alert">{error}</p>}
-      <button className="primary">{busy ? "기기 인증을 기다리고 있어요…" : setup ? "패스키 등록하고 시작" : recover ? "새 관리자 패스키 등록" : "패스키로 로그인"}</button>
+      <button className="primary">{busy ? <InlineLoading>기기 인증을 기다리고 있어요…</InlineLoading> : setup ? "패스키 등록하고 시작" : recover ? "새 관리자 패스키 등록" : "패스키로 로그인"}</button>
     </fieldset></form>
     {!setup && <button className="secondary" disabled={busy} onClick={() => { setRecover(!recover); setToken(""); setError("") }}>{recover ? "로그인으로 돌아가기" : "복구·인수인계"}</button>}
     {!setup && !recover && <p className="auth-note">로그인한 브라우저에서 24시간 유지됩니다. 로그아웃하면 즉시 종료됩니다.</p>}

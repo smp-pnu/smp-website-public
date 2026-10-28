@@ -1,3 +1,4 @@
+import { Spinner } from "./ui/loading";
 import { useCallback, useEffect, useRef, useState } from "react"
 import { ArrowLeft, Check, Plus, Upload, X } from "lucide-react"
 import { DraftEditor } from "./editor"
@@ -323,7 +324,7 @@ export function UploadApp({
           )}
           {lab.progress && (
             <div className="upload-progress" role="status">
-              <span className="progress-indicator" />
+              <Spinner/>
               <span>{lab.progress}</span>
               <button className="text-button" onClick={lab.cancel}>
                 <X size={15} />

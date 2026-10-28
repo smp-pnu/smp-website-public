@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   FileText,
   KeyRound,
@@ -10,6 +10,8 @@ import {
   Calendar,
   Upload,
   LayoutDashboard,
+  Menu,
+  X,
 } from "lucide-react";
 import { cloudMode, serverMode } from "./mode";
 import { limits, sizeLabel } from "./model";
@@ -64,12 +66,14 @@ export function AdminFrame({
   count,
   countLimit = limits.drafts,
 }: Props) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const main = useRef<HTMLElement>(null);
   const previousView = useRef(viewKey ?? active);
   useEffect(() => {
     const current = viewKey ?? active;
     if (previousView.current === current) return;
     previousView.current = current;
+    setMenuOpen(false);
     main.current?.focus({ preventScroll: true });
     main.current?.scrollIntoView({ block: "start", behavior: "instant" });
   }, [viewKey, active]);
@@ -86,12 +90,15 @@ export function AdminFrame({
       >
         본문으로 이동
       </a>
-      <aside className="admin-sidebar">
+      <aside className={`admin-sidebar ${menuOpen ? "is-menu-open" : ""}`}>
         <div className="admin-brand">
           <strong>SMP</strong>
           <span>사이트 관리</span>
         </div>
-        <nav aria-label="관리 메뉴">
+        <button className="mobile-menu-toggle" aria-label={menuOpen ? "관리 메뉴 닫기" : "관리 메뉴 열기"} aria-expanded={menuOpen} aria-controls="admin-navigation" onClick={() => setMenuOpen((open) => !open)}>
+          {menuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+        <nav id="admin-navigation" aria-label="관리 메뉴">
           {onDashboard && (
             <button
               className={active === "dashboard" ? "active" : ""}

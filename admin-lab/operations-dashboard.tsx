@@ -1,3 +1,4 @@
+import { LoadingState, InlineLoading } from "./ui/loading";
 import { useEffect, useState } from "react"
 import { ArrowUpRight, RefreshCw, HardDrive } from "lucide-react"
 import type { Kind } from "../cms/model"
@@ -41,11 +42,11 @@ export function OperationsDashboard(props: Props) {
   },[tick])
   return <>
     <header className="page-heading"><div><h1>운영 현황</h1><p>게시 자료와 저장 공간을 한곳에서 확인합니다.</p></div>
-      <div className="cms-actions"><button disabled={loading} onClick={()=>setTick(n=>n+1)}><RefreshCw size={15}/>{loading?"확인 중…":"새로고침"}</button><button className="primary" onClick={props.onUpload}>PDF 등록</button></div>
+      <div className="cms-actions"><button disabled={loading} onClick={()=>setTick(n=>n+1)}>{loading?<InlineLoading>확인 중…</InlineLoading>:<><RefreshCw size={15}/>새로고침</>}</button><button className="primary" onClick={props.onUpload}>PDF 등록</button></div>
     </header>
     <div className="ops-dashboard">
       <SnapshotNote snapshot={overview.snapshot} error={overview.error} label="운영 현황"/>
-      {!overview.snapshot?.value && !overview.error && !overview.snapshot && <p role="status">관리 자료를 확인하는 중…</p>}
+      {!overview.snapshot?.value && !overview.error && !overview.snapshot && <LoadingState label="관리 자료를 확인하는 중…" />}
       {overview.snapshot?.value && <ContentSummary data={overview.snapshot.value} {...props}/>}
       <SiteAnalytics refresh={tick}/>
       <CloudflareUsage refresh={tick}/>
@@ -53,7 +54,7 @@ export function OperationsDashboard(props: Props) {
         <section className="ops-panel ops-drive">
           <header><h2><HardDrive size={18}/> Google 저장 공간</h2><button className="ops-text-button" onClick={props.onStorage}>연결 관리 <ArrowUpRight size={14}/></button></header>
           <SnapshotNote snapshot={drive.snapshot} error={drive.error} label="Google 저장 공간"/>
-          {drive.snapshot?.value ? <DriveCard data={drive.snapshot.value} onStorage={props.onStorage}/> : !drive.error && !drive.snapshot && <p role="status">Google 계정 용량을 확인하는 중…</p>}
+          {drive.snapshot?.value ? <DriveCard data={drive.snapshot.value} onStorage={props.onStorage}/> : !drive.error && !drive.snapshot && <LoadingState label="Google 계정 용량을 확인하는 중…" rows={2} />}
           <p className="ops-footnote">마지막 확인 {time(drive.snapshot?.checkedAt??null)} · 조회 결과는 10분간 재사용합니다.</p>
         </section>
         {overview.snapshot?.value && <Attention data={overview.snapshot.value} {...props}/>}

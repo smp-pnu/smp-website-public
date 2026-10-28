@@ -23,11 +23,6 @@
 .settings-panel .button-row {
   flex-wrap: wrap;
 }
-@media (max-width: 650px) {
-  .admin-sidebar nav {
-    flex-wrap: wrap;
-  }
-}
 .transmission-preview {
   max-height: 36svh;
   overflow: auto;

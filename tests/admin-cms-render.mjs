@@ -12,7 +12,10 @@ import React from 'react';import {renderToStaticMarkup} from 'react-dom/server';
 import {NoticeContent} from './admin-lab/notice-preview';import {ReportList} from './admin-lab/report-list';
 import {EntryList} from './admin-lab/cms/entry-list';import {EntryEditor} from './admin-lab/cms/entry-editor';
 import {ListPagination} from './admin-lab/list-pagination';import {CmsBulkControls} from './admin-lab/cms-bulk-controls';
+import {AdminSelect} from './admin-lab/ui/select';import {LoadingState} from './admin-lab/ui/loading';
 import {defaultQuery} from './admin-lab/library-model';import {emptyFields} from './admin-lab/model';
+export const select=renderToStaticMarkup(<AdminSelect aria-label="모집 상태" value="open" disabled onValueChange={()=>{}}><option value="upcoming">모집 예정</option><option value="open">모집 중</option></AdminSelect>);
+export const skeleton=renderToStaticMarkup(<LoadingState label="목록 확인 중" rows={4}/>);
 export const content=renderToStaticMarkup(<NoticeContent blocks={[
  {id:'1',type:'paragraph',text:'<script>alert(1)</script>',href:'javascript:alert(1)'},
  {id:'2',type:'heading',text:'행사 안내'},
@@ -31,8 +34,10 @@ export const publishedEditor=renderToStaticMarkup(<EntryEditor selected={entry} 
 export const bulk=renderToStaticMarkup(<CmsBulkControls entries={[{id:'a',revision:1,approvedRevision:1,pending:false,trashedAt:null}]} visibleCount={0} trash={false} disabled={false} progress={null} stopping={false} onAction={()=>{}} onClear={()=>{}} onStop={()=>{}}/>);
 `
 try {
- await build({stdin:{contents:source,resolveDir:process.cwd(),loader:'tsx'},bundle:true,outfile:target,platform:'node',format:'esm',jsx:'automatic',external:['react','react-dom','react-dom/server','lucide-react'],define:{'import.meta.env.MODE':'"admin-cloud"'}})
- const {content,listing,pages,longPages,bulk,loadingList,failedList,publishedEditor}=await import(pathToFileURL(target).href)
+ await build({stdin:{contents:source,resolveDir:process.cwd(),loader:'tsx'},bundle:true,outfile:target,platform:'node',format:'esm',jsx:'automatic',external:['react','react-dom','react-dom/server','lucide-react','@base-ui/react/select'],define:{'import.meta.env.MODE':'"admin-cloud"'}})
+ const {select,skeleton,content,listing,pages,longPages,bulk,loadingList,failedList,publishedEditor}=await import(pathToFileURL(target).href)
+ assert.ok(select.includes('role="combobox"'));assert.ok(select.includes('aria-label="모집 상태"'));assert.ok(select.includes('disabled'));assert.ok(select.includes('모집 중'));assert.ok(!select.includes('<option'));
+ assert.ok(skeleton.includes('role="status"'));assert.ok(skeleton.includes('aria-hidden="true"'));assert.equal((skeleton.match(/class="ui-skeleton-row"/g)||[]).length,4);
  assert.ok(content.includes('&lt;script&gt;'));assert.ok(!content.includes('<script>'));assert.ok(!content.includes('javascript:'))
  assert.ok(content.includes('src="/api/notice-assets/test"'));assert.ok(content.includes('href="https://pnusmp.com/"'))
  assert.equal((listing.match(/class="report-link"/g)||[]).length,20)

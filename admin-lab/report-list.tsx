@@ -1,3 +1,4 @@
+import { AdminSelect } from "./ui/select";
 import { useEffect, useState } from "react"
 import { FileText, Search, RefreshCw, ChevronRight, ArrowUp, ArrowDown } from "lucide-react"
 import type { Draft } from "./model"
@@ -116,22 +117,22 @@ export function ReportList({
         {(["author", "industry"] as const).map((key) => (
           <label className="sort-field" key={key}>
             <span className="sr-only">{key === "author" ? "팀" : "업종"}</span>
-            <select value={criteria[key]} onChange={(e) => update({ [key]: e.target.value })}>
+            <AdminSelect aria-label={key === "author" ? "작성 팀" : "산업 분류"} value={criteria[key]} onValueChange={(next) => update({ [key]: next })}>
               <option value="">{key === "author" ? "모든 팀" : "모든 업종"}</option>
               {options(key).map((v) => (
                 <option key={v}>{v}</option>
               ))}
-            </select>
+            </AdminSelect>
           </label>
         ))}
         <label className="sort-field">
           <span className="sr-only">정렬 기준</span>
-          <select value={criteria.sort} onChange={(e) => update({ sort: e.target.value as Sort })}>
+          <AdminSelect aria-label="정렬 기준" value={criteria.sort} onValueChange={(next) => update({ sort: next as Sort })}>
             {managed && <option value="order">직접 정한 순서</option>}
             <option value="updated">최근 수정순</option>
             <option value="date">발표일순</option>
             <option value="company">기업명순</option>
-          </select>
+          </AdminSelect>
         </label>
         <button className="icon-button" aria-label="목록 새로고침" disabled={loading} onClick={onRefresh}>
           <RefreshCw size={16} />
@@ -162,15 +163,15 @@ export function ReportList({
             </>
           ) : (
             <>
-              <select
+              <AdminSelect
                 aria-label="일괄 수정 항목"
                 value={field}
-                onChange={(e) => setField(e.target.value as typeof field)}
+                onValueChange={(next) => setField(next as typeof field)}
               >
                 <option value="semester">학기</option>
                 <option value="author">작성자·팀</option>
                 <option value="industry">업종</option>
-              </select>
+              </AdminSelect>
               <input
                 aria-label="일괄 수정 값"
                 placeholder={field === "semester" ? "2026-2" : "새 값 (빈칸은 미지정)"}

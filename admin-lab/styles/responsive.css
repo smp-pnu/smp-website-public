@@ -69,20 +69,22 @@
     display: block;
   }
   .admin-sidebar {
-    position: static;
+    position: relative;
     height: auto;
-    padding: 14px 16px 10px;
+    padding: 18px 16px;
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
   .admin-brand {
     padding: 0;
-    margin-bottom: 14px;
+    margin-bottom: 0;
   }
-  .admin-sidebar nav {
-    display: flex;
-    gap: 5px;
-  }
+  .mobile-menu-toggle { display: flex; align-items: center; justify-content: center; position: absolute; top: 9px; right: 16px; width: 40px; height: 40px; padding: 8px; color: #d2deea; background: #233442; border-color: #405162; }
+  .admin-sidebar nav { display: none; margin-top: 20px; gap: 5px; }
+  .admin-sidebar.is-menu-open nav { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .admin-sidebar nav button:nth-last-child(2) { margin-top: 0; }
+  .admin-sidebar .sidebar-bottom { display: none; }
+  .admin-sidebar.is-menu-open .sidebar-bottom { display: flex; }
   .admin-sidebar nav button {
     padding: 8px 11px;
     font-size: 12px;
@@ -140,7 +142,7 @@
   .search-field input {
     font-size: 16px;
   }
-  .sort-field select {
+  .sort-field .ui-select {
     font-size: 12px;
   }
   .report-table th {
