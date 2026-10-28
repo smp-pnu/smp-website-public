@@ -12,6 +12,7 @@ import worker from "../free/server/worker";
 import { cmsApi, cmsExport } from "../cms/api";
 import { storePages, removePage, enqueue } from "../free/server/catalog";
 import { rich } from "../cms/rich-text";
+import { sortContent } from "../lib/content-model";
 function fixture() {
   const sql = new DatabaseSync(":memory:");
   for (const f of readdirSync("cloudflare/migrations").sort())
@@ -95,6 +96,51 @@ function fixture() {
   };
   return { sql, db, store, active, payload, close: () => sql.close() };
 }
+test("new notices publish in the same manual order as the administrator list", async () => {
+  const f = fixture();
+  try {
+    f.active();
+    const first = await f.store.create("notice", structuredClone(f.payload));
+    const secondPayload = structuredClone(f.payload);
+    (secondPayload.item as ContentItem).date = "2025-01-01";
+    const second = await f.store.create("notice", secondPayload);
+    await f.store.approve(first.id, 1);
+    await f.store.approve(second.id, 1);
+    const publicItems = () => sortContent(f.sql.prepare("SELECT item FROM free_content").all().map(r => JSON.parse(String(r.item))));
+    const list = await f.store.list("notice", new URLSearchParams());
+    assert.deepEqual(publicItems().map(i => i.id), list.items.map(i => i.id));
+    await cmsApi(new Request(`https://admin.pnusmp.com/api/cms/entry/${first.id}/move`, {method:"POST"}), {CMS_DB:f.db} as never, {} as never,
+      async()=>({revision:1,target:second.id,placement:"before"}), async()=>new Uint8Array(), f.store.now);
+    assert.deepEqual(publicItems().map(i => i.id), [first.id,second.id]);
+    await f.store.change(first.id,2,"trash");
+    assert.deepEqual(publicItems().map(i => i.id),[second.id]);
+    await f.store.change(first.id,3,"restore");
+    assert.deepEqual(publicItems().map(i => i.id),[second.id]);
+    await f.store.approve(first.id,4);
+    assert.deepEqual(publicItems().map(i => i.id),[first.id,second.id]);
+  } finally { f.close(); }
+});
+test("every CMS insertion path enforces the entry cap atomically", async () => {
+  const f=fixture();
+  try {
+    const insert=f.sql.prepare("INSERT INTO cms_entries(id,kind,draft,updated_at,rank) VALUES(?,'notice',?,'2026-10-01',?)");
+    const payload=JSON.stringify(f.payload);
+    for(let i=0;i<2500;i++)insert.run(i.toString(16).padStart(32,'0'),payload,i);
+    assert.throws(()=>insert.run('f'.repeat(32),payload,2500), /SMP_CMS_ENTRY_LIMIT/);
+    assert.equal(f.sql.prepare("SELECT count(*) n FROM cms_entries").get()!.n,2500);
+  } finally { f.close(); }
+});
+test("long Korean and literal wildcard searches remain exact without D1 LIKE patterns", async () => {
+  const f=fixture();
+  try {
+    const p=structuredClone(f.payload);
+    (p.item as ContentItem).title="부산대학교 금융투자학회 관리자 공지사항 긴 제목 검색 확인 HPSP 100%_";
+    const e=await f.store.create("notice",p);
+    for(const q of ["부산대학교 금융투자학회 관리자 공지사항 긴 제목 검색 확인","hpsp","100%_"])
+      assert.deepEqual((await f.store.list("notice",new URLSearchParams({q}))).items.map(x=>x.id),[e.id]);
+    assert.equal((await f.store.list("notice",new URLSearchParams({q:"100%X"}))).total,0);
+  } finally {f.close()}
+});
 test("CMS staging, approval, draft edits and withdrawal preserve exact nested content and public IDs", async () => {
   const f = fixture();
   try {

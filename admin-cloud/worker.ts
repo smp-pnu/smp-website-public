@@ -395,14 +395,17 @@ export function createHandler(clock = Date.now, driveFetch: DriveFetch = fetch) 
       }
     } catch (e) {
       // Never log request bodies, PDFs, email, JWTs, or credentials.
+      const cmsLimit = e instanceof Error && /SMP_CMS_(?:ENTRY|METADATA|ASSET)_LIMIT/.test(e.message)
       response = json(
         {
           error:
-            e instanceof HttpError
+            cmsLimit
+              ? "관리 자료의 무료 저장 한도에 도달했어요. 기존 게시물은 유지됩니다. 불필요한 자료를 정리해 주세요."
+              : e instanceof HttpError
               ? e.message
               : "시험 서버에서 처리하지 못했어요. 잠시 후 다시 시도해 주세요.",
         },
-        e instanceof HttpError ? e.status : 503,
+        cmsLimit ? 413 : e instanceof HttpError ? e.status : 503,
       )
     }
     const result = new Response(response.body, response)

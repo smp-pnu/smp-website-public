@@ -1,5 +1,9 @@
 CREATE TABLE IF NOT EXISTS cms_metadata_budget(id INTEGER PRIMARY KEY CHECK(id=1),bytes INTEGER NOT NULL);
 -- statement
+CREATE TRIGGER IF NOT EXISTS cms_entries_count_limit BEFORE INSERT ON cms_entries
+WHEN NOT EXISTS(SELECT 1 FROM cms_entries WHERE id=NEW.id) AND (SELECT count(*) FROM cms_entries)>=2500
+BEGIN SELECT RAISE(ABORT,'SMP_CMS_ENTRY_LIMIT'); END;
+-- statement
 INSERT OR IGNORE INTO cms_metadata_budget SELECT 1,
  COALESCE((SELECT sum(length(CAST(draft AS BLOB))+COALESCE(length(CAST(approved AS BLOB)),0)) FROM cms_entries),0)+COALESCE((SELECT sum(length(CAST(payload AS BLOB))) FROM cms_history),0);
 -- statement
