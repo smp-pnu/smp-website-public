@@ -116,6 +116,7 @@ CREATE TABLE IF NOT EXISTS report_file_bindings (
   report_id TEXT PRIMARY KEY REFERENCES objects(id) ON DELETE CASCADE,
   asset_id TEXT NOT NULL REFERENCES report_files(id)
 );
+CREATE INDEX IF NOT EXISTS report_file_bindings_asset ON report_file_bindings(asset_id);
 CREATE TABLE IF NOT EXISTS report_versions (
   report_id TEXT NOT NULL REFERENCES objects(id) ON DELETE CASCADE,
   revision INTEGER NOT NULL,
@@ -185,4 +186,8 @@ CREATE TABLE IF NOT EXISTS abandoned_drive_files (
   delete_after INTEGER NOT NULL,
   attempts INTEGER NOT NULL DEFAULT 0,
   last_error TEXT
+);
+CREATE TABLE IF NOT EXISTS dashboard_snapshots (
+  key TEXT PRIMARY KEY CHECK(key IN ('overview','drive')),
+  payload TEXT, checked_at INTEGER, refresh_after INTEGER NOT NULL, lease TEXT NOT NULL
 );

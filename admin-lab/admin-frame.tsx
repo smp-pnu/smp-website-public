@@ -1,11 +1,12 @@
 import type { ReactNode } from "react"
-import { FileText, KeyRound, ExternalLink, LogOut, Megaphone, HardDrive, Users, Calendar, Upload } from "lucide-react"
+import { FileText, KeyRound, ExternalLink, LogOut, Megaphone, HardDrive, Users, Calendar, Upload, LayoutDashboard } from "lucide-react"
 import { cloudMode, serverMode } from "./mode"
 import { limits, sizeLabel } from "./model"
 
 type Props = {
   children: ReactNode
-  active: "reports" | "security" | "notices" | "storage" | "members" | "recruitment"
+  active: "reports" | "security" | "notices" | "storage" | "members" | "recruitment" | "dashboard"
+  onDashboard?: () => void
   cmsEnabled?: boolean
   cmsActive?: boolean
   onMembers?: () => void
@@ -23,7 +24,7 @@ type Props = {
 }
 export function AdminFrame({
   children,
-  active, cmsEnabled, cmsActive, onMembers, onRecruitment, onUpload,
+  active, cmsEnabled, cmsActive, onMembers, onRecruitment, onUpload, onDashboard,
   onReports,
   onNotices,
   onSecurity,
@@ -45,6 +46,7 @@ export function AdminFrame({
           <span>사이트 관리</span>
         </div>
         <nav aria-label="관리 메뉴">
+          {onDashboard && <button className={active==='dashboard'?'active':''} aria-current={active==='dashboard'?'page':undefined} disabled={busy} onClick={onDashboard}><LayoutDashboard size={17}/>운영 현황</button>}
           <button
             className={active === "reports" ? "active" : ""}
             aria-current={active === "reports" ? "page" : undefined}

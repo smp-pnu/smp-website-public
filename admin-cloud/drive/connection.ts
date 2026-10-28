@@ -515,13 +515,25 @@ export class DriveConnection {
     return { folderId: grant.folderId, namespace: client.namespace }
   }
   async quota() {
-    const about = await this.request<{ storageQuota: { limit?: string; usage?: string } }>(
+    // Upload admission always checks fresh capacity; dashboard caching must not weaken this guard.
+    const { limit,usage,remaining } = await this.quotaDetails()
+    if (limit === null || remaining === null) throw new HttpError(409, "Drive 남은 용량을 확인하지 못해 새 업로드를 중단했어요.")
+    return {limit,usage,remaining}
+  }
+  async quotaDetails() {
+    const about = await this.request<{ storageQuota?: { limit?: string; usage?: string; usageInDrive?: string; usageInDriveTrash?: string } }>(
       "/about?fields=storageQuota",
     )
-    const limit = Number(about.storageQuota?.limit),
-      usage = Number(about.storageQuota?.usage)
-    if (!Number.isSafeInteger(limit) || !Number.isSafeInteger(usage) || limit <= 0 || usage < 0)
-      throw new HttpError(409, "Drive 남은 용량을 확인하지 못해 새 업로드를 중단했어요.")
-    return { limit, usage, remaining: Math.max(0, limit - usage) }
+    return parseDriveQuota(about.storageQuota)
   }
+}
+
+export function parseDriveQuota(value?: { limit?: string; usage?: string; usageInDrive?: string; usageInDriveTrash?: string }) {
+  const bytes = (v: unknown): number | null => typeof v === "string" && /^\d+$/.test(v) && Number.isSafeInteger(Number(v)) ? Number(v) : null
+  const usage = bytes(value?.usage), limit = bytes(value?.limit), drive = bytes(value?.usageInDrive), trash = bytes(value?.usageInDriveTrash)
+  if (usage === null || (value?.limit !== undefined && (limit === null || limit <= 0)))
+    throw new HttpError(409, "Google 계정 용량을 확인하지 못했어요. 잠시 후 다시 확인해 주세요.")
+  const validDrive = drive !== null && drive <= usage ? drive : null
+  return {limit,usage,remaining:limit===null?null:Math.max(0,limit-usage),drive:validDrive,
+    trash:validDrive!==null && trash!==null && trash<=validDrive?trash:null,other:validDrive===null?null:usage-validDrive}
 }

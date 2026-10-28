@@ -14,6 +14,7 @@ import {
 import { chunkBytes, coverLimit, manifestHash } from "./protocol"
 import { guardedBatch } from "./transaction"
 import { ReportVersions, storageBytesSql, retentionMs } from "./report-versions"
+import { adminDailyRequests } from "./operation-limits"
 export type ObjectRow = {
   id: string
   hash: string
@@ -70,7 +71,7 @@ export class CloudStore {
       minute = Math.floor(this.now / 60_000)
     // Bounded atomic counters. Only passkey-authenticated content requests reach this budget.
     for (const [key, max, expires] of [
-      [`day:${day}`, 5000, (day + 1) * 86_400_000],
+      [`day:${day}`, adminDailyRequests, (day + 1) * 86_400_000],
       [`minute:${minute}`, 600, (minute + 1) * 60_000],
     ] as const) {
       const accepted = await this.db

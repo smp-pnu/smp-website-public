@@ -40,6 +40,8 @@ try {
   const guards = await readFile(new URL('../admin-cloud/history-budget.sql',import.meta.url),'utf8')
   await db.batch(guards.split('-- statement').map(sql=>db.prepare(sql)))
   assert.equal((await mf.dispatchFetch(origin+'/api/drafts')).status,401)
+  assert.equal((await mf.dispatchFetch(origin+'/api/dashboard')).status,401)
+  assert.equal((await mf.dispatchFetch(origin+'/api/dashboard/drive')).status,401)
   const jar = cookieJar(), device = authenticator()
   let csrf = ''
   const call = async (path,method='GET',data) => {
@@ -72,6 +74,14 @@ try {
   await call(`/api/cms/entry/${cmsNotice.id}/withdraw`,'POST',{revision:1})
   assert.equal((await cms.prepare('SELECT count(*) n FROM free_content').first()).n,0)
   await checkCmsManagement({call,cms,mf,origin,jar,csrf})
+  const dashboard = await(await call('/api/dashboard')).json()
+  assert.ok(dashboard.value && !dashboard.stale)
+  assert.equal(dashboard.value.storage.entries,(await cms.prepare('SELECT count(*) n FROM cms_entries').first()).n)
+  assert.equal((await call('/api/dashboard')).headers.get('cache-control'),'no-store')
+  const disconnected = await(await call('/api/dashboard/drive')).json()
+  assert.equal(disconnected.value.connected,false)
+  assert.equal(disconnected.value.quota,null)
+  console.log('PASS: authenticated operations dashboard aggregates, private responses and disconnected storage')
   // Optional real PDF path permits a local end-to-end transport check without publishing it.
   const source = process.argv[2] ? new Uint8Array(await readFile(process.argv[2])) : new Uint8Array(32*1024*1024).fill(32)
   if (!process.argv[2]) { source.set(new TextEncoder().encode('%PDF-1.7\n'));source.set(new TextEncoder().encode('\n%%EOF\n'),source.length-7) }

@@ -15,6 +15,7 @@ import {
 } from "./cms-blocks";
 import { photo } from "./notice-editor";
 import { StorageSettings } from "./storage-settings";
+import { OperationsDashboard } from "./operations-dashboard";
 import { useListReorder } from "./use-list-reorder";
 import { DragHandle, DragPreview } from "./reorder-ui";
 import type { DropPlacement } from "./library-model";
@@ -82,8 +83,8 @@ export function CmsConsole({
   onLogout?: () => Promise<void>;
   onSecurity?: () => void;
 }) {
-  const [section, setSection] = useState<Kind | "storage" | "recruitment">(
-      "research",
+  const [section, setSection] = useState<Kind | "storage" | "recruitment" | "dashboard">(
+      "dashboard",
     ),
     [q, setQ] = useState(""),
     [group, setGroup] = useState(""),
@@ -133,7 +134,7 @@ export function CmsConsole({
     void api("/storage/maintenance", { method: "POST" }).catch(() => {});
   }, []);
   useEffect(() => {
-    if (section === "storage" || section === "recruitment") {
+    if (section === "storage" || section === "recruitment" || section === "dashboard") {
       setLoading(false);
       return;
     }
@@ -195,7 +196,7 @@ export function CmsConsole({
   }, [selected?.id, selected?.pending, dirty]);
   const canLeave = async () =>
     !running.current && (!dirty || (await confirm("저장하지 않은 변경을 버리고 이동할까요?")));
-  const go = async (next: typeof section) => {
+  const go = async (next: typeof section, state = "all") => {
     if (!(await canLeave())) return;
     setSection(next);
     setData({ items: [], total: 0, groups: [] });
@@ -204,7 +205,7 @@ export function CmsConsole({
     setQ("");
     setGroup("");
     setPage(1);
-    setFilter("all");
+    setFilter(state);
     setError("");
     setMessage("");
   };
@@ -311,7 +312,7 @@ export function CmsConsole({
         onUpload();
         return;
       }
-      if (section === "storage" || section === "recruitment") return;
+      if (section === "storage" || section === "recruitment" || section === "dashboard") return;
       const item =
         section === "members"
           ? {
@@ -371,6 +372,7 @@ export function CmsConsole({
       }
       cmsActive={active}
       cmsEnabled
+      onDashboard={() => void go("dashboard")}
       onReports={() => void go("research")}
       onNotices={() => void go("notice")}
       onMembers={() => void go("members")}
@@ -409,7 +411,9 @@ export function CmsConsole({
           {message}
         </p>
       )}
-      {section === "storage" ? (
+      {section === "dashboard" ? (
+        <OperationsDashboard onNavigate={(kind,state)=>void go(kind,state)} onStorage={()=>void go("storage")} onUpload={()=>onUpload()} />
+      ) : section === "storage" ? (
         <StorageSettings onBusy={setBusy} onChange={reload} />
       ) : section === "recruitment" ? (
         <RecruitmentEditor active={active} />

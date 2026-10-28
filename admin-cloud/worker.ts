@@ -17,6 +17,8 @@ import { ReportVersions } from "./report-versions"
 import { DriveConnection, type DriveFetch } from "./drive/connection"
 import { DriveUploads } from "./drive/uploads"
 import { publicationExport } from "./publication-export"
+import { dashboardData, driveCapacity } from "./dashboard"
+import { dashboardSnapshot } from "./dashboard-cache"
 
 export interface Env extends AuthEnv {
   CMS_DB?: Database
@@ -117,7 +119,12 @@ export function createHandler(clock = Date.now, driveFetch: DriveFetch = fetch) 
           await store.budget()
           const path = url.pathname,
             method = request.method
-          if (path.startsWith("/api/cms/")) {
+          if (path === "/api/dashboard" && method === "GET") {
+            if (!env.CMS_DB) throw new HttpError(409, "게시 관리 연결을 확인해 주세요.")
+            response = json(await dashboardSnapshot(env.ADMIN_DB,"overview",60_000,()=>dashboardData(env.ADMIN_DB,env.CMS_DB!,now),now))
+          } else if (path === "/api/dashboard/drive" && method === "GET") {
+            response = json(await driveCapacity(connection))
+          } else if (path.startsWith("/api/cms/")) {
             response = await cmsApi(request,env,drive,()=>jsonBody(request,256*1024),max=>bodyBytes(request,max),now)
           } else if (path === "/api/storage/status" && method === "GET") {
             response = json({
