@@ -35,6 +35,16 @@ export async function checkCmsManagement({call,cms,mf,origin,jar,csrf}) {
   await call(`/api/cms/entry/${a.id}/approve`,'POST',{revision:6})
   assert.ok((await published('notice')).some(x=>x.id===a.id))
   const members=[]
+  const roster={reviewed:true,batchId:crypto.randomUUID(),generation:41,group:'members',members:[{row:2,name:'가시험',department:'시험학과',year:'26',roles:['기장']},{row:3,name:'나시험',department:'시험학과',year:'25',roles:[]}]}
+  const forbidden=await mf.dispatchFetch(origin+'/api/cms/member-import',{method:'POST',headers:{Origin:origin,Cookie:jar.read(),'Content-Type':'application/json','X-CSRF-Token':'incorrect'},body:JSON.stringify(roster)})
+  assert.equal(forbidden.status,403)
+  const imported=await(await call('/api/cms/member-import','POST',roster)).json()
+  assert.equal(imported.created.length,2);assert.equal(imported.skipped.length,0)
+  assert.equal((await cms.prepare("SELECT count(*) n FROM free_content WHERE kind='members'").first()).n,0)
+  assert.equal((await(await call('/api/cms/member-import','POST',roster)).json()).created.length,0)
+  assert.equal((await(await call('/api/cms/member-import?generation=41')).json()).items.length,2)
+  for(const id of imported.created)await call(`/api/cms/entry/${id}/approve`,'POST',{revision:1})
+  assert.equal((await published('members')).filter(m=>imported.created.includes(m.id)).length,2)
   for(const [name,roles] of [['가나다',[]],['하회장',['회장']],['나부회장',['부회장']],['다기장',['기장']]]){
     const m=await(await call('/api/cms/members','POST',{item:{id:'',name,generation:40,group:'members',department:'점검',year:'26',roles},blocks:[],cover:null})).json()
     await call(`/api/cms/entry/${m.id}/approve`,'POST',{revision:1});members.push(m)
@@ -60,5 +70,5 @@ export async function checkCmsManagement({call,cms,mf,origin,jar,csrf}) {
       assert.equal(visible.length,action==='approve'?ids.length:0)
     }
   }
-  console.log(JSON.stringify({cmsRuntime:'pass',checks:['session/CSRF','notice create/edit/approve','upload image','manual order','stale revision rejection','trash/restore stays private','member CRUD and role ordering','public catalogue/search projection']}))
+  console.log(JSON.stringify({cmsRuntime:'pass',checks:['session/CSRF','notice create/edit/approve','upload image','manual order','stale revision rejection','trash/restore stays private','member bulk import/private approval/replay','member CRUD and role ordering','public catalogue/search projection']}))
 }

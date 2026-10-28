@@ -10,6 +10,7 @@ import { chunkBytes, sha256 } from "./protocol"
 import { CloudStore } from "./store"
 import { validateCover } from "./files"
 import { extractMetadata, type AiBinding } from "./ai-metadata"
+import { inferMemberMapping } from "./member-mapping"
 import { LibraryStore } from "./library"
 import { NoticeStore } from "./notices"
 import { ContentOrderStore } from "./content-order"
@@ -217,6 +218,8 @@ export function createHandler(clock = Date.now, driveFetch: DriveFetch = fetch) 
             if(['trash','remove'].includes(String(action.type)))await guardUploadDeletion(env,Array.isArray(input.items)?input.items.map((v:unknown)=>String(object(v).id)):[])
             response=json(await new LibraryStore(env.ADMIN_DB,now).batch(input))
           }
+          else if (path === "/api/member-import/mapping" && method === "POST")
+            response = json(await inferMemberMapping(await jsonBody(request, 12 * 1024), env.ADMIN_DB, env.AI, now))
           else if (path === "/api/metadata/extract" && method === "POST")
             response = json(
               await extractMetadata(await jsonBody(request), env.ADMIN_DB, env.AI, now),
