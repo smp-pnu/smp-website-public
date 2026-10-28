@@ -18,6 +18,7 @@
     "build:free": "node scripts/build-free.mjs",
     "deploy:free": "node scripts/deploy-free.mjs",
     "cms:manage": "node --import tsx --conditions=react-server free/jobs/manage.ts",
+    "cloud:usage": "node --import tsx free/jobs/collect-usage.ts",
     "cms:prepare-migration": "node --import tsx scripts/prepare-cms-migration.mjs",
     "cms:preview-reports": "node --import tsx --conditions=react-server scripts/preview-admin-publication.mjs",
     "publish:free": "node --import tsx --conditions=react-server free/jobs/publish.ts",

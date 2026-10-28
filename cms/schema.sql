@@ -29,3 +29,7 @@ CREATE TABLE IF NOT EXISTS cms_export_grants (
 CREATE TABLE IF NOT EXISTS cms_job_sources (
  id TEXT PRIMARY KEY, revision INTEGER NOT NULL, token TEXT NOT NULL, expires_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS cms_cloud_usage (
+ id INTEGER PRIMARY KEY CHECK(id=1), payload TEXT CHECK(payload IS NULL OR (json_valid(payload) AND length(payload)<=131072)),
+ refresh_after INTEGER NOT NULL DEFAULT 0, lease_until INTEGER NOT NULL DEFAULT 0
+);

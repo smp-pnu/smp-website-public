@@ -42,6 +42,7 @@ try {
   assert.equal((await mf.dispatchFetch(origin+'/api/drafts')).status,401)
   assert.equal((await mf.dispatchFetch(origin+'/api/dashboard')).status,401)
   assert.equal((await mf.dispatchFetch(origin+'/api/dashboard/drive')).status,401)
+  assert.equal((await mf.dispatchFetch(origin+'/api/dashboard/cloudflare')).status,401)
   const jar = cookieJar(), device = authenticator()
   let csrf = ''
   const call = async (path,method='GET',data) => {
@@ -81,6 +82,9 @@ try {
   const disconnected = await(await call('/api/dashboard/drive')).json()
   assert.equal(disconnected.value.connected,false)
   assert.equal(disconnected.value.quota,null)
+  const cloudUsage=await call('/api/dashboard/cloudflare')
+  assert.equal(cloudUsage.headers.get('cache-control'),'no-store')
+  assert.equal((await cloudUsage.json()).workers.value,null)
   console.log('PASS: authenticated operations dashboard aggregates, private responses and disconnected storage')
   // Optional real PDF path permits a local end-to-end transport check without publishing it.
   const source = process.argv[2] ? new Uint8Array(await readFile(process.argv[2])) : new Uint8Array(32*1024*1024).fill(32)
