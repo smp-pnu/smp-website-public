@@ -106,6 +106,7 @@ export function CloudAuthGate({ children }: { children: (session: Session, logou
       <button className="primary">{busy ? "기기 인증을 기다리고 있어요…" : setup ? "패스키 등록하고 시작" : recover ? "새 관리자 패스키 등록" : "패스키로 로그인"}</button>
     </fieldset></form>
     {!setup && <button className="secondary" disabled={busy} onClick={() => { setRecover(!recover); setToken(""); setError("") }}>{recover ? "로그인으로 돌아가기" : "복구·인수인계"}</button>}
+    {!setup && !recover && <p className="auth-note">로그인한 브라우저에서 24시간 유지됩니다. 로그아웃하면 즉시 종료됩니다.</p>}
     <p className="auth-note">Touch ID·기기 잠금번호는 서버에 전달되지 않습니다.</p>
     <p className="auth-note"><a href="/privacy.html">Google Drive 연결 및 개인정보 안내</a></p>
   </section></main>

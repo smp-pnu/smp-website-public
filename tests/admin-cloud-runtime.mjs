@@ -60,7 +60,9 @@ try {
   csrf = registered.session.csrf
   await call('/api/logout','POST')
   const login = await (await call('/api/auth/login/options','POST',{})).json()
-  csrf = (await (await call('/api/auth/login/verify','POST',{response:device.authenticate(login,origin)})).json()).session.csrf
+  const signedIn = await call('/api/auth/login/verify','POST',{response:device.authenticate(login,origin)})
+  assert.ok(signedIn.headers.getSetCookie().some(value => value.startsWith('__Host-smp_admin=') && /; Max-Age=86400$/.test(value)))
+  csrf = (await signedIn.json()).session.csrf
   // An absent AI binding must leave uploads available. No remote inference is
   // configured in this local runtime; the model boundary is mocked in unit tests.
   const metadata = await (await call('/api/metadata/extract','POST',{reviewed:true,hash:'a'.repeat(64),pages:['Test investment report, company (123456), source text long enough for extraction.']})).json()

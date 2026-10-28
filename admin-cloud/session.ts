@@ -6,7 +6,8 @@ import { sha256 } from "./protocol"
 export type SessionEnv = { ADMIN_DB: Database; SESSION_SIGNING_KEY?: string }
 type Row = { hash: string; username: string; subject: string; expires: number; idle_expires: number }
 export const cookieName = "__Host-smp_admin"
-const idle = 30 * 60_000, lifetime = 8 * 60 * 60_000
+// One fixed day from authentication; requests never extend the deadline.
+const lifetime = 24 * 60 * 60_000
 const validToken = /^[a-f0-9]{64}\.[a-f0-9]{64}$/
 export const randomToken = () => Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("hex")
 export function cookie(request: Request, name: string) {
@@ -34,11 +35,11 @@ export class Sessions {
     await this.env.ADMIN_DB.batch([
       this.env.ADMIN_DB.prepare("DELETE FROM admin_sessions WHERE expires<=? OR idle_expires<=?").bind(this.now, this.now),
       this.env.ADMIN_DB.prepare("DELETE FROM admin_sessions WHERE hash IN (SELECT hash FROM admin_sessions ORDER BY expires DESC LIMIT -1 OFFSET 4)"),
-      this.env.ADMIN_DB.prepare("INSERT INTO admin_sessions(hash,username,subject,expires,idle_expires) VALUES(?,?,?,?,?)").bind(hash, username, subject, this.now + lifetime, this.now + idle),
+      this.env.ADMIN_DB.prepare("INSERT INTO admin_sessions(hash,username,subject,expires,idle_expires) VALUES(?,?,?,?,?)").bind(hash, username, subject, this.now + lifetime, this.now + lifetime),
     ])
     return { cookie: secureCookie(cookieName, signed, lifetime / 1000), session: { username, csrf: await sign(this.env.SESSION_SIGNING_KEY, `csrf:${id}`) } }
   }
-  async identity(request: Request, refresh = true) {
+  async identity(request: Request) {
     if (!this.env.SESSION_SIGNING_KEY) throw new HttpError(503, "시험 사이트의 로그인 설정을 준비 중입니다.")
     const token = cookie(request, cookieName)
     if (!validToken.test(token)) throw new HttpError(401, "관리자 로그인이 필요합니다.")
@@ -46,12 +47,13 @@ export class Sessions {
     if (!equal(signature, await sign(this.env.SESSION_SIGNING_KEY, `session:${id}`))) throw new HttpError(401, "로그인 인증을 확인하지 못했어요.")
     const hash = await sha256(new TextEncoder().encode(id))
     const row = await this.env.ADMIN_DB.prepare("SELECT * FROM admin_sessions WHERE hash=? AND EXISTS(SELECT 1 FROM admin_credentials WHERE id=admin_sessions.subject)").bind(hash).first<Row>()
+    // Keep honoring shorter deadlines on previously issued sessions. New ones
+    // store the same absolute deadline in both columns, without heartbeat writes.
     if (!row || row.expires <= this.now || row.idle_expires <= this.now) throw new HttpError(401, "로그인이 만료됐어요. 다시 로그인해 주세요.")
-    if (refresh && row.idle_expires < this.now + idle - 5 * 60_000) await this.env.ADMIN_DB.prepare("UPDATE admin_sessions SET idle_expires=min(expires,?) WHERE hash=? AND idle_expires>?").bind(this.now + idle, hash, this.now).run()
     return { username: row.username, csrf: await sign(this.env.SESSION_SIGNING_KEY, `csrf:${id}`) }
   }
   async logout(request: Request) {
-    await this.identity(request, false)
+    await this.identity(request)
     const hash = await sha256(new TextEncoder().encode(cookie(request, cookieName).split(".")[0]))
     await this.env.ADMIN_DB.prepare("DELETE FROM admin_sessions WHERE hash=?").bind(hash).run()
     return secureCookie(cookieName, "", 0)
