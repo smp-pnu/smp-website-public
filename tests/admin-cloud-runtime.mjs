@@ -10,6 +10,7 @@ import { createHash } from 'node:crypto'
 import { emptyFields } from '../admin-lab/model.ts'
 import { insertDraft } from '../admin-lab/cloud-storage.ts'
 import { setApiSession } from '../admin-lab/server-storage.ts'
+import { checkCmsManagement } from './cms-runtime-checks.mjs'
 const require = createRequire(import.meta.url)
 const wranglerRequire = createRequire(require.resolve('wrangler/package.json'))
 const { Miniflare, convertV4MiniflareOptions } = wranglerRequire('miniflare')
@@ -69,6 +70,7 @@ try {
   assert.equal((await(await call('/api/cms/notice?q=runtime')).json()).total,1)
   await call(`/api/cms/entry/${cmsNotice.id}/withdraw`,'POST',{revision:1})
   assert.equal((await cms.prepare('SELECT count(*) n FROM free_content').first()).n,0)
+  await checkCmsManagement({call,cms,mf,origin,jar,csrf})
   // Optional real PDF path permits a local end-to-end transport check without publishing it.
   const source = process.argv[2] ? new Uint8Array(await readFile(process.argv[2])) : new Uint8Array(32*1024*1024).fill(32)
   if (!process.argv[2]) { source.set(new TextEncoder().encode('%PDF-1.7\n'));source.set(new TextEncoder().encode('\n%%EOF\n'),source.length-7) }

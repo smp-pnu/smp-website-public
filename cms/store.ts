@@ -57,11 +57,12 @@ export function publicStatements(
     db
       .prepare(
         `INSERT INTO free_content(id,kind,revision,item,search_entry,blocks,body_revision,cover)
-    SELECT id,kind,?,?,?,?,?,? FROM cms_entries WHERE id=? AND revision=? AND approved_revision=? AND trashed_at IS NULL
+    SELECT id,kind,?,CASE WHEN kind='members' THEN ? ELSE json_set(?,'$.displayOrder',rank) END,?,?,?,? FROM cms_entries WHERE id=? AND revision=? AND approved_revision=? AND trashed_at IS NULL
     ON CONFLICT(id) DO UPDATE SET kind=excluded.kind,revision=excluded.revision,item=excluded.item,search_entry=excluded.search_entry,blocks=excluded.blocks,body_revision=excluded.body_revision,cover=excluded.cover`,
       )
       .bind(
         rev,
+        JSON.stringify(item),
         JSON.stringify(item),
         JSON.stringify(entry),
         JSON.stringify(p.blocks),
@@ -98,8 +99,9 @@ export class CmsStore {
       trash = params.get("trash") === "1",
       group = (params.get("group") ?? "").slice(0, 30),
       state = params.get("state") ?? "all";
-    const where = `e.kind=? AND e.trashed_at IS ${trash ? "NOT " : ""}NULL AND (?='' OR json_extract(e.draft,'$.item.title') LIKE ? ESCAPE '\\' OR json_extract(e.draft,'$.item.name') LIKE ? ESCAPE '\\' OR json_extract(e.draft,'$.item.company') LIKE ? ESCAPE '\\' OR json_extract(e.draft,'$.item.ticker') LIKE ? ESCAPE '\\') AND (?='' OR COALESCE(json_extract(e.draft,'$.item.semester'),CAST(json_extract(e.draft,'$.item.generation') AS TEXT))=?) AND (?='all' OR (?='public' AND e.approved_revision IS NOT NULL) OR (?='draft' AND (e.approved_revision IS NULL OR e.approved_revision<>e.revision)))`;
-    const match = `%${q.replace(/[\\%_]/g, "\\$&")}%`,
+    // Literal substring search avoids D1's short LIKE-pattern byte limit for Korean titles.
+    const where = `e.kind=? AND e.trashed_at IS ${trash ? "NOT " : ""}NULL AND (?='' OR instr(lower(json_extract(e.draft,'$.item.title')),lower(?))>0 OR instr(lower(json_extract(e.draft,'$.item.name')),lower(?))>0 OR instr(lower(json_extract(e.draft,'$.item.company')),lower(?))>0 OR instr(lower(json_extract(e.draft,'$.item.ticker')),lower(?))>0) AND (?='' OR COALESCE(json_extract(e.draft,'$.item.semester'),CAST(json_extract(e.draft,'$.item.generation') AS TEXT))=?) AND (?='all' OR (?='public' AND e.approved_revision IS NOT NULL) OR (?='draft' AND (e.approved_revision IS NULL OR e.approved_revision<>e.revision)))`;
+    const match = q,
       values = [
         kind,
         q,
