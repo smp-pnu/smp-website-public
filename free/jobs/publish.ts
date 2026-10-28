@@ -17,6 +17,7 @@ import { ensureReportCoverCache } from "./report-cover-cache"
 import { ensureSyncRuns } from "./sync-schema"
 import { ensurePublicationChecks } from "./publication-schema"
 import { ensureJobFailures } from "./job-schema"
+import { ensureRenderVersions } from "./render-schema"
 import { jobErrorCode, type JobErrorCode } from "../server/job-errors"
 import { repairRegionalImages } from "./regional-image-repair"
 import { publicationAssets, requiresAssetDeployment } from "./publication-assets"
@@ -52,6 +53,7 @@ async function main() {
   await ensureSyncRuns(env.CMS_DB)
   await ensurePublicationChecks(env.CMS_DB)
   await ensureJobFailures(env.CMS_DB)
+  await ensureRenderVersions(env.CMS_DB)
   await ensureAdminSchema(env.CMS_DB)
   // No overlapping publishing runs, even if a second runner/manual job starts.
   const now=Date.now(),leaseMs=(libraryMigration?175:14)*60_000

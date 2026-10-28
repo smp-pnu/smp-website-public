@@ -27,7 +27,8 @@ try {
   const cms = await mf.getD1Database('CMS_DB')
   for(const name of (await readdir('cloudflare/migrations')).sort()) {
     const source=await readFile('cloudflare/migrations/'+name,'utf8')
-    await cms.batch(source.split(';').filter(s=>s.trim()).map(s=>cms.prepare(s)))
+    const statements=source.includes('-- statement')?source.split('-- statement').slice(1):source.split(';')
+    await cms.batch(statements.filter(s=>s.trim()).map(s=>cms.prepare(s)))
   }
   const cmsSchema=await readFile('cms/schema.sql','utf8')
   await cms.batch(cmsSchema.split(';').filter(s=>s.trim()).map(s=>cms.prepare(s)))

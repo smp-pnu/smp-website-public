@@ -29,6 +29,7 @@ jobs:
       - run: pnpm build
       - run: pnpm test:bundles
       - run: pnpm typecheck
+      - run: pnpm test:free:render
       - name: Test the Cloudflare runtime with local fixture data
         env:
           WRANGLER_SEND_METRICS: 'false'

@@ -40,7 +40,10 @@ export function findContentMatches<T extends SearchFields>(
 export function selectContentPage(items: ContentItem[], kind: ContentKind, search: ContentSearch) {
   const { q: query, category, page: requestedPage, ...extra } = normalizeContentSearch(search)
   const filters = kind === "research" ? extra : {}
-  const filtered = findContentMatches(createContentSearchIndex(items), query, category, Infinity, filters)
+  // Filtering/pagination without a search term does not need normalized full
+  // report text. Keep the same matcher so all facet combinations stay equal.
+  const index = normalizeSearchText(query).trim() ? createContentSearchIndex(items) : items.map(item => ({item, text:""}))
+  const filtered = findContentMatches(index, query, category, Infinity, filters)
   if (filters.company) filtered.sort((a, b) => b.date.localeCompare(a.date) || a.title.localeCompare(b.title, "ko"))
   const pageSize = kind === "research" ? 12 : 10
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))

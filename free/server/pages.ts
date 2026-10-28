@@ -12,6 +12,7 @@ import { publicCover } from "../../lib/public-cover"
 import { relatedReports, type RelatedReports } from "../../lib/related-reports"
 import { withoutGeneratedPdfExcerpt } from "../../lib/report-content"
 import { sourceKey } from "../../lib/cover-metadata"
+import { rendered } from "./render-cache"
 
 export async function readDetail(env:Env,ctx:Context,kind:ContentKind,id:string,readDocument?:ReadDocument) {
   const item=await visitorPublication(env,kind,id)
@@ -62,27 +63,29 @@ export async function publicPage(request:Request,env:Env,ctx:Context,readDocumen
     const result=await response.json() as {items:ContentItem[]}
     return new Response(sitemapXml(result.items,false),{headers:{"Content-Type":"application/xml; charset=utf-8"}})
   }
-  let body:string,data:{path:string;value:unknown},item:ContentItem|undefined
-  if(id) {
-    const detail=await readDetail(env,ctx,kind,id,readDocument)
-    if(!detail) return new Response("게시글이 없거나 비공개 상태입니다.",{status:404,headers:{"Content-Type":"text/plain; charset=utf-8","X-Robots-Tag":"noindex"}})
-    item=detail.item
-    body=detailHtml(detail.item,detail.blocks,detail.bodyPending,detail.related)
-    data={path:`/api/detail/${kind}/${id}`,value:detail}
-  } else {
-    const response=await readDocument(kind)
-    if(!response.ok) return response
-    const value=await response.json() as {items:ContentItem[]}
-    const result=listHtml(kind,value.items,url.searchParams)
-    const requested=Number(url.searchParams.get("page")||1)
-    if(requested>result.totalPages) return new Response("해당 페이지가 없습니다.",{status:404,headers:{"Content-Type":"text/plain; charset=utf-8","X-Robots-Tag":"noindex"}})
-    body=result.body;data={path:`/api/catalog/${kind}`,value}
-  }
-  const shell=await env.ASSETS.fetch(new Request(new URL("/page-shell",url)))
-  if(!shell.ok) throw new Error("Page shell unavailable")
-  const headers=new Headers(shell.headers)
-  headers.set("Content-Type","text/html; charset=utf-8")
-  headers.set("Cache-Control","private, no-store")
-  headers.delete("etag");headers.delete("content-length");headers.delete("last-modified")
-  return new Response(injectPage(await shell.text(),canonicalPath+url.search,body,item,data),{headers})
+  return rendered(request,env,kind,async()=>{
+    let body:string,data:{path:string;value:unknown},item:ContentItem|undefined
+    if(id) {
+      const detail=await readDetail(env,ctx,kind,id,readDocument)
+      if(!detail) return new Response("게시글이 없거나 비공개 상태입니다.",{status:404,headers:{"Content-Type":"text/plain; charset=utf-8","X-Robots-Tag":"noindex"}})
+      item=detail.item
+      body=detailHtml(detail.item,detail.blocks,detail.bodyPending,detail.related)
+      data={path:`/api/detail/${kind}/${id}`,value:detail}
+    } else {
+      const response=await readDocument(kind)
+      if(!response.ok) return response
+      const value=await response.json() as {items:ContentItem[]}
+      const result=listHtml(kind,value.items,url.searchParams)
+      const requested=Number(url.searchParams.get("page")||1)
+      if(requested>result.totalPages) return new Response("해당 페이지가 없습니다.",{status:404,headers:{"Content-Type":"text/plain; charset=utf-8","X-Robots-Tag":"noindex"}})
+      body=result.body;data={path:`/api/catalog/${kind}`,value}
+    }
+    const shell=await env.ASSETS.fetch(new Request(new URL("/page-shell",url)))
+    if(!shell.ok) throw new Error("Page shell unavailable")
+    const headers=new Headers(shell.headers)
+    headers.set("Content-Type","text/html; charset=utf-8")
+    headers.set("Cache-Control","private, no-store")
+    headers.delete("etag");headers.delete("content-length");headers.delete("last-modified")
+    return new Response(injectPage(await shell.text(),canonicalPath+url.search,body,item,data),{headers})
+  })
 }
