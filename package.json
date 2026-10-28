@@ -23,6 +23,7 @@
     "publish:free": "node --import tsx --conditions=react-server free/jobs/publish.ts",
     "seed:free:fixture": "node --import tsx --conditions=react-server free/jobs/seed-fixture.ts",
     "test:free:http": "node tests/free-http.mjs",
+    "test:free:render": "node --import tsx tests/free-render-runtime.mjs",
     "dev:next": "next dev",
     "build:next": "next build",
     "build:admin:server": "node scripts/admin-server.mjs build",

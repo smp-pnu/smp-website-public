@@ -17,6 +17,7 @@ import { memberPhoto } from "./member-photo"
 import { queueDriveCleanup } from "../../lib/drive-cleanup-relay"
 import { captureWebhookVerification } from "./webhook-setup"
 import { publicPage, readDetail } from "./pages"
+import { rendered } from "./render-cache"
 
 declare const __SMP_FIXTURE__: boolean
 const headers = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer", "Cross-Origin-Resource-Policy": "same-origin" }
@@ -104,8 +105,10 @@ async function handle(request: Request, env: Env, ctx: Context): Promise<Respons
   const id = normalizeId(match[3]), kind = match[2] as ContentKind
   if (!id) return new Response("Not found", { status: 404 })
   if (match[1] === "detail" && !match[4]) {
-    const value=await readDetail(env,ctx,kind,id,name=>document(request,env,ctx,name))
-    return value?reply(value):new Response("Not found",{status:404})
+    return rendered(request,env,kind,async()=>{
+      const value=await readDetail(env,ctx,kind,id,name=>document(request,env,ctx,name))
+      return value?reply(value):new Response("Not found",{status:404})
+    })
   }
   const publicationAt=Date.now()
   const item = await visitorPublication(env, kind, id)

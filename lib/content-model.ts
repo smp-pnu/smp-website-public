@@ -127,6 +127,9 @@ export function toContentItem(page: NotionPage, kind: ContentKind, now = Date.no
   }
 }
 
+let reportTitleCollator: Intl.Collator | undefined
+let dateFormatter: Intl.DateTimeFormat | undefined
+
 export function sortContent(items: ContentItem[]) {
   // Scope manual order to a semester. Missing semesters come last; missing
   // numbers come last within that semester. No per-card Notion reads are needed.
@@ -138,12 +141,12 @@ export function sortContent(items: ContentItem[]) {
     || (a.displayOrder!==undefined && b.displayOrder!==undefined ? a.displayOrder-b.displayOrder : 0)
     || reportOrder(a, b)
     || b.date.localeCompare(a.date)
-    || (a.kind === "research" && b.kind === "research" ? a.title.localeCompare(b.title, "ko", { numeric: true }) : 0)
+    || (a.kind === "research" && b.kind === "research" ? (reportTitleCollator ??= new Intl.Collator("ko", {numeric:true})).compare(a.title,b.title) : 0)
     || a.id.localeCompare(b.id))
 }
 
 export function formatDate(date: string) {
-  return new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(date))
+  return (dateFormatter ??= new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" })).format(new Date(date))
 }
 
 export function contentHref(item: Pick<ContentItem, "kind" | "id">) {
