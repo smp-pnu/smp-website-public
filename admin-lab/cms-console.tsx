@@ -17,6 +17,7 @@ import { photo } from "./notice-editor";
 import { StorageSettings } from "./storage-settings";
 import { OperationsDashboard } from "./operations-dashboard";
 import { MemberImport } from "./member-import";
+import { MemberCohorts } from "./member-cohorts";
 import { useListReorder } from "./use-list-reorder";
 import { DragHandle, DragPreview } from "./reorder-ui";
 import type { DropPlacement } from "./library-model";
@@ -109,6 +110,7 @@ export function CmsConsole({
     [batchResult, setBatchResult] = useState<BatchResult|null>(null),
     [stopping, setStopping] = useState(false);
   const [memberImportOpen, setMemberImportOpen] = useState(false);
+  const cohortOverview = useRef({ query: "", filter: "all" });
   const running = useRef(false), stopBatch = useRef(false);
   const checkedIds = new Set(checked.map(e=>e.id));
   const visibleChecked = data.items.filter(e=>checkedIds.has(e.id)).length;
@@ -136,7 +138,7 @@ export function CmsConsole({
     void api("/storage/maintenance", { method: "POST" }).catch(() => {});
   }, []);
   useEffect(() => {
-    if (section === "storage" || section === "recruitment" || section === "dashboard") {
+    if (section === "storage" || section === "recruitment" || section === "dashboard" || (section === "members" && !group)) {
       setLoading(false);
       return;
     }
@@ -201,6 +203,7 @@ export function CmsConsole({
   const go = async (next: typeof section, state = "all") => {
     if (!(await canLeave())) return;
     setSection(next);
+    cohortOverview.current = { query: "", filter: state };
     setMemberImportOpen(false);
     setData({ items: [], total: 0, groups: [] });
     setSelected(null);
@@ -211,6 +214,27 @@ export function CmsConsole({
     setFilter(state);
     setError("");
     setMessage("");
+  };
+  const openCohort = (generation: number, fresh = false) => {
+    if (busy) return;
+    if (!group) cohortOverview.current = { query: q, filter };
+    setGroup(String(generation));
+    setQ("");
+    // A new cohort must start with a usable empty list, even from the trash tab.
+    setFilter(fresh ? "all" : filter);
+    setPage(1);
+    setData({ items: [], total: 0, groups: [] });
+    setError(""); setMessage("");
+  };
+  const backToCohorts = () => {
+    if (busy) return;
+    setGroup("");
+    setQ(cohortOverview.current.query);
+    setFilter(cohortOverview.current.filter);
+    setPage(1);
+    setData({ items: [], total: 0, groups: [] });
+    setChecked([]); setBatchResult(null);
+    setError(""); setMessage("");
   };
   const open = async (id: string) => {
     if (!(await canLeave())) return;
@@ -322,7 +346,7 @@ export function CmsConsole({
               id: "",
               name: "새 회원",
               generation: Number(group) || 40,
-              group: "members",
+              group: data.items.length && data.items.every(e => (e.draft.item as Member).group === "alumni") ? "alumni" : "members",
               department: "",
               year: "",
               roles: [],
@@ -440,7 +464,7 @@ export function CmsConsole({
               }
             >
               <ArrowLeft size={15} />
-              목록으로
+              {section === "members" ? `${group}기 명단으로` : "목록으로"}
             </button>
             <span>{status(selected)}</span>
           </div>
@@ -729,11 +753,16 @@ export function CmsConsole({
             </p>
           )}
         </>
+      ) : section === "members" && !group ? (
+        <MemberCohorts query={q} filter={filter} refresh={tick}
+          onQuery={setQ} onFilter={setFilter} onOpen={openCohort}
+          onImport={()=>{cohortOverview.current={query:q,filter};setMemberImportOpen(true);setError("");setMessage("")}} />
       ) : (
         <>
+          {section === "members" && <div className="detail-navigation"><button disabled={busy} onClick={backToCohorts}><ArrowLeft size={15}/>기수 목록으로</button></div>}
           <header className="page-heading">
             <div>
-              <h1>{names[section]}</h1>
+              <h1>{section === "members" ? `${group}기 명단` : names[section]}</h1>
               <p>
                 {data.total.toLocaleString()}건 ·{" "}
                 {section === "members"
@@ -749,7 +778,7 @@ export function CmsConsole({
               onClick={() => void create()}
             >
               <Plus size={16} />
-              {section === "research" ? "PDF 등록" : "새로 만들기"}
+              {section === "research" ? "PDF 등록" : section === "members" ? "회원 추가" : "새로 만들기"}
             </button>
             </div>
           </header>
@@ -793,13 +822,12 @@ export function CmsConsole({
               disabled={busy}
               value={group}
               onChange={(e) => {
-                setGroup(e.target.value);
-                setPage(1);
+                if(section === "members") openCohort(Number(e.target.value));
+                else {setGroup(e.target.value);setPage(1);}
               }}
             >
-              <option value="">
-                {section === "members" ? "전체 기수" : "전체 학기"}
-              </option>
+              {section !== "members" && <option value="">전체 학기</option>}
+              {section === "members" && !data.groups.includes(group) && <option value={group}>{group}기</option>}
               {data.groups.map((g) => (
                 <option key={g} value={g}>
                   {g}
@@ -842,8 +870,9 @@ export function CmsConsole({
                   {section !== "members" && <th>순서</th>}
                   <th>{section === "members" ? "이름" : "제목"}</th>
                   <th>상태</th>
+                  {section === "members" && <th>기수</th>}
                   <th>
-                    {section === "members" ? "기수 · 직책" : "학기 · 분류"}
+                    {section === "members" ? "직책" : "학기 · 분류"}
                   </th>
                 </tr>
               </thead>
@@ -936,9 +965,10 @@ export function CmsConsole({
                           {status(e)}
                         </span>
                       </td>
+                      {section === "members" && <td>{i.generation}기</td>}
                       <td>
                         {section === "members"
-                          ? `${i.generation}기 · ${(i.roles ?? []).join(" · ") || "회원"}`
+                          ? (i.roles ?? []).join(" · ") || "회원"
                           : [i.semester, i.category]
                               .filter(Boolean)
                               .join(" · ")}
@@ -949,7 +979,7 @@ export function CmsConsole({
               </tbody>
             </table>
             {!loading && !data.items.length && (
-              <p className="empty-state">조건에 맞는 자료가 없습니다.</p>
+              <p className="empty-state">{section === "members" ? "조건에 맞는 회원이 없습니다. ‘엑셀로 가져오기’ 또는 ‘회원 추가’로 명단을 등록하세요." : "조건에 맞는 자료가 없습니다."}</p>
             )}
           </div>
           <DragPreview

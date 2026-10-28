@@ -50,8 +50,14 @@ export async function checkCmsManagement({call,cms,mf,origin,jar,csrf}) {
     await call(`/api/cms/entry/${m.id}/approve`,'POST',{revision:1});members.push(m)
   }
   assert.deepEqual((await(await call('/api/cms/members?group=40')).json()).items.map(e=>e.draft.item.name),['하회장','나부회장','다기장','가나다'])
+  const cohorts=await(await call('/api/cms/member-cohorts')).json()
+  assert.deepEqual(cohorts.items.map(c=>[c.generation,c.total,c.published]),[[41,2,2],[40,4,4]])
+  const privateCohorts=await mf.dispatchFetch(origin+'/api/cms/member-cohorts')
+  assert.equal(privateCohorts.status,401)
   const m=members[0],changed={...m.draft,item:{...m.draft.item,department:'수정 학과'}}
   await call(`/api/cms/entry/${m.id}`,'PUT',{revision:1,payload:changed});assert.equal((await published('members')).find(x=>x.id===m.id).department,'점검')
+  const changedCohort=(await(await call('/api/cms/member-cohorts?state=draft&q=40')).json()).items
+  assert.equal(changedCohort[0].drafts,1);assert.equal(changedCohort[0].total,4)
   await call(`/api/cms/entry/${m.id}/approve`,'POST',{revision:2});assert.equal((await published('members')).find(x=>x.id===m.id).department,'수정 학과')
   await call(`/api/cms/entry/${m.id}/trash`,'POST',{revision:2});assert.ok(!(await published('members')).some(x=>x.id===m.id))
   await call(`/api/cms/entry/${m.id}/restore`,'POST',{revision:3});assert.ok(!(await published('members')).some(x=>x.id===m.id))

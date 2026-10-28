@@ -14,6 +14,7 @@ import {
 import type { NotionPage } from "../lib/content-model";
 import { CmsStore } from "./store";
 import { existingRoster, importGeneration, importMembers } from "./member-import";
+import { memberCohorts } from "./member-cohorts";
 import { cmsLimits, type Kind, type Payload } from "./model";
 const idPattern = /^[a-f0-9]{32}$/;
 const json = (value: unknown, status = 200) => Response.json(value, { status });
@@ -127,6 +128,8 @@ export async function cmsApi(
     method = request.method;
   if (path === "/api/cms/status" && method === "GET")
     return json(await store.status());
+  if (path === "/api/cms/member-cohorts" && method === "GET")
+    return json(await memberCohorts(db, url.searchParams));
   if (path === "/api/cms/member-import") {
     if (method === "GET") return json({items: await existingRoster(db, importGeneration(Number(url.searchParams.get("generation"))))});
     if (method === "POST") return json(await importMembers(db, await readJson(), now), 201);
