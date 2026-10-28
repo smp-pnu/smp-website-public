@@ -60,6 +60,12 @@ try {
   assert.equal(google.files.size, 1)
   const quota = await (await call('/api/storage/drive/quota')).json()
   assert.equal(quota.remaining, google.quotaRemaining)
+  const capacity=await(await call('/api/dashboard/drive')).json()
+  assert.equal(capacity.value.quota.remaining,google.quotaRemaining)
+  const reads=google.calls.filter(c=>c.url.endsWith('/about?fields=storageQuota')).length
+  assert.deepEqual(await(await call('/api/dashboard/drive')).json(),capacity)
+  assert.equal(google.calls.filter(c=>c.url.endsWith('/about?fields=storageQuota')).length,reads)
+  assert.ok(!JSON.stringify(capacity).includes('test-access')&&!JSON.stringify(capacity).includes('test-refresh'))
   assert.ok(google.calls.some(call => call.url === 'https://oauth2.googleapis.com/token'))
   console.log('PASS: native workerd fetch, OAuth exchange, account verification, private folder confirmation and quota')
 

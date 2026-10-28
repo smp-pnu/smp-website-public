@@ -4,6 +4,7 @@ import type { ObjectRow } from "../store"
 import type { ReportFile } from "../report-versions"
 import { chunkBytes } from "../protocol"
 import { DriveConnection, validFileId } from "./connection"
+import { driveDailyUploads } from "../operation-limits"
 
 type Upload = {
   object_id: string
@@ -107,9 +108,9 @@ export class DriveUploads {
         const day = Math.floor(this.now / 86400000)
         const budget = await this.db
           .prepare(
-            "INSERT INTO usage(key,hits,expires) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET hits=hits+1 WHERE hits<10 RETURNING hits",
+            "INSERT INTO usage(key,hits,expires) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET hits=hits+1 WHERE hits<? RETURNING hits",
           )
-          .bind(`drive-new:${day}`, (day + 1) * 86400000)
+          .bind(`drive-new:${day}`, (day + 1) * 86400000, driveDailyUploads)
           .first()
         if (!budget)
           throw new HttpError(429, "Drive 새 원본 저장은 하루 10개까지 시험할 수 있어요.")
