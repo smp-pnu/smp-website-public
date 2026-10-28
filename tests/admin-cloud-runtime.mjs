@@ -44,6 +44,8 @@ try {
   assert.equal((await mf.dispatchFetch(origin+'/api/dashboard/drive')).status,401)
   assert.equal((await mf.dispatchFetch(origin+'/api/dashboard/cloudflare')).status,401)
   assert.equal((await mf.dispatchFetch(origin+'/api/dashboard/site')).status,401)
+  assert.equal((await mf.dispatchFetch(origin+'/api/cms/member-import?generation=41')).status,401)
+  assert.equal((await mf.dispatchFetch(origin+'/api/member-import/mapping',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:'{}'})).status,401)
   const jar = cookieJar(), device = authenticator()
   let csrf = ''
   const call = async (path,method='GET',data) => {
@@ -63,6 +65,8 @@ try {
   // configured in this local runtime; the model boundary is mocked in unit tests.
   const metadata = await (await call('/api/metadata/extract','POST',{reviewed:true,hash:'a'.repeat(64),pages:['Test investment report, company (123456), source text long enough for extraction.']})).json()
   assert.deepEqual(metadata.candidates,[]); assert.ok(metadata.warning)
+  const rosterMapping=await(await call('/api/member-import/mapping','POST',{reviewed:true,columns:[{index:0,hints:['name'],shapes:['text']},{index:1,hints:['year'],shapes:['short-number']}]})).json()
+  assert.equal(rosterMapping.source,'rules');assert.equal(rosterMapping.mapping.name,0)
   // Live CMS adapter uses the same session and CSRF protection. This is a
   // second isolated local D1, never the production database binding.
   assert.equal((await mf.dispatchFetch(origin+'/api/cms/status')).status,401)

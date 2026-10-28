@@ -16,6 +16,7 @@ import {
 import { photo } from "./notice-editor";
 import { StorageSettings } from "./storage-settings";
 import { OperationsDashboard } from "./operations-dashboard";
+import { MemberImport } from "./member-import";
 import { useListReorder } from "./use-list-reorder";
 import { DragHandle, DragPreview } from "./reorder-ui";
 import type { DropPlacement } from "./library-model";
@@ -107,6 +108,7 @@ export function CmsConsole({
     [batchProgress, setBatchProgress] = useState<BatchProgress|null>(null),
     [batchResult, setBatchResult] = useState<BatchResult|null>(null),
     [stopping, setStopping] = useState(false);
+  const [memberImportOpen, setMemberImportOpen] = useState(false);
   const running = useRef(false), stopBatch = useRef(false);
   const checkedIds = new Set(checked.map(e=>e.id));
   const visibleChecked = data.items.filter(e=>checkedIds.has(e.id)).length;
@@ -195,10 +197,11 @@ export function CmsConsole({
     };
   }, [selected?.id, selected?.pending, dirty]);
   const canLeave = async () =>
-    !running.current && (!dirty || (await confirm("저장하지 않은 변경을 버리고 이동할까요?")));
+    !busy && !running.current && ((!dirty && !memberImportOpen) || (await confirm("저장하지 않은 변경·가져오기 내용을 닫고 이동할까요?")));
   const go = async (next: typeof section, state = "all") => {
     if (!(await canLeave())) return;
     setSection(next);
+    setMemberImportOpen(false);
     setData({ items: [], total: 0, groups: [] });
     setSelected(null);
     setForm(null);
@@ -417,6 +420,10 @@ export function CmsConsole({
         <StorageSettings onBusy={setBusy} onChange={reload} />
       ) : section === "recruitment" ? (
         <RecruitmentEditor active={active} />
+      ) : section === "members" && memberImportOpen ? (
+        <MemberImport initialGeneration={group} onBusy={setBusy}
+          onClose={()=>void canLeave().then(ok=>{if(ok)setMemberImportOpen(false)})}
+          onComplete={(generation,count,skipped)=>{setMemberImportOpen(false);setGroup(String(generation));setQ("");setFilter("draft");setPage(1);setChecked([]);setBatchResult(null);setMessage(`${count}명을 비공개 초안으로 등록했습니다.${skipped?` 중복 ${skipped}명은 제외했습니다.`:""} 명단을 확인하고 선택하여 일괄 공개할 수 있습니다.`);reload()}}/>
       ) : selected && form ? (
         <>
           <div className="detail-navigation">
@@ -734,6 +741,8 @@ export function CmsConsole({
                   : "드래그한 항목을 파란 선에 놓아 순서를 바꿉니다."}
               </p>
             </div>
+            <div className="cms-import-actions">
+            {section === "members" && <button className="secondary" disabled={busy} onClick={()=>{setMemberImportOpen(true);setError("");setMessage("")}}>엑셀로 가져오기</button>}
             <button
               className="primary"
               disabled={busy}
@@ -742,6 +751,7 @@ export function CmsConsole({
               <Plus size={16} />
               {section === "research" ? "PDF 등록" : "새로 만들기"}
             </button>
+            </div>
           </header>
           <nav className="list-tabs" aria-label="게시 상태">
             {[
