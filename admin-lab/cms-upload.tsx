@@ -50,9 +50,9 @@ export function CmsUpload({target,targetTitle,onBack,onStorage,onOpen,onImport,o
   }
   const changeDirty=useCallback((value:boolean)=>setDirty(value),[])
   return <>
-    <header className="page-heading"><div><h1>{target?'PDF 교체':'PDF 등록'}</h1><p>{target?`‘${targetTitle||'선택한 리포트'}’의 새 PDF를 선택합니다. 기존 제목·분류·순서는 유지합니다.`:'PDF 선택 → 내용 검토 → 리포트 초안. 공개는 리포트에서 ‘게시’를 눌러 결정합니다.'}</p></div><button disabled={busy} onClick={onBack}><ArrowLeft size={16}/>리포트 관리</button></header>
+    <header className="page-heading"><div><h1>{target?'PDF 교체':'리포트 등록'}</h1><p>{target?`‘${targetTitle||'선택한 리포트'}’의 새 PDF를 선택합니다. 기존 제목·분류·순서는 유지합니다.`:'PDF 선택 → 내용 검토 → 리포트 초안. 공개는 리포트에서 ‘게시’를 눌러 결정합니다.'}</p></div><button disabled={busy} onClick={onBack}><ArrowLeft size={16}/>리포트 관리</button></header>
     <div className="upload-storage-status">
-      <span>{checking?'저장소 연결 확인 중…':connected?'Google Drive에 비공개로 저장합니다.':'PDF 등록 전에 Google Drive 연결을 완료해 주세요.'}</span>
+      <span>{checking?'저장소 연결 확인 중…':connected?'Google Drive에 비공개로 저장합니다.':'리포트 등록 전에 Google Drive 연결을 완료해 주세요.'}</span>
       <button disabled={busy} onClick={onStorage}>{connected?'연결 관리':'저장소 연결'}</button>
       {!connected&&!checking&&<button disabled={busy} onClick={()=>setTick(n=>n+1)}><RefreshCw size={14}/>다시 확인</button>}
     </div>

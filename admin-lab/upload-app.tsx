@@ -287,7 +287,7 @@ export function UploadApp({
           ) : (
             <header className="page-heading">
               <div>
-                <h1 tabIndex={-1}>{onCmsReturn ? "PDF 등록" : "리포트"}</h1>
+                <h1 tabIndex={-1}>{onCmsReturn ? "리포트 등록" : "리포트"}</h1>
                 <p>PDF를 등록하고 게시할 내용을 검토합니다.</p>
               </div>
               <label className={`primary file-picker ${busy ? "disabled" : ""}`}>

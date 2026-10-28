@@ -77,7 +77,7 @@ export function StorageSettings({
         </p>
       )}
       {message&&<p className="success-panel" role="status">{message}</p>}
-      {onReturnUpload&&<div className="settings-note"><p>PDF 등록에서 저장소 연결을 확인하고 있습니다. 연결을 마친 뒤 등록을 계속하세요. 선택했던 파일은 다시 선택해야 합니다.</p><button disabled={busy||!status?.connected||status.pending} onClick={onReturnUpload}>PDF 등록 계속하기</button></div>}
+      {onReturnUpload&&<div className="settings-note"><p>리포트 등록에서 저장소 연결을 확인하고 있습니다. 연결을 마친 뒤 등록을 계속하세요. 선택했던 파일은 다시 선택해야 합니다.</p><button disabled={busy||!status?.connected||status.pending} onClick={onReturnUpload}>리포트 등록 계속하기</button></div>}
       {status?.pending&&<p className="settings-note" role="status">Google 승인은 받았지만 아직 연결을 저장하지 않았습니다. 아래 ‘Drive 연결 완료’를 눌러 주세요.</p>}
       {!status ? (
         <LoadingState label="저장소 상태를 확인하는 중…" />
@@ -215,7 +215,7 @@ export function StorageSettings({
                     void run(async () => {
                       await api("/storage/drive/confirm", { method: "POST" })
                       history.replaceState(null, "", location.pathname + "#storage");
-                      setMessage("Drive 연결이 완료됐습니다. PDF 등록 메뉴에서 파일을 선택해 주세요.")
+                      setMessage("Drive 연결이 완료됐습니다. 리포트 등록 메뉴에서 파일을 선택해 주세요.")
                     })
                   }
                 >

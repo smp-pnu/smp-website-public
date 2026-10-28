@@ -61,7 +61,7 @@ export async function extractMetadata(input: unknown, db: Database, ai: AiBindin
   const day = Math.floor(now / 86_400_000)
   const accepted = await db.prepare("INSERT INTO usage(key,hits,expires) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET hits=hits+1 WHERE hits<? RETURNING hits")
     .bind(`metadata-day:${day}`, (day + 1) * 86_400_000, metadataDailyLimit).first()
-  if (!accepted) return save("failed", { candidates: [], warning: "오늘의 AI 입력 보완 10건을 모두 사용했어요. PDF 등록은 가능하며 빈 항목은 직접 입력해 주세요." }, 10 * 60_000)
+  if (!accepted) return save("failed", { candidates: [], warning: "오늘의 AI 입력 보완 10건을 모두 사용했어요. 리포트 등록은 가능하며 빈 항목은 직접 입력해 주세요." }, 10 * 60_000)
   let timer: ReturnType<typeof setTimeout> | undefined
   try {
     // No retries or model fallback: each reserved slot spends at most one call.

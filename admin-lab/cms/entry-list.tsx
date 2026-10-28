@@ -118,7 +118,7 @@ export function EntryList({
           >
             <Plus size={16} />
             {section === "research"
-              ? "PDF 등록"
+              ? "리포트 등록"
               : section === "members"
                 ? "회원 추가"
                 : "새로 만들기"}

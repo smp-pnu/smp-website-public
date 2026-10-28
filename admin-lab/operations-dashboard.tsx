@@ -42,7 +42,7 @@ export function OperationsDashboard(props: Props) {
   },[tick])
   return <>
     <header className="page-heading"><div><h1>운영 현황</h1><p>게시 자료와 저장 공간을 한곳에서 확인합니다.</p></div>
-      <div className="cms-actions"><button disabled={loading} onClick={()=>setTick(n=>n+1)}>{loading?<InlineLoading>확인 중…</InlineLoading>:<><RefreshCw size={15}/>새로고침</>}</button><button className="primary" onClick={props.onUpload}>PDF 등록</button></div>
+      <div className="cms-actions"><button disabled={loading} onClick={()=>setTick(n=>n+1)}>{loading?<InlineLoading>확인 중…</InlineLoading>:<><RefreshCw size={15}/>새로고침</>}</button><button className="primary" onClick={props.onUpload}>리포트 등록</button></div>
     </header>
     <div className="ops-dashboard">
       <SnapshotNote snapshot={overview.snapshot} error={overview.error} label="운영 현황"/>
