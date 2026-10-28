@@ -107,7 +107,7 @@ async function handle(request: Request, env: Env, ctx: Context): Promise<Respons
   if (match[1] === "detail" && !match[4]) {
     return rendered(request,env,kind,async()=>{
       const value=await readDetail(env,ctx,kind,id,name=>document(request,env,ctx,name))
-      return value?reply(value):new Response("Not found",{status:404})
+      return value?{body:JSON.stringify(value),headers:{...headers,"Content-Type":"application/json"}}:new Response("Not found",{status:404})
     })
   }
   const publicationAt=Date.now()

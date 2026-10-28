@@ -86,6 +86,6 @@ export async function publicPage(request:Request,env:Env,ctx:Context,readDocumen
     headers.set("Content-Type","text/html; charset=utf-8")
     headers.set("Cache-Control","private, no-store")
     headers.delete("etag");headers.delete("content-length");headers.delete("last-modified")
-    return new Response(injectPage(await shell.text(),canonicalPath+url.search,body,item,data),{headers})
+    return {body:injectPage(await shell.text(),canonicalPath+url.search,body,item,data),headers}
   })
 }
