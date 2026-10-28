@@ -9,6 +9,7 @@ import { emptyFields, limits } from "../admin-lab/model"
 import { samplePdf } from "../admin-lab/sample"
 import { validateCover } from "../admin-cloud/files"
 import { allowedTrialOrigin, legacyAdminDestination } from "../admin-lab/mode"
+import { Sessions } from "../admin-cloud/session"
 import type { Database, Statement } from "../cloudflare/bindings"
 
 import { sha256 } from "../admin-cloud/protocol"
@@ -278,7 +279,7 @@ test("cloud signed sessions reject forgery, expiry and revoked passkeys", async 
     f.setToken("__Host-smp_admin=" + "a".repeat(64) + "." + "b".repeat(64))
     assert.equal((await f.call("/api/drafts")).status, 401)
     f.setToken(saved)
-    f.time(31 * 60000)
+    f.time(24 * 60 * 60000)
     assert.equal((await f.call("/api/drafts")).status, 401)
     await f.login()
     assert.equal((await f.call("/api/logout", "POST")).status, 200)
@@ -291,6 +292,35 @@ test("cloud signed sessions reject forgery, expiry and revoked passkeys", async 
   } finally {
     f.close()
   }
+})
+test("cloud sessions survive inactivity for one fixed day without renewal writes", async () => {
+  const f = await fixture()
+  try {
+    await f.login()
+    const original = f.db.prepare("SELECT expires,idle_expires FROM admin_sessions").get()!
+    assert.equal(original.idle_expires, original.expires)
+    // Any auth heartbeat would fail this test and consume unnecessary D1 writes.
+    f.db.exec("CREATE TRIGGER forbid_session_renewal BEFORE UPDATE ON admin_sessions BEGIN SELECT RAISE(ABORT,'unexpected session renewal'); END")
+    f.time(31 * 60000)
+    assert.equal((await f.call("/api/drafts")).status, 200)
+    f.time(24 * 60 * 60000 - 31 * 60000 - 1)
+    assert.equal((await f.call("/api/drafts")).status, 200)
+    assert.deepEqual(f.db.prepare("SELECT expires,idle_expires FROM admin_sessions").get(), original)
+    f.time(1)
+    assert.equal((await f.call("/api/drafts")).status, 401)
+  } finally { f.close() }
+})
+test("cloud session cookies last one day and legacy sessions keep their earlier expiry", async () => {
+  const f = await fixture()
+  try {
+    await f.login()
+    const subject = f.db.prepare("SELECT id FROM admin_credentials").get()!.id as string
+    const issued = await new Sessions(f.env).create("smp-admin", subject)
+    assert.match(issued.cookie, /^__Host-smp_admin=.*; Path=\/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400$/)
+    f.db.exec("UPDATE admin_sessions SET idle_expires=expires-86400000+1800000")
+    f.time(31 * 60000)
+    assert.equal((await f.call("/api/drafts")).status, 401)
+  } finally { f.close() }
 })
 test("cloud upload commits only complete verified chunks; download matches bytes; duplicate, revisions and trash work", async () => {
   const f = await fixture()
@@ -775,6 +805,8 @@ test("additional passkeys require live admin CSRF, last key is protected and rem
     f.time(7 * 60 * 60000)
     await f.login()
     f.setToken(nowCookie)
+    assert.equal((await f.call("/api/drafts")).status, 200)
+    f.time(17 * 60 * 60000)
     assert.equal((await f.call("/api/drafts")).status, 401)
   } finally {
     f.close()
