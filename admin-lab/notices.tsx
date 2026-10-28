@@ -1,3 +1,4 @@
+import { AdminSelect } from "./ui/select";
 import { useCallback, useEffect, useState } from "react"
 import { Plus, ArrowLeft, RefreshCw, ArrowUp, ArrowDown } from "lucide-react"
 import { api } from "./server-storage"
@@ -281,7 +282,7 @@ export function Notices({
                 }}
               />
             </label>
-            <label className="sort-field"><span className="sr-only">공지 분류</span><select value={category} onChange={e=>{setCategory(e.target.value);setPage(1)}}><option value="">모든 분류</option>{[...new Set(list.map(n=>n.category).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ko")).map(v=><option key={v}>{v}</option>)}</select></label>
+            <label className="sort-field"><span className="sr-only">공지 분류</span><AdminSelect aria-label="공지 분류" value={category} onValueChange={(next) => {setCategory(next);setPage(1)}}><option value="">모든 분류</option>{[...new Set(list.map(n=>n.category).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ko")).map(v=><option key={v}>{v}</option>)}</AdminSelect></label>
             <button
               className="icon-button"
               aria-label="공지 새로고침"

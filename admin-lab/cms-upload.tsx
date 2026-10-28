@@ -1,3 +1,4 @@
+import { Spinner, InlineLoading, LoadingState } from "./ui/loading";
 import {useCallback,useEffect,useRef,useState} from 'react'
 import {ArrowLeft,FileText,RefreshCw,Upload,X} from 'lucide-react'
 import {api} from './server-storage'
@@ -61,11 +62,10 @@ export function CmsUpload({target,targetTitle,onBack,onStorage,onOpen,onImport,o
     <label className="check-row"><input type="checkbox" checked={lab.aiEnabled} disabled={busy} onChange={e=>lab.setAiEnabled(e.target.checked)}/>AI로 입력 후보 보완</label>
     <p className="field-help">선택하면 앞 3쪽의 전송 내용을 확인한 뒤 AI를 사용합니다. 원문은 자동으로 공개되지 않습니다.</p>
     <input ref={input} className="sr-only" type="file" accept=".pdf,application/pdf" aria-label={target?'새 원본 PDF 선택':'등록할 PDF 선택'} multiple={!target} disabled={busy||checking||!connected||!!error} onChange={e=>{const files=Array.from(e.target.files??[]);e.target.value='';void ingest(files)}}/>
-    {lab.progress&&<div role="status" className="upload-progress"><span className="progress-indicator"/>{lab.progress}<button onClick={lab.cancel}><X size={15}/>취소</button></div>}
+    {lab.progress&&<div role="status" className="upload-progress"><Spinner/>{lab.progress}<button onClick={lab.cancel}><X size={15}/>취소</button></div>}
     {selected ? <>
-      <div className="cms-actions"><button disabled={busy} onClick={()=>void choose(null)}><ArrowLeft size={15}/>등록 대기로 돌아가기</button></div>
+      <div className="cms-actions upload-review-toolbar"><button disabled={busy} onClick={()=>void choose(null)}><ArrowLeft size={15}/>등록 대기로 돌아가기</button>{!link&&!selected.trashedAt&&selected.approvedRevision===selected.revision&&<button className="primary" disabled={busy||dirty} onClick={()=>void finish(selected)}>게시 초안 만들기</button>}</div>
       {link ? <div className="settings-note"><h2>이미 리포트 관리에 등록된 PDF입니다.</h2><p>{link.title}{link.trashedAt?' · 휴지통에 보관 중':''}</p><p>기존 글은 리포트 관리에서 수정합니다. 동일한 원본을 다시 등록하지 않습니다.</p><button disabled={busy} onClick={()=>void onOpen(link.id).catch(e=>setError(e.message))}>기존 리포트 열기</button></div> : <>
-        {!selected.trashedAt&&selected.approvedRevision===selected.revision&&<button className="primary" disabled={busy||dirty} onClick={()=>void finish(selected)}>게시 초안 만들기</button>}
         <DraftEditor key={`${selected.id}:${selected.revision}`} draft={selected} locked={busy} workflow onBusy={setEditorBusy} onDirty={changeDirty} onSave={lab.save} onApprove={finish} onTrash={lab.trash} onRemove={lab.remove} onReanalyze={lab.reanalyze} onReplace={lab.replace}/>
       </>}
     </> : <>
@@ -75,9 +75,9 @@ export function CmsUpload({target,targetTitle,onBack,onStorage,onOpen,onImport,o
         <button className="primary" disabled={busy||checking||!connected||!!error} onClick={()=>input.current?.click()}>PDF 파일 선택</button>
         <p className="field-help">파일당 32MB · {target?'한 번에 1개':'한 번에 최대 5개'} · 새 원본 하루 10개</p>
       </section>
-      {!target&&<section className="upload-pending"><header><h2>등록을 마치지 않은 PDF <small>{pending.length}개</small></h2><button disabled={busy} onClick={()=>{void lab.refresh().catch(e=>setError(e.message));setTick(n=>n+1)}}><RefreshCw size={15}/>새로고침</button></header>
+      {!target&&<section className="upload-pending"><header><h2>등록을 마치지 않은 PDF <small>{lab.loading?<InlineLoading>확인 중</InlineLoading>:`${pending.length}개`}</small></h2><button disabled={busy} onClick={()=>{void lab.refresh().catch(e=>setError(e.message));setTick(n=>n+1)}}><RefreshCw size={15}/>새로고침</button></header>
         <p className="field-help">업로드 후 검토를 마치지 않은 파일만 표시합니다. 기존 리포트 전체는 ‘리포트’ 메뉴에서 관리합니다.</p>
-        {pending.length? <ul>{pending.map(d=><li key={d.id}><FileText size={17}/><div><strong>{d.fields.title||d.filename}</strong><small>{d.filename} · {d.pages}쪽</small></div><button disabled={busy||checking} onClick={()=>void choose(d.id)}>검토 계속하기</button></li>)}</ul>:<p className="empty-state">등록 대기 중인 PDF가 없습니다.</p>}
+        {lab.loading?<LoadingState label="등록 대기 PDF를 확인하는 중…" rows={2}/>:pending.length? <ul>{pending.map(d=><li key={d.id}><FileText size={17}/><div><strong>{d.fields.title||d.filename}</strong><small>{d.filename} · {d.pages}쪽</small></div><button disabled={busy||checking} onClick={()=>void choose(d.id)}>검토 계속하기</button></li>)}</ul>:<p className="empty-state">등록 대기 중인 PDF가 없습니다.</p>}
         {discarded.length>0&&<details><summary>등록을 취소한 PDF · {discarded.length}개</summary><p className="field-help">리포트 초안으로 옮기기 전에 휴지통에 넣은 파일입니다. 파일을 열어 복원할 수 있습니다.</p><ul>{discarded.map(d=><li key={d.id}><span>{d.fields.title||d.filename}</span><button disabled={busy||checking} onClick={()=>void choose(d.id)}>휴지통 파일 열기</button></li>)}</ul></details>}
       </section>}
     </>}

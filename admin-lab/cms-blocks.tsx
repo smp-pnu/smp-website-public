@@ -1,3 +1,5 @@
+import { InlineLoading } from "./ui/loading";
+import { AdminSelect } from "./ui/select";
 import { useEffect, useRef, useState } from "react";
 import { Plus, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 import type { ContentBlock } from "../lib/notion-model";
@@ -392,10 +394,10 @@ export function CmsBlocks({
         </p>
       )}
       <div className="cms-actions">
-        <select
+        <AdminSelect disabled={disabled || uploading}
           aria-label="추가할 본문 요소"
           value={kind}
-          onChange={(e) => setKind(e.target.value)}
+          onValueChange={(next) => setKind(next)}
         >
           {Object.entries(names)
             .filter(([k]) => !["image", "pdf", "file", "table_row"].includes(k))
@@ -404,7 +406,7 @@ export function CmsBlocks({
                 {value}
               </option>
             ))}
-        </select>
+        </AdminSelect>
         <button
           type="button"
           onClick={() => onChange([...blocks, newCmsBlock(kind)])}
@@ -412,7 +414,7 @@ export function CmsBlocks({
           <Plus size={14} />
           요소 추가
         </button>
-        <label className="file-picker">
+        <label className="secondary file-picker">
           <input
             type="file"
             accept="image/png,image/jpeg,image/webp,.pdf,.zip"
@@ -421,7 +423,7 @@ export function CmsBlocks({
               e.target.value = "";
             }}
           />
-          {uploading ? "파일 준비 중…" : "사진·첨부 추가"}
+          {uploading ? <InlineLoading>파일 준비 중…</InlineLoading> : "사진·첨부 추가"}
         </label>
       </div>
       <small>

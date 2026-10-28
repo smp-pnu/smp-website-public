@@ -1,3 +1,5 @@
+import { InlineLoading } from "./ui/loading";
+import { AdminSelect } from "./ui/select";
 import { useEffect, useRef, useState } from "react"
 import { ArrowLeft, FileSpreadsheet, WandSparkles } from "lucide-react"
 import { api } from "./server-storage"
@@ -79,13 +81,13 @@ export function MemberImport({ initialGeneration, onClose, onBusy, onComplete }:
       <label className="roster-file"><strong>명단 엑셀 파일</strong><input type="file" accept=".xlsx,.csv,.tsv" onChange={e=>{const f=e.target.files?.[0];if(f)void choose(f);e.target.value=""}}/><span>.xlsx · UTF-8 CSV · 최대 2 MB. 파일은 기기에서 읽고, 열의 종류·형식만 Cloudflare AI로 자동 분석합니다.</span></label>
       {sheet&&<>
         <div className="roster-options">
-          <label>시트<select value={sheetIndex} onChange={e=>{const i=Number(e.target.value);setSheetIndex(i);configure(sheets[i])}}>{sheets.map((s,i)=><option value={i} key={i}>{s.name}</option>)}</select></label>
+          <label>시트<AdminSelect disabled={busy} aria-label="시트" value={sheetIndex} onValueChange={(next) => {const i=Number(next);setSheetIndex(i);configure(sheets[i])}}>{sheets.map((s,i)=><option value={i} key={i}>{s.name}</option>)}</AdminSelect></label>
           <label>열 제목이 있는 행<input type="number" min={1} max={sheet.rows.length} value={header+1} onChange={e=>{const n=Math.max(0,Math.min(sheet.rows.length-1,Number(e.target.value)-1));configure(sheet,n)}}/></label>
           <label>등록할 기수<input type="number" min={1} max={999} placeholder="예: 41" value={generation} onChange={e=>{setGeneration(e.target.value);resetPreview()}}/></label>
-          <label>표시 위치<select value={group} onChange={e=>setGroup(e.target.value)}><option value="members">MEMBERS · 활동 회원</option><option value="alumni">ALUMNI · 수료 회원</option></select></label>
+          <label>표시 위치<AdminSelect disabled={busy} aria-label="표시 위치" value={group} onValueChange={(next) => setGroup(next)}><option value="members">MEMBERS · 활동 회원</option><option value="alumni">ALUMNI · 수료 회원</option></AdminSelect></label>
         </div>
         <div className="roster-ai"><div><strong>AI로 열 자동 연결</strong><p>열 제목의 종류와 값의 형식만 Cloudflare AI에 보냅니다. 이름·학과·학번 원문은 보내지 않습니다. AI를 사용할 수 없어도 직접 연결할 수 있습니다.</p></div><button className="secondary" onClick={()=>void analyze()}><WandSparkles size={15}/>AI로 열 연결</button></div>
-        <div className="roster-options roster-mapping">{rosterFields.map(field=><label key={field}>{rosterLabels[field]}{field==="name"?" *":""}<select value={mapping[field]??""} onChange={e=>{setMapping(m=>({...m,[field]:e.target.value===""?null:Number(e.target.value)}));resetPreview()}}><option value="">사용 안 함</option>{Array.from({length:width},(_,i)=><option value={i} key={i}>{i+1}열 · {(sheet.rows[header]?.[i]||"제목 없음").slice(0,35)}</option>)}</select></label>)}</div>
+        <div className="roster-options roster-mapping">{rosterFields.map(field=><label key={field}>{rosterLabels[field]}{field==="name"?" *":""}<AdminSelect disabled={busy} aria-label={rosterLabels[field]} value={mapping[field]??""} onValueChange={(next) => {setMapping(m=>({...m,[field]:next===""?null:Number(next)}));resetPreview()}}><option value="">사용 안 함</option>{Array.from({length:width},(_,i)=><option value={i} key={i}>{i+1}열 · {(sheet.rows[header]?.[i]||"제목 없음").slice(0,35)}</option>)}</AdminSelect></label>)}</div>
         <p className="field-help">기수 열이 없거나 비어 있으면 입력한 기수로 등록합니다. 혼합 기수 명단은 기수 열을 연결하거나 해당 기수만 남긴 파일을 사용하세요. 학번은 연도 두 자리만 저장하며, 사진·수식·숨긴 행·셀 색상은 가져오지 않습니다.</p>
         <details><summary>원본 앞부분 확인 · {filename}</summary><div className="roster-table"><table><thead><tr><th>행</th>{Array.from({length:width},(_,i)=><th key={i}>{i+1}열</th>)}</tr></thead><tbody>{sheet.rows.slice(header,header+6).map((r,i)=><tr key={i}><th>{header+i+1}</th>{Array.from({length:width},(_,j)=><td key={j}>{r[j]??""}</td>)}</tr>)}</tbody></table></div></details>
         <button className="secondary" onClick={()=>void prepare()}>명단 미리보기·중복 확인</button>
@@ -100,10 +102,10 @@ export function MemberImport({ initialGeneration, onClose, onBusy, onComplete }:
         <td><input aria-label={`${c.row}행 이름`} disabled={busy} value={c.name} maxLength={50} onChange={e=>edit(c.row,"name",e.target.value)}/></td>
         <td><input aria-label={`${c.row}행 학과`} disabled={busy} value={c.department} maxLength={100} onChange={e=>edit(c.row,"department",e.target.value)}/></td>
         <td><input className="roster-year" aria-label={`${c.row}행 학번 연도`} disabled={busy} value={c.year} maxLength={2} inputMode="numeric" onChange={e=>edit(c.row,"year",e.target.value.replace(/\D/g,""))}/></td>
-        <td><select aria-label={`${c.row}행 직책`} disabled={busy} value={c.roles.join(",")} onChange={e=>edit(c.row,"roles",e.target.value?e.target.value.split(","):[])}><option value="">없음</option>{["회장","부회장","기장","회장,기장","부회장,기장"].map(r=><option key={r} value={r}>{r.replace(","," · ")}</option>)}</select></td>
+        <td><AdminSelect aria-label={`${c.row}행 직책`} disabled={busy} value={c.roles.join(",")} onValueChange={(next) => edit(c.row,"roles",next?next.split(","):[])}><option value="">없음</option>{["회장","부회장","기장","회장,기장","부회장,기장"].map(r=><option key={r} value={r}>{r.replace(","," · ")}</option>)}</AdminSelect></td>
         <td><span>{duplicates.get(c.row)||c.error||c.note||"등록 가능"}</span></td></tr>)}</tbody></table></div>
       {pageCount>1&&<nav className="roster-pages" aria-label="가져올 명단 페이지">{Array.from({length:pageCount},(_,i)=><button key={i} aria-current={previewPage===i+1?"page":undefined} onClick={()=>setPreviewPage(i+1)}>{i+1}</button>)}</nav>}
     </section>}
-    {busy&&<p role="status" aria-live="polite">{status||"처리 중…"}</p>}
+    {busy&&<div className="upload-progress"><InlineLoading>{status||"처리 중…"}</InlineLoading></div>}
   </section>
 }

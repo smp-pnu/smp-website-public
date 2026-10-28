@@ -1,3 +1,4 @@
+import { LoadingState } from "./ui/loading";
 import {useEffect,useState} from 'react'
 import {ChartNoAxesCombined} from 'lucide-react'
 import {api} from './server-storage'
@@ -10,7 +11,7 @@ export function SiteAnalytics({refresh}:{refresh:number}){
  useEffect(()=>{let live=true;void api('/dashboard/site').then(r=>r.json()).then((data:SiteSnapshot|null)=>{if(live)setState({data,loaded:true,error:''})}).catch((e:Error)=>{if(live)setState(p=>({...p,loaded:true,error:e.message}))});return()=>{live=false}},[refresh])
  return <section className="ops-panel ops-site" aria-label="사이트 현황"><header><h2><ChartNoAxesCombined size={18}/> 사이트 현황</h2><span className="ops-muted">pnusmp.com · 공개 사이트</span></header>
  {state.error&&<p className="ops-warning" role="alert">통계를 확인하지 못했습니다. {state.data?'이전 확인값입니다.':''} {state.error}</p>}
- {!state.data&&<p className="ops-muted" role="status">{state.loaded?'집계를 시작합니다. 첫 자동 수집이 완료되면 표시됩니다.':'저장된 사이트 통계를 불러오는 중…'}</p>}
+ {!state.data&&!state.error&&(state.loaded?<p className="site-empty">집계를 시작합니다. 첫 자동 수집이 완료되면 표시됩니다.</p>:<LoadingState label="저장된 사이트 통계를 불러오는 중…" />)}
  {state.data&&<SiteAnalyticsDetails data={state.data}/>}
  </section>
 }

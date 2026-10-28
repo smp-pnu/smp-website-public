@@ -1,3 +1,5 @@
+import { InlineLoading } from "./ui/loading";
+import { AdminSelect } from "./ui/select";
 import { cloudMode, serverMode, storageLabel } from "./mode"
 import { useEffect, useState } from "react"
 import { Check, Download, FileCheck2, RotateCcw, Save, Trash2 } from "lucide-react"
@@ -217,7 +219,7 @@ export function DraftEditor({
           {cover ? (
             <img className="article-cover" src={cover} alt={`${fields.title} 첫 페이지`} />
           ) : (
-            <p>표지를 불러오는 중…</p>
+            <p><InlineLoading>표지를 불러오는 중…</InlineLoading></p>
           )}
           <p className="muted">
             검토 화면에서는 첫 페이지만 미리 보여 줍니다. 전체 원문은 위의 ‘원본 PDF’로 확인할 수
@@ -252,21 +254,21 @@ export function DraftEditor({
               {input("author", "text", "예: 리서치 1팀")}
               <label>
                 <span>리포트 분류</span>
-                <select
+                <AdminSelect disabled={busy || !!draft.trashedAt} aria-label="리포트 종류"
                   value={fields.reportType}
-                  onChange={(e) => update("reportType", e.target.value as Fields["reportType"])}
+                  onValueChange={(next) => update("reportType", next as Fields["reportType"])}
                 >
                   <option>기업분석</option>
                   <option>산업분석</option>
-                </select>
+                </AdminSelect>
               </label>
               <label className="span-2">
                 <span>
                   업종 <small>기존 분류표 · 직접 확인</small>
                 </span>
-                <select
+                <AdminSelect disabled={busy || !!draft.trashedAt} aria-label="산업 분류"
                   value={fields.industry}
-                  onChange={(e) => update("industry", e.target.value)}
+                  onValueChange={(next) => update("industry", next)}
                 >
                   <option value="">미지정</option>
                   {fields.industry &&
@@ -280,7 +282,7 @@ export function DraftEditor({
                       ))}
                     </optgroup>
                   ))}
-                </select>
+                </AdminSelect>
               </label>
             </div>
           </fieldset>
@@ -360,7 +362,7 @@ export function DraftEditor({
             <div className="review-actions">
               <button className="secondary" type="submit" disabled={busy || !dirty}>
                 <Save size={16} />
-                {busy ? "처리 중…" : "초안 저장"}
+                {busy ? <InlineLoading>처리 중…</InlineLoading> : "초안 저장"}
               </button>
               <span>
                 {dirty

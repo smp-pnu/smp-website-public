@@ -36,7 +36,7 @@
 .settings-panel {
   background: #fff;
   border: 1px solid #dce1e6;
-  border-radius: 6px;
+  border-radius: 10px;
   padding: 25px;
 }
 .settings-panel > header {
@@ -53,7 +53,7 @@
 }
 .settings-panel header span {
   font-size: 12px;
-  color: #969fa9;
+  color: #657383;
 }
 .section-description {
   font-size: 12px;
@@ -85,7 +85,7 @@
 }
 .passkey-list li span {
   display: block;
-  color: #9aa3ad;
+  color: #657383;
   font-size: 11px;
   margin-top: 3px;
 }
@@ -144,15 +144,16 @@
   display: grid;
   place-items: center;
   min-height: 100vh;
+  background: #19232e;
   padding: 30px 20px;
 }
 .auth-card {
   width: 100%;
   max-width: 420px;
   border: 1px solid #dce1e6;
-  border-radius: 7px;
+  border-radius: 12px;
   background: #fff;
-  padding: 30px;
+  padding: 34px;
 }
 .auth-card .admin-brand {
   padding: 0 0 27px;
@@ -253,7 +254,7 @@
 .confirm-dialog {
   background: #fff;
   border: 1px solid #dce1e6;
-  border-radius: 7px;
+  border-radius: 12px;
   padding: 24px;
   max-width: 410px;
   max-height: calc(100svh - 40px);

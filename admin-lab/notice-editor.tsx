@@ -1,3 +1,5 @@
+import { InlineLoading } from "./ui/loading";
+import { AdminSelect } from "./ui/select";
 import { useEffect, useRef, useState } from "react"
 import { ArrowUp, ArrowDown, Trash2, ImagePlus, Plus, Save } from "lucide-react"
 import { api } from "./server-storage"
@@ -184,11 +186,11 @@ export function NoticeEditor({ notice, busy, onSave, onDirty, onUploadBusy }: Pr
                   {block.type === "image" ? (
                     <strong>사진</strong>
                   ) : (
-                    <select
+                    <AdminSelect
                       aria-label={`${index + 1}번째 내용 형식`}
                       value={block.type}
                       disabled={locked}
-                      onChange={(e) => change(block.id, { type: e.target.value as BlockType })}
+                      onValueChange={(next) => change(block.id, { type: next as BlockType })}
                     >
                       {Object.entries(blockLabels)
                         .filter(([key]) => key !== "image")
@@ -197,7 +199,7 @@ export function NoticeEditor({ notice, busy, onSave, onDirty, onUploadBusy }: Pr
                             {label}
                           </option>
                         ))}
-                    </select>
+                    </AdminSelect>
                   )}
                   <div className="block-controls">
                     <button
@@ -276,7 +278,7 @@ export function NoticeEditor({ notice, busy, onSave, onDirty, onUploadBusy }: Pr
               ))}
               <label className={`secondary file-picker ${locked || full ? "disabled" : ""}`}>
                 <ImagePlus size={14} />
-                {uploading ? "사진 준비 중…" : "사진 추가"}
+                {uploading ? <InlineLoading>사진 준비 중…</InlineLoading> : "사진 추가"}
                 <input
                   type="file"
                   aria-label="공지 사진 선택"

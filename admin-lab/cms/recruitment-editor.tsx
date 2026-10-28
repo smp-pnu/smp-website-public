@@ -1,3 +1,5 @@
+import { LoadingState, InlineLoading } from "../ui/loading";
+import { AdminSelect } from "../ui/select";
 import { useEffect, useState } from "react";
 import type { Recruitment } from "../../lib/recruitment";
 import { useConfirmation } from "../confirm";
@@ -78,7 +80,7 @@ export function RecruitmentEditor({
         </p>
       )}
       {done && (
-        <p role="status">저장했습니다. 다음 게시 작업에서 반영됩니다.</p>
+        <p className="success-panel" role="status">저장했습니다. 다음 게시 작업에서 반영됩니다.</p>
       )}
       {value ? (
         <form
@@ -113,6 +115,7 @@ export function RecruitmentEditor({
           }}
         >
           <fieldset disabled={busy} className="cms-form">
+            <h2 className="cms-section-title">모집 기본 정보</h2>
             <Field
               label="모집 기수"
               type="number"
@@ -121,15 +124,16 @@ export function RecruitmentEditor({
             />
             <label className="cms-field">
               상태
-              <select
+              <AdminSelect disabled={busy} aria-label="모집 상태"
                 value={value.status}
-                onChange={(e) => change("status", e.target.value)}
+                onValueChange={(next) => change("status", next)}
               >
                 <option value="upcoming">모집 예정</option>
                 <option value="open">모집 중</option>
                 <option value="closed">모집 마감</option>
-              </select>
+              </AdminSelect>
             </label>
+            <h2 className="cms-section-title">접수 일정</h2>
             <label>
               <input
                 type="checkbox"
@@ -155,8 +159,9 @@ export function RecruitmentEditor({
               value={value.applicationUrl}
               onChange={(v) => change("applicationUrl", v || null)}
             />
+            <h2 className="cms-section-title">활동·지원 안내</h2>
             {Object.entries(labels).map(([k, label]) => (
-              <label className="cms-field" key={k}>
+              <label className={`cms-field ${k === "fees" || k === "process" ? "cms-wide" : ""}`} key={k}>
                 {label}
                 <textarea
                   value={String(value[k as keyof Recruitment] ?? "")}
@@ -166,7 +171,7 @@ export function RecruitmentEditor({
             ))}
           </fieldset>
           <button className="primary" disabled={busy || !dirty}>
-            {busy ? "저장 중…" : "모집 안내 저장"}
+            {busy ? <InlineLoading>저장 중…</InlineLoading> : "모집 안내 저장"}
           </button>
         </form>
       ) : error ? (
@@ -174,7 +179,7 @@ export function RecruitmentEditor({
           다시 불러오기
         </button>
       ) : (
-        <p role="status">불러오는 중…</p>
+        <LoadingState label="모집 안내를 불러오는 중…" rows={4} />
       )}
     </>
   );

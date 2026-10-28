@@ -1,3 +1,5 @@
+import { InlineLoading } from "../ui/loading";
+import { AdminSelect } from "../ui/select";
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import type { Entry, Payload, Kind } from "../../cms/model";
@@ -5,7 +7,7 @@ import type { ContentItem } from "../../lib/content-model";
 import type { Member } from "../../lib/member-model";
 import { CmsBlocks, CmsBlocksPreview, mediaUrl } from "../cms-blocks";
 import { Field } from "./field";
-import { names, status } from "./presentation";
+import { names, status, statusTone } from "./presentation";
 import type { CmsAction } from "../cms-bulk";
 type Props = {
   selected: Entry;
@@ -48,7 +50,7 @@ export function EntryEditor({
           <ArrowLeft size={15} />
           {section === "members" ? `${group}기 명단으로` : "목록으로"}
         </button>
-        <span>{status(selected)}</span>
+        <span className={`status-badge ${statusTone(selected)}`}>{status(selected)}</span>
       </div>
       <header className="page-heading">
         <div>
@@ -89,7 +91,7 @@ export function EntryEditor({
             {selected.error
               ? "다시 게시"
               : selected.pending
-                ? "준비 중…"
+                ? <InlineLoading>준비 중…</InlineLoading>
                 : selected.approvedRevision === selected.revision
                   ? "게시됨"
                   : "게시"}
@@ -117,13 +119,13 @@ export function EntryEditor({
             />
             <label className="cms-field">
               구분
-              <select
-                value={member?.group}
-                onChange={(e) => change("group", e.target.value)}
+              <AdminSelect disabled={busy || !!selected.trashedAt} aria-label="회원 표시 위치"
+                value={member?.group ?? "members"}
+                onValueChange={(next) => change("group", next)}
               >
                 <option value="members">MEMBERS</option>
                 <option value="alumni">ALUMNI</option>
-              </select>
+              </AdminSelect>
             </label>
             <Field
               label="학과"
