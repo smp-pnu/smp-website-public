@@ -11,6 +11,8 @@ import { readAssets as readCloudAssets } from "./cloud-storage"
 type Props = {
   draft: Draft
   locked: boolean
+  workflow?: boolean
+  onBusy?: (busy: boolean) => void
   onDirty: (dirty: boolean) => void
   onSave: (draft: Draft, fields: Fields) => Promise<void>
   onApprove: (draft: Draft, reviewed: boolean) => Promise<void>
@@ -37,6 +39,8 @@ const labels: Record<keyof Fields, string> = {
 export function DraftEditor({
   draft,
   locked,
+  workflow,
+  onBusy,
   onDirty,
   onSave,
   onApprove,
@@ -49,6 +53,7 @@ export function DraftEditor({
   const [fields, setFields] = useState(draft.fields)
   const [reviewed, setReviewed] = useState(false)
   const [actionBusy, setBusy] = useState(false)
+  useEffect(()=>{onBusy?.(actionBusy);return()=>onBusy?.(false)},[actionBusy,onBusy])
   const busy = actionBusy || locked
   const [error, setError] = useState("")
   const [tab, setTab] = useState<"edit" | "preview">("edit")
@@ -215,7 +220,7 @@ export function DraftEditor({
             <p>표지를 불러오는 중…</p>
           )}
           <p className="muted">
-            시험판에서는 첫 페이지만 미리 보여 줍니다. 전체 원문은 위의 ‘원본 PDF’로 확인할 수
+            검토 화면에서는 첫 페이지만 미리 보여 줍니다. 전체 원문은 위의 ‘원본 PDF’로 확인할 수
             있습니다.
           </p>
         </article>
@@ -433,7 +438,7 @@ export function DraftEditor({
                 onClick={() => action(() => onApprove(draft, reviewed))}
               >
                 <Check size={17} />
-                {approved ? "입력 승인 완료" : "검토 완료 · 입력 승인"}
+                {approved ? "입력 승인 완료" : workflow ? "검토 완료 · 게시 초안 만들기" : "검토 완료 · 입력 승인"}
               </button>
               <button
                 className="icon-button"
@@ -449,7 +454,7 @@ export function DraftEditor({
               </button>
             </div>
             <small>
-              입력 승인 후 ‘게시 목록에 추가’를 눌러 게시 관리로 이동하세요. 공개하려면 게시 관리에서 ‘게시’를 눌러야 합니다.
+              {workflow ? "검토를 마치면 리포트 초안이 열립니다. 내용을 확인하고 ‘게시’를 눌러야 공식 사이트에 공개됩니다." : "입력 승인 후 ‘게시 목록에 추가’를 눌러 게시 관리로 이동하세요. 공개하려면 게시 관리에서 ‘게시’를 눌러야 합니다."}
             </small>
           </>
         )}
