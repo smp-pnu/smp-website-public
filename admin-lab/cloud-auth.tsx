@@ -5,10 +5,10 @@ import { useConfirmation } from "./confirm"
 import { normalizeAdminCode, parseRecoveryFile } from "./recovery-code"
 
 import { reauthenticate } from "./reauthenticate"
-import { SecuritySettings, type PasskeyItem } from "./security-settings"
+import type { PasskeyItem, SecurityControls } from "./security-settings"
 const post = async (path: string, data: unknown = {}) => (await api(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) })).json()
 const message = (error: unknown) => error instanceof Error && error.name === "NotAllowedError" ? "패스키 인증이 취소됐거나 시간이 지났어요. 다시 시도해 주세요." : error instanceof Error ? error.message : "인증을 마치지 못했어요."
-export function CloudAuthGate({ children }: { children: (session: Session, logout: () => Promise<void>, security: () => void) => ReactNode }) {
+export function CloudAuthGate({ children }: { children: (session: Session, logout: () => Promise<void>, security: SecurityControls) => ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const [setup, setSetup] = useState(false)
@@ -17,7 +17,6 @@ export function CloudAuthGate({ children }: { children: (session: Session, logou
   const [label, setLabel] = useState("")
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
-  const [security, setSecurity] = useState(false)
   const [keys, setKeys] = useState<PasskeyItem[]>([])
   const [recoveryCode, setRecoveryCode] = useState("")
   const [saved, setSaved] = useState(false)
@@ -25,7 +24,7 @@ export function CloudAuthGate({ children }: { children: (session: Session, logou
   const accept = (value: Session | null) => { setApiSession(value); setSession(value) }
   useEffect(() => {
     let active = true
-    const expired = () => { accept(null); setSecurity(false) }
+    const expired = () => { accept(null) }
     window.addEventListener("admin-session-expired", expired)
     void (async () => {
       try {
@@ -61,7 +60,7 @@ export function CloudAuthGate({ children }: { children: (session: Session, logou
     if (result.recoveryCode) { setRecoveryCode(result.recoveryCode); setSaved(false) }
     if (mode === "add") setKeys(await (await api("/auth/keys")).json())
   }
-  const logout = async () => { await api("/logout", { method: "POST" }); accept(null); setSecurity(false); setError("") }
+  const logout = async () => { await api("/logout", { method: "POST" }); accept(null); setError("") }
   if (loading) return <main className="auth-shell"><p>로그인 상태를 확인하고 있어요…</p></main>
   if (recoveryCode) return <main className="auth-shell"><section className="auth-card">
     <h1>복구 코드를 보관해 주세요</h1><p>기기 분실 또는 관리자 인수인계에 쓰는 일회용 코드입니다. 이 화면을 닫으면 다시 확인할 수 없으므로 안전한 곳에 보관하세요.</p>
@@ -73,14 +72,14 @@ export function CloudAuthGate({ children }: { children: (session: Session, logou
     <label className="auth-note"><input type="checkbox" checked={saved} onChange={e => setSaved(e.target.checked)}/> 다른 안전한 곳에 보관했습니다.</label>
     <button className="primary" disabled={!saved} onClick={() => setRecoveryCode("")}>관리자 화면으로</button>
   </section></main>
-  if (session && security) return <SecuritySettings keys={keys} busy={busy} label={label} error={error} onLabel={setLabel} onBack={() => setSecurity(false)} onRegister={() => void run(() => register("add"))}
-    onLogout={async () => { try { await logout() } catch (e) { setError(message(e)) } }}
-    onRemove={id => void run(async () => {
+  if (session) return children(session, logout, {keys, busy, label, error, onLabel:setLabel,
+    onOpen:()=>void run(async()=>setKeys(await (await api("/auth/keys")).json())),
+    onRegister:()=>void run(()=>register("add")),
+    onRemove:id => void run(async () => {
       if (!await confirm("이 패스키와 해당 패스키로 로그인한 세션을 해제할까요?")) return
       await post("/auth/keys/remove", { id, stepUpToken: await reauthenticate(`key:remove:${id}`) }); setKeys(await (await api("/auth/keys")).json())
-      try { await api("/session") } catch { accept(null); setSecurity(false) }
-    })}/>
-  if (session) return children(session, logout, () => { setSecurity(true); void run(async () => setKeys(await (await api("/auth/keys")).json())) })
+      try { await api("/session") } catch { accept(null) }
+    })})
   return <main className="auth-shell"><section className="auth-card">
     <div className="admin-brand"><strong>SMP</strong><span>사이트 관리</span></div>
     <h1>{setup ? "첫 관리자 패스키 등록" : recover ? "복구·인수인계" : "관리자 로그인"}</h1>

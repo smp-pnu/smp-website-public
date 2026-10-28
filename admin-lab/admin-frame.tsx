@@ -5,7 +5,8 @@ import { limits, sizeLabel } from "./model"
 
 type Props = {
   children: ReactNode
-  active: "reports" | "security" | "notices" | "storage" | "members" | "recruitment" | "dashboard"
+  embedded?: boolean
+  active: "reports" | "security" | "notices" | "storage" | "members" | "recruitment" | "dashboard" | "upload"
   onDashboard?: () => void
   cmsEnabled?: boolean
   cmsActive?: boolean
@@ -24,6 +25,7 @@ type Props = {
 }
 export function AdminFrame({
   children,
+  embedded,
   active, cmsEnabled, cmsActive, onMembers, onRecruitment, onUpload, onDashboard,
   onReports,
   onNotices,
@@ -35,6 +37,7 @@ export function AdminFrame({
   count,
   countLimit = limits.drafts,
 }: Props) {
+  if (embedded) return <>{children}</>
   return (
     <div className="admin-shell">
       <a className="skip-link" href="#admin-main">
@@ -67,9 +70,9 @@ export function AdminFrame({
               공지사항
             </button>
           )}
-          {onMembers && <button className={active==='members'?'active':''} onClick={onMembers} disabled={busy}><Users size={17}/>회원 명단</button>}
-          {onRecruitment && <button className={active==='recruitment'?'active':''} onClick={onRecruitment} disabled={busy}><Calendar size={17}/>모집 안내</button>}
-          {onUpload && <button onClick={onUpload} disabled={busy}><Upload size={17}/>PDF 등록</button>}
+          {onMembers && <button className={active==='members'?'active':''} aria-current={active==='members'?'page':undefined} onClick={onMembers} disabled={busy}><Users size={17}/>회원 명단</button>}
+          {onRecruitment && <button className={active==='recruitment'?'active':''} aria-current={active==='recruitment'?'page':undefined} onClick={onRecruitment} disabled={busy}><Calendar size={17}/>모집 안내</button>}
+          {onUpload && <button className={active==='upload'?'active':''} aria-current={active==='upload'?'page':undefined} onClick={onUpload} disabled={busy}><Upload size={17}/>PDF 등록</button>}
           {onSecurity && (
             <button
               className={active === "security" ? "active" : ""}
