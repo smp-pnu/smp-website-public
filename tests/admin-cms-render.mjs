@@ -44,7 +44,7 @@ try {
  assert.ok(listing.includes('모든 학기'));assert.ok(listing.includes('현재 페이지 앞 5개 선택'));assert.ok(listing.includes('aria-label="2페이지"'))
  assert.ok(!pages.includes('<select'));assert.equal((pages.match(/class="cms-page-number"/g)||[]).length,5);assert.ok(pages.includes('aria-label="3페이지" aria-current="page"'))
  for(const html of longPages){assert.ok(html.includes('aria-label="1페이지"'));assert.ok(html.includes('aria-label="17페이지"'));assert.equal((html.match(/aria-current="page"/g)||[]).length,1);assert.ok((html.match(/class="cms-page-number"/g)||[]).length<=7)}
- assert.ok(bulk.includes('선택 비공개'));assert.ok(bulk.includes('선택 삭제'));assert.ok(bulk.includes('페이지를 옮겨도 선택 유지'))
+ assert.ok(bulk.includes('1개 공개'));assert.ok(bulk.includes('1개 비공개'));assert.ok(bulk.includes('1개 삭제'));assert.ok(bulk.includes('페이지를 옮겨도 선택 유지'))
  assert.ok(loadingList.includes('자료를 불러오는 중'));assert.ok(!loadingList.includes('조건에 맞는 자료가 없습니다'));assert.ok(!loadingList.includes('0건'));
  assert.ok(failedList.includes('다시 불러오기'));assert.ok(!failedList.includes('조건에 맞는 자료가 없습니다'));
  assert.match(publishedEditor,/<button class="primary" disabled="">게시됨<\/button>/);

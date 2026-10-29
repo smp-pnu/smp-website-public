@@ -23,7 +23,7 @@ export function CmsBulkControls({entries,visibleCount,trash,disabled,progress,st
       <button disabled={stopping} onClick={onStop}>중지</button>
     </> : <div className="cms-actions">
       {actions.map(action=><button key={action} className={action==="trash"?"danger":"secondary"}
-        disabled={disabled || !entries.some(e=>canApply(e,action))} onClick={()=>onAction(action)}>선택 {actionLabels[action]}</button>)}
+        disabled={disabled || !entries.some(e=>canApply(e,action))} onClick={()=>onAction(action)}>{entries.length}개 {actionLabels[action]}</button>)}
       <button className="text-button" disabled={disabled} onClick={onClear}>선택 해제</button>
     </div>}
   </div>
