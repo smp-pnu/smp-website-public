@@ -4,17 +4,20 @@ import {SITE_RANGES,siteDate,siteStart,emptySitePeriod,type Traffic,type SiteSna
 
 type Count={day:string;report:string;kind:string;bucket:number;count:number;total_ms:number}
 const bounded=(n:unknown)=>{if(typeof n!=='number'||!Number.isFinite(n)||n<0||n>1e12)throw Error('Invalid analytics');return n}
-type Group={count:number;sum:{visits:number};dimensions?:{datetimeHour?:string;requestPath?:string;refererHost?:string}}
+type Group={count:number;sum:{visits:number};dimensions?:{datetimeHour?:string;datetimeMinute?:string;requestPath?:string;refererHost?:string}}
 function groups(value:unknown,limit:number):Group[]{if(!Array.isArray(value)||value.length>=limit)throw Error('Incomplete analytics');return value}
 export function parseTraffic(value:unknown):Traffic {
-  const root=value as {errors?:unknown[];data?:{viewer?:{accounts?:{total:unknown;hours:unknown;reports:unknown;referrers:unknown}[]}}}
+  const root=value as {errors?:unknown[];data?:{viewer?:{accounts?:{total:unknown;hours:unknown;reports:unknown;referrers:unknown;latest?:unknown}[]}}}
   if(root.errors?.length||root.data?.viewer?.accounts?.length!==1)throw Error('Analytics unavailable')
   const data=root.data.viewer.accounts[0],total=groups(data.total,2),hours=groups(data.hours,746),reports=groups(data.reports,101),refs=groups(data.referrers,21)
   const daily=new Map<string,{day:string;views:number;visits:number}>()
   for(const row of hours){const at=Date.parse(row.dimensions?.datetimeHour??'');if(!Number.isFinite(at))throw Error('Invalid analytics time');const day=siteDate(at),item=daily.get(day)??{day,views:0,visits:0};item.views+=bounded(row.count);item.visits+=bounded(row.sum.visits);daily.set(day,item)}
   const reportCounts=new Map<string,number>()
   for(const row of reports){const match=/^\/research\/([a-f\d-]{32,36})\/?$/.exec(row.dimensions?.requestPath??'');if(!match)continue;const id=match[1].replaceAll('-','');if(/^[a-f\d]{32}$/.test(id))reportCounts.set(id,(reportCounts.get(id)??0)+bounded(row.count))}
-  return {views:total.length?bounded(total[0].count):0,visits:total.length?bounded(total[0].sum.visits):0,daily:[...daily.values()].sort((a,b)=>a.day.localeCompare(b.day)),reports:[...reportCounts].map(([id,views])=>({id,views})),referrers:refs.map(r=>({host:String(r.dimensions?.refererHost??'').slice(0,253),visits:bounded(r.sum.visits)})).filter(r=>r.visits>0)}
+  const latest=data.latest===undefined?[]:groups(data.latest,2)
+  const lastViewAt=latest.length?Date.parse(latest[0].dimensions?.datetimeMinute??''):null
+  if(lastViewAt!==null&&!Number.isFinite(lastViewAt))throw Error('Invalid latest analytics time')
+  return {lastViewAt,views:total.length?bounded(total[0].count):0,visits:total.length?bounded(total[0].sum.visits):0,daily:[...daily.values()].sort((a,b)=>a.day.localeCompare(b.day)),reports:[...reportCounts].map(([id,views])=>({id,views})),referrers:refs.map(r=>({host:String(r.dimensions?.refererHost??'').slice(0,253),visits:bounded(r.sum.visits)})).filter(r=>r.visits>0)}
 }
 export function combinePeriod(rows:Count[],traffic:Traffic|null,titles:Map<string,string>,start:string):SitePeriod {
   const out=emptySitePeriod();out.traffic=traffic
@@ -36,6 +39,7 @@ export function combinePeriod(rows:Count[],traffic:Traffic|null,titles:Map<strin
   return out
 }
 const QUERY=`query($account:String!,$start:Time!,$end:Time!){viewer{accounts(filter:{accountTag:$account}){
+ latest:rumPageloadEventsAdaptiveGroups(limit:1,filter:{datetime_geq:$start,datetime_leq:$end,requestHost:"pnusmp.com",bot:0},orderBy:[datetimeMinute_DESC]){dimensions{datetimeMinute}count}
  total:rumPageloadEventsAdaptiveGroups(limit:1,filter:{datetime_geq:$start,datetime_leq:$end,requestHost:"pnusmp.com",bot:0}){count sum{visits}}
  hours:rumPageloadEventsAdaptiveGroups(limit:745,filter:{datetime_geq:$start,datetime_leq:$end,requestHost:"pnusmp.com",bot:0}){dimensions{datetimeHour}count sum{visits}}
  reports:rumPageloadEventsAdaptiveGroups(limit:100,filter:{datetime_geq:$start,datetime_leq:$end,requestHost:"pnusmp.com",requestPath_like:"/research/%",bot:0},orderBy:[count_DESC]){dimensions{requestPath}count}
@@ -68,13 +72,18 @@ export async function collectSiteAnalytics(db:Database,config:{account:string;to
     db.prepare('DELETE FROM cms_site_counts WHERE day<?').bind(floor),
     db.prepare('DELETE FROM cms_site_days WHERE day<?').bind(floor),
   ])
-  const [counts,content,limited]=await Promise.all([
+  const [counts,content,limited,lastDownload]=await Promise.all([
     db.prepare('SELECT * FROM cms_site_counts WHERE day>=? ORDER BY day').bind(floor).all<Count>(),
     db.prepare("SELECT id,json_extract(item,'$.title') title FROM free_content WHERE kind='research'").all<{id:string;title:string}>(),
     db.prepare('SELECT day FROM cms_site_days WHERE day>=? AND events>=2000 ORDER BY day').bind(floor).all<{day:string}>(),
+    db.prepare("SELECT max(expires_at)-172800000 AS at FROM cms_site_receipts WHERE kind='download'").first<{at:number|null}>(),
   ])
   const titles=new Map(content.results.map(r=>[r.id,r.title])),periods={} as SiteSnapshot['periods']
-  for(const n of SITE_RANGES)periods[n]=combinePeriod(counts.results,traffic[n],titles,siteDate(siteStart(now,n)))
+  for(const n of SITE_RANGES){
+    periods[n]=combinePeriod(counts.results,traffic[n],titles,siteDate(siteStart(now,n)))
+    const latest=Math.max(lastDownload?.at??0,previous?.periods[30]?.lastDownloadAt??0)
+    periods[n].lastDownloadAt=latest>=siteStart(now,n)&&latest<=now?latest:null
+  }
   const snapshot:SiteSnapshot={startedAt:claimed.started_at,checkedAt:now,trafficCheckedAt:trafficAt,trafficError,limitedDays:limited.results.map(r=>r.day),periods}
   await db.prepare('UPDATE cms_site_snapshot SET payload=?,lease_until=0 WHERE id=1 AND lease_until=?').bind(JSON.stringify(snapshot),lease).run()
   return {skipped:false,failed:trafficError}

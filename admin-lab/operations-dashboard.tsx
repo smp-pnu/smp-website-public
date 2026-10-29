@@ -6,6 +6,7 @@ import { api } from "./server-storage"
 import { capacityLabel, type DashboardData, type DriveCapacity, type Snapshot } from "./dashboard-model"
 import "./operations-dashboard.css"
 import { CloudflareUsage } from "./cloudflare-usage"
+import { TrashCleanup } from "./trash-cleanup"
 import { SiteAnalytics } from "./site-analytics"
 
 const names: Record<Kind,string> = {research:"리포트",notice:"공지사항",members:"회원 명단"}
@@ -57,7 +58,7 @@ export function OperationsDashboard(props: Props) {
           {drive.snapshot?.value ? <DriveCard data={drive.snapshot.value} onStorage={props.onStorage}/> : !drive.error && !drive.snapshot && <LoadingState label="Google 계정 용량을 확인하는 중…" rows={2} />}
           <p className="ops-footnote">마지막 확인 {time(drive.snapshot?.checkedAt??null)} · 조회 결과는 10분간 재사용합니다.</p>
         </section>
-        {overview.snapshot?.value && <Attention data={overview.snapshot.value} {...props}/>}
+        {overview.snapshot?.value && <Attention data={overview.snapshot.value} {...props} onClean={()=>setTick(n=>n+1)}/>}
       </div>
       {overview.snapshot?.value && <DashboardDetails data={overview.snapshot.value} {...props}/>}
       <p className="ops-footnote">관리 자료 확인 {time(overview.snapshot?.checkedAt??null)} · 운영 수치는 최대 1분 전 값입니다. 자동 반복 조회는 하지 않습니다.</p>
@@ -89,7 +90,7 @@ export function DriveCard({data,onStorage}:{data:DriveCapacity;onStorage:()=>voi
     <p className="ops-footnote">학회 계정으로 열어 주세요. 사이트 자료 삭제는 리포트·공지 관리에서 진행해야 연결 정보도 함께 정리됩니다.</p>
   </>
 }
-function Attention({data,onNavigate,onStorage}:Props & {data:DashboardData}) {
+function Attention({data,onNavigate,onStorage,onClean}:Props & {data:DashboardData;onClean:()=>void}) {
   const jobs=data.jobs, drafts=data.content.reduce((n,c)=>n+c.changed,0), trash=data.content.reduce((n,c)=>n+c.trash,0)
   return <section className="ops-panel"><header><h2>확인할 작업</h2><span className={jobs.failed+jobs.cleanupFailed?"ops-warning":"ops-muted"}>{jobs.failed+jobs.cleanupFailed?`오류 ${jobs.failed+jobs.cleanupFailed}건`:"등록된 처리 오류 없음"}</span></header>
     <div className="ops-task-list">
@@ -99,6 +100,7 @@ function Attention({data,onNavigate,onStorage}:Props & {data:DashboardData}) {
       <button onClick={onStorage}><span>파일 정리 대기<small>기존 Drive 원본은 삭제하지 않습니다</small></span><strong>{jobs.cleanup}개{jobs.cleanupFailed>0&&<small className="ops-warning">재시도 {jobs.cleanupFailed}</small>}</strong></button>
     </div>
     <div className="ops-links">{data.content.filter(c=>c.trash>0).map(c=><button className="ops-text-button" key={c.kind} onClick={()=>onNavigate(c.kind,'trash')}>{names[c.kind]} 휴지통 {c.trash} <ArrowUpRight size={14}/></button>)}</div>
+    <TrashCleanup count={trash} onComplete={onClean}/>
   </section>
 }
 function DashboardDetails({data,onNavigate}:Props & {data:DashboardData}) {

@@ -18,7 +18,7 @@ function fixture(){
  const env:Env={CMS_DB:db,ASSETS:{fetch}}
  return {sql,db,env}
 }
-const graph={data:{viewer:{accounts:[{total:[{count:8,sum:{visits:3}}],hours:[{count:8,sum:{visits:3},dimensions:{datetimeHour:'2026-10-27T16:00:00Z'}}],reports:[{count:5,dimensions:{requestPath:'/research/'+report}}],referrers:[{sum:{visits:3},dimensions:{refererHost:'google.com'}}]}]}},errors:null}
+const graph={data:{viewer:{accounts:[{latest:[{count:1,dimensions:{datetimeMinute:'2026-10-28T04:32:00Z'}}],total:[{count:8,sum:{visits:3}}],hours:[{count:8,sum:{visits:3},dimensions:{datetimeHour:'2026-10-27T16:00:00Z'}}],reports:[{count:5,dimensions:{requestPath:'/research/'+report}}],referrers:[{sum:{visits:3},dimensions:{refererHost:'google.com'}}]}]}},errors:null}
 test('analytics accepts only bounded anonymous report events, rejects extra sensitive fields and malformed IDs',()=>{
  assert.deepEqual(validateEvents({events:[event(1)]}),[event(1)])
  for(const body of [{events:[]},{events:Array(9).fill(event(1))},{events:[event(1),event(1)]},{events:[{...event(1),email:'private'}]},{events:[{...event(1),ms:Infinity}]},{events:[{...event(1),kind:'pageview'}]},{events:[{...event(1),id:'id'}]},{events:[{...event(1),report:'https://private'}]}])assert.equal(validateEvents(body),null)
@@ -59,7 +59,7 @@ test('cross-origin, bots, oversized, malformed and rate-limited requests cannot 
  }finally{sql.close()}
 })
 test('traffic uses KST days, validates missing/error responses, and does not turn unknown report views into zero',()=>{
- const traffic=parseTraffic(graph);assert.equal(traffic.daily[0].day,'2026-10-28');assert.equal(traffic.visits,3)
+ const traffic=parseTraffic(graph);assert.equal(traffic.daily[0].day,'2026-10-28');assert.equal(traffic.visits,3);assert.equal(traffic.lastViewAt,Date.parse('2026-10-28T04:32:00Z'))
  assert.throws(()=>parseTraffic({errors:[{message:'denied'}]}));assert.throws(()=>parseTraffic({data:{viewer:{accounts:[{}]}}}))
  assert.equal(siteDate(siteStart(now,7)),'2026-10-22')
  const p=combinePeriod([{day:'2026-10-28',report:'b'.repeat(32),kind:'download',bucket:0,count:2,total_ms:0},{day:'2026-10-28',report,kind:'ready',bucket:4,count:2,total_ms:22000}],traffic,new Map([[report,'기업']]),'2026-10-28')
@@ -75,11 +75,15 @@ test('private collector throttles, keeps previous traffic on errors, purges rete
  await recordEvents(env,[event(2)],now)
  assert.equal((await collectSiteAnalytics(db,{account:'a'.repeat(32),token:'SECRET'},now+1000,fake)).skipped,true)
  await collectSiteAnalytics(db,{account:'a'.repeat(32),token:'SECRET'},now+61*60000,fake);assert.equal(calls,6)
- assert.equal((await readSiteAnalytics(db))?.periods[7].downloads,1)
+ assert.equal((await readSiteAnalytics(db))?.periods[7].downloads,1);assert.equal((await readSiteAnalytics(db))?.periods[7].lastDownloadAt,now)
  await collectSiteAnalytics(db,{account:'a'.repeat(32),token:'SECRET'},now+122*60000,async()=>Response.json({errors:[{message:'SECRET_ERROR'}]}))
  const snapshot=await readSiteAnalytics(db);assert.equal(snapshot?.trafficError,true);assert.equal(snapshot?.trafficCheckedAt,now+61*60000);assert.equal(snapshot?.periods[7].traffic?.visits,3)
  assert.ok(!JSON.stringify(snapshot).includes('SECRET'))
+ await collectSiteAnalytics(db,{account:'a'.repeat(32),token:'SECRET'},now+3*86400000,async()=>Response.json(graph))
+ assert.equal(sql.prepare('SELECT count(*) n FROM cms_site_receipts').get()?.n,0)
+ assert.equal((await readSiteAnalytics(db))?.periods[7].lastDownloadAt,now)
+ assert.equal((await readSiteAnalytics(db))?.periods[1].lastDownloadAt,null)
  await collectSiteAnalytics(db,{account:'a'.repeat(32),token:'SECRET'},now+32*86400000,async()=>Response.json(graph))
- assert.equal(sql.prepare('SELECT count(*) n FROM cms_site_receipts').get()?.n,0);assert.equal(sql.prepare('SELECT count(*) n FROM cms_site_counts').get()?.n,0)
+ assert.equal(sql.prepare('SELECT count(*) n FROM cms_site_receipts').get()?.n,0);assert.equal(sql.prepare('SELECT count(*) n FROM cms_site_counts').get()?.n,0);assert.equal((await readSiteAnalytics(db))?.periods[30].lastDownloadAt,null)
  }finally{sql.close()}
 })
