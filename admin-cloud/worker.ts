@@ -1,3 +1,4 @@
+import { emptyTrashItem, trashPreview } from "../cms/trash"
 import { guardUploadDeletion, cmsMaintenance } from "../cms/maintenance"
 import { cmsApi, cmsExport } from "../cms/api"
 import { Buffer } from "node:buffer"
@@ -126,6 +127,11 @@ export function createHandler(clock = Date.now, driveFetch: DriveFetch = fetch) 
           if (path === "/api/dashboard" && method === "GET") {
             if (!env.CMS_DB) throw new HttpError(409, "게시 관리 연결을 확인해 주세요.")
             response = json(await dashboardSnapshot(env.ADMIN_DB,"overview",60_000,()=>dashboardData(env.ADMIN_DB,env.CMS_DB!,now),now))
+          } else if (path === "/api/dashboard/trash" && method === "GET") {
+            if (!env.CMS_DB) throw new HttpError(409, "게시 관리 연결을 확인해 주세요.")
+            response = json(await trashPreview(env.CMS_DB))
+          } else if (path === "/api/dashboard/trash" && method === "POST") {
+            response = json(await emptyTrashItem(env,await jsonBody(request,1024),now))
           } else if (path === "/api/dashboard/drive" && method === "GET") {
             response = json(await driveCapacity(connection,env.DRIVE_REPORTS_FOLDER_ID))
           } else if (path === "/api/dashboard/cloudflare" && method === "GET") {

@@ -76,5 +76,14 @@ export async function checkCmsManagement({call,cms,mf,origin,jar,csrf}) {
       assert.equal(visible.length,action==='approve'?ids.length:0)
     }
   }
+  const disposable=await(await call('/api/cms/notice','POST',notice('Disposable trash test'))).json()
+  await call(`/api/cms/entry/${disposable.id}/trash`,'POST',{revision:1})
+  const trashInput={id:disposable.id,revision:2,confirm:'permanent-delete'}
+  assert.ok((await(await call('/api/dashboard/trash')).json()).items.some(e=>e.id===disposable.id))
+  assert.equal((await mf.dispatchFetch(origin+'/api/dashboard/trash')).status,401)
+  assert.equal((await mf.dispatchFetch(origin+'/api/dashboard/trash',{method:'POST',headers:{Origin:origin,Cookie:jar.read(),'Content-Type':'application/json','X-CSRF-Token':'incorrect'},body:JSON.stringify(trashInput)})).status,403)
+  assert.equal((await(await call('/api/dashboard/trash','POST',trashInput)).json()).removed,true)
+  assert.equal(await cms.prepare('SELECT id FROM cms_entries WHERE id=?').bind(disposable.id).first(),null)
+  assert.ok((await published('notice')).some(e=>e.id===a.id))
   console.log(JSON.stringify({cmsRuntime:'pass',checks:['session/CSRF','notice create/edit/approve','upload image','manual order','stale revision rejection','trash/restore stays private','member bulk import/private approval/replay','member CRUD and role ordering','public catalogue/search projection']}))
 }

@@ -49,3 +49,6 @@ CREATE TABLE IF NOT EXISTS cms_site_snapshot (
  payload TEXT CHECK(payload IS NULL OR (json_valid(payload) AND length(payload)<=262144)),
  refresh_after INTEGER NOT NULL DEFAULT 0, lease_until INTEGER NOT NULL DEFAULT 0
 );
+
+-- Atomic guard for explicit Trash deletion with revision checks.
+CREATE TABLE IF NOT EXISTS mutation_checks(token TEXT PRIMARY KEY, valid INTEGER NOT NULL CHECK(valid=1));
