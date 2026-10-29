@@ -55,7 +55,10 @@ export function SiteFooter() {
             © {new Date().getFullYear()} {SITE_NAME_KO}. All rights reserved.
           </p>
           <p className="mt-2 text-xs leading-relaxed text-site-muted">Created by SI YEONG KIM</p>
-          <a href="/feed.xml" className="mt-3 inline-block text-xs text-site-muted underline-offset-4 hover:underline">최신 리포트·공지 RSS</a>
+          <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-site-muted">
+            <a href="/feed.xml" className="underline-offset-4 hover:underline">최신 리포트·공지 RSS</a>
+            <a href="https://admin.pnusmp.com/" className="underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">관리자</a>
+          </div>
         </div>
       </div>
     </footer>

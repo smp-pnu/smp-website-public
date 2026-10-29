@@ -146,12 +146,16 @@ export function CmsBlocks({
   onChange,
   disabled = false,
   onBusy,
+  allowAppend = true,
+  allowUpload = true,
 }: {
   id: string;
   blocks: ContentBlock[];
   onChange: (blocks: ContentBlock[]) => void;
   disabled?: boolean;
   onBusy?: (busy: boolean) => void;
+  allowAppend?: boolean;
+  allowUpload?: boolean;
 }) {
   const [kind, setKind] = useState("paragraph"),
     [uploading, setUploading] = useState(false),
@@ -382,6 +386,9 @@ export function CmsBlocks({
               <CmsBlocks
                 id={id}
                 blocks={b.children}
+                disabled={disabled || uploading}
+                allowUpload={allowUpload}
+                onBusy={onBusy}
                 onChange={(children) => change(index, { ...b, children })}
               />
             )}
@@ -393,7 +400,7 @@ export function CmsBlocks({
           {error}
         </p>
       )}
-      <div className="cms-actions">
+      {allowAppend && <div className="cms-actions">
         <AdminSelect disabled={disabled || uploading}
           aria-label="추가할 본문 요소"
           value={kind}
@@ -414,7 +421,7 @@ export function CmsBlocks({
           <Plus size={14} />
           요소 추가
         </button>
-        <label className="secondary file-picker">
+        {allowUpload && <label className="secondary file-picker">
           <input
             type="file"
             accept="image/png,image/jpeg,image/webp,.pdf,.zip"
@@ -424,12 +431,12 @@ export function CmsBlocks({
             }}
           />
           {uploading ? <InlineLoading>파일 준비 중…</InlineLoading> : "사진·첨부 추가"}
-        </label>
-      </div>
-      <small>
+        </label>}
+      </div>}
+      {allowUpload && <small>
         사진은 자동 압축합니다. PDF·ZIP 첨부는 1.4 MB 이하입니다. 리포트 PDF는
         ‘리포트 등록’에서 올려주세요.
-      </small>
+      </small>}
     </fieldset>
   );
 }
