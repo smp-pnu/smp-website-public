@@ -9,12 +9,14 @@ import { CmsBlocks, CmsBlocksPreview, mediaUrl } from "../cms-blocks";
 import { Field } from "./field";
 import { names, status, statusTone } from "./presentation";
 import type { CmsAction } from "../cms-bulk";
-type Props = {
+import { NoticeWorkspace } from "../notice/workspace";
+export type EntryEditorProps = {
   selected: Entry;
   form: Payload;
   group: string;
   busy: boolean;
   onBusy?: (busy: boolean) => void;
+  onDirty?: (dirty: boolean) => void;
   dirty: boolean;
   onBack: () => void;
   onSave: () => void;
@@ -30,6 +32,7 @@ export function EntryEditor({
   group,
   busy,
   onBusy,
+  onDirty,
   dirty,
   onBack,
   onSave,
@@ -38,11 +41,12 @@ export function EntryEditor({
   change,
   onPhoto,
   onBlocks,
-}: Props) {
+}: EntryEditorProps) {
   const section: Kind = selected.kind;
   const [preview, setPreview] = useState(false);
   const selectedContent = form.item as ContentItem,
     member = form.item as Member;
+  if (section === "notice") return <NoticeWorkspace key={selected.id} {...{ selected, form, group, busy, onBusy, onDirty, dirty, onBack, onSave, onReplacePdf, onAction, change, onPhoto, onBlocks }}/>;
   return (
     <>
       <div className="detail-navigation">

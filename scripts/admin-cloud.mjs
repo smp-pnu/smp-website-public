@@ -33,8 +33,9 @@ if (mode === 'build') {
   const scripts = (await readdir(scriptDirectory)).filter(file => file.endsWith('.js'))
   if (scripts.length !== 1) throw Error('The cloud admin must not depend on lazy hashed JavaScript chunks')
   const entry = await readFile(path.join(scriptDirectory, scripts[0]))
-  // Accessible select menus add ~41 kB gzip; keep one bounded entry to survive open tabs across deploys.
-  if (entry.length > 1_020_000 || gzipSync(entry).length > 320_000) throw Error('The isolated admin entry exceeds its single-bundle size budget')
+  // The local rich-text editor adds ~153 kB gzip to the admin only. Keep one bounded
+  // entry so tabs opened before a deploy never request a deleted lazy editor chunk.
+  if (entry.length > 1_520_000 || gzipSync(entry).length > 480_000) throw Error('The isolated admin entry exceeds its single-bundle size budget')
   const config = {
     name, account_id: account, main: '../../admin-cloud/worker.ts', compatibility_date: '2026-10-01', compatibility_flags: ['nodejs_compat'],
     workers_dev: true, preview_urls: false, routes,

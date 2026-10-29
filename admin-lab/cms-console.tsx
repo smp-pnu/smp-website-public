@@ -393,6 +393,7 @@ export function CmsConsole({
           selected={selected}
           form={form}
           onBusy={setChildBusy}
+          onDirty={setChildDirty}
           group={group}
           busy={busy || childBusy}
           dirty={dirty}

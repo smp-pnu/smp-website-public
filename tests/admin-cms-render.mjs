@@ -34,7 +34,7 @@ export const publishedEditor=renderToStaticMarkup(<EntryEditor selected={entry} 
 export const bulk=renderToStaticMarkup(<CmsBulkControls entries={[{id:'a',revision:1,approvedRevision:1,pending:false,trashedAt:null}]} visibleCount={0} trash={false} disabled={false} progress={null} stopping={false} onAction={()=>{}} onClear={()=>{}} onStop={()=>{}}/>);
 `
 try {
- await build({stdin:{contents:source,resolveDir:process.cwd(),loader:'tsx'},bundle:true,outfile:target,platform:'node',format:'esm',jsx:'automatic',external:['react','react-dom','react-dom/server','lucide-react','@base-ui/react/select'],define:{'import.meta.env.MODE':'"admin-cloud"'}})
+ await build({stdin:{contents:source,resolveDir:process.cwd(),loader:'tsx'},bundle:true,outfile:target,platform:'node',format:'esm',jsx:'automatic',external:['react','react-dom','react-dom/server','lucide-react','@base-ui/react/select','@tiptap/*'],define:{'import.meta.env.MODE':'"admin-cloud"'}})
  const {select,skeleton,content,listing,pages,longPages,bulk,loadingList,failedList,publishedEditor}=await import(pathToFileURL(target).href)
  assert.ok(select.includes('role="combobox"'));assert.ok(select.includes('aria-label="모집 상태"'));assert.ok(select.includes('disabled'));assert.ok(select.includes('모집 중'));assert.ok(!select.includes('<option'));
  assert.ok(skeleton.includes('role="status"'));assert.ok(skeleton.includes('aria-hidden="true"'));assert.equal((skeleton.match(/class="ui-skeleton-row"/g)||[]).length,4);
@@ -48,5 +48,6 @@ try {
  assert.ok(loadingList.includes('자료를 불러오는 중'));assert.ok(!loadingList.includes('조건에 맞는 자료가 없습니다'));assert.ok(!loadingList.includes('0건'));
  assert.ok(failedList.includes('다시 불러오기'));assert.ok(!failedList.includes('조건에 맞는 자료가 없습니다'));
  assert.match(publishedEditor,/<button class="primary" disabled="">게시됨<\/button>/);
+ assert.ok(publishedEditor.includes('aria-label="공지 제목"'));assert.ok(publishedEditor.includes('aria-label="공지 게시 설정"'));assert.ok(publishedEditor.includes('초안 저장됨'));assert.ok(!publishedEditor.includes('추가할 본문 요소'));
  console.log(JSON.stringify({result:'pass',checks:['escaped notice text','safe links','authenticated image path','20-row pagination','order and selection controls']}))
 } finally {await rm(target,{force:true})}
