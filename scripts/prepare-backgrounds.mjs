@@ -4,7 +4,7 @@ import { mkdir } from "node:fs/promises"
 
 const sources = ["home-gwangan-3.png", "page-gwangan-3.png", "research-desk.jpg",
   "achievements-building.jpg", "pnu-campus-upscaled.png", "recruit-bull.jpg",
-  "network-yeouido-portrait.jpg", "network-yeouido.jpg", "curriculum-skyscrapers.jpg",
+  "network-yeouido-portrait.jpg", "network-yeouido.jpg", "curriculum-skyscrapers.jpg", "curriculum-skyscrapers-restored.jpg",
   "central-business-district-singapore.jpg", "home-gwangan-2.jpg"]
 await mkdir("public/backgrounds", { recursive: true })
 for (const name of sources) {
