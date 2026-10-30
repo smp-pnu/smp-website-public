@@ -10,6 +10,7 @@ import { preparedRangeFile } from "./pdf-range-file"
 import type { ReaderTransport } from "@/lib/report-reader"
 import { PdfReaderToolbar, pdfButtonClass as buttonClass } from "./pdf-reader-toolbar"
 import { usePdfViewport } from "./use-pdf-viewport"
+import type { PdfPagesPerView } from "@/lib/pdf-reader-layout"
 import "react-pdf/dist/Page/TextLayer.css"
 import "react-pdf/dist/Page/AnnotationLayer.css"
 
@@ -17,6 +18,8 @@ export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChang
   const {reader,viewport,width,fullscreen,fullscreenAvailable,fullscreenError,toggleFullscreen}=usePdfViewport()
   const [pages, setPages] = useState(0)
   const [zoom, setZoom] = useState(1)
+  const [layout,setLayout]=useState<PdfPagesPerView>(1)
+  const pagesPerView=fullscreen?layout:1
   const [attempt, setAttempt] = useState(0)
   const [failed, setFailed] = useState(false)
   const [pdfDocument, setPdfDocument] = useState<RenderablePdfDocument>()
@@ -56,6 +59,7 @@ export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChang
 
   return <div ref={reader} data-pdf-reader-mode="original" data-pdf-download-state={fullyLoaded ? 'complete' : 'partial'} className={`overflow-hidden rounded-lg border border-white/20 bg-slate-950 ${fullscreen ? "flex h-screen flex-col" : ""}`}>
     <PdfReaderToolbar page={page} pages={pages} zoom={zoom} disabled={failed} onNavigate={navigate} onZoom={setZoom}
+      pagesPerView={pagesPerView} onPagesPerView={setLayout}
       fullscreen={fullscreen} fullscreenAvailable={fullscreenAvailable} onFullscreen={toggleFullscreen} />
     {fullscreenError && <p role="status" className="px-4 py-2 text-xs text-slate-300">이 브라우저에서는 전체 화면을 열 수 없습니다.</p>}
     {resumePage && <div className="flex items-center justify-between gap-3 border-b border-white/15 px-4 py-2 text-xs text-slate-300">
@@ -75,7 +79,7 @@ export default function PdfCanvas({ url, rangeOnly, transport, page, onPageChang
           } catch { /* Optional preference only. */ }
         }}
         onPassword={fail} externalLinkTarget="_blank" onItemClick={({ pageNumber }) => { if (pageNumber) navigate(pageNumber) }}>
-        {pdfDocument && <PdfBufferedPages pdf={pdfDocument} page={page} width={width} zoom={zoom} prepareRemaining={fullyLoaded || preloadState === 'loading'} onDemand={preloadState === 'on-demand'} onReady={rendered} onInitialPagesReady={preparedInitialPages} onError={fail} />}
+        {pdfDocument && <PdfBufferedPages pdf={pdfDocument} page={page} pagesPerView={pagesPerView} width={width} zoom={zoom} prepareRemaining={fullyLoaded || preloadState === 'loading'} onDemand={preloadState === 'on-demand'} onReady={rendered} onInitialPagesReady={preparedInitialPages} onError={fail} />}
       </Document>}
     </div>
   </div>
