@@ -7,6 +7,7 @@ import type { PreparedPdfPage } from '@/lib/pdf-page-cache'
 import { PdfPageImages } from './pdf-page-images'
 import { PdfReaderToolbar } from './pdf-reader-toolbar'
 import { usePdfViewport } from './use-pdf-viewport'
+import type { PdfPagesPerView } from '@/lib/pdf-reader-layout'
 
 // The reading path does not import PDF.js, parse the PDF, or download its bytes.
 // Readers can download the original PDF for text selection and links.
@@ -16,6 +17,8 @@ export default function PdfPackedReader({url,preview,page,onPageChange,onReady,o
 }) {
   const {reader,viewport,width,fullscreen,fullscreenAvailable,fullscreenError,toggleFullscreen}=usePdfViewport()
   const [entries,setEntries]=useState<PreparedPdfPage[]>([]),[zoom,setZoom]=useState(1)
+  const [layout,setLayout]=useState<PdfPagesPerView>(1)
+  const pagesPerView=fullscreen?layout:1
   const [resume,setResume]=useState<number|null>(null)
   const fallback=useEffectEvent(onFallback)
   const key=preview.pack!.key,bytes=preview.pack!.bytes,count=preview.pageCount
@@ -43,6 +46,7 @@ export default function PdfPackedReader({url,preview,page,onPageChange,onReady,o
   }
   return <div ref={reader} data-pdf-reader-mode="prepared" className={`overflow-hidden rounded-lg border border-white/20 bg-slate-950 ${fullscreen?'flex h-screen flex-col':''}`}>
     <PdfReaderToolbar page={page} pages={count} zoom={zoom} onNavigate={navigate} onZoom={setZoom}
+      pagesPerView={pagesPerView} onPagesPerView={setLayout}
       fullscreen={fullscreen} fullscreenAvailable={fullscreenAvailable} onFullscreen={toggleFullscreen} />
     {fullscreenError && <p role="status" className="px-4 py-2 text-xs text-slate-300">이 브라우저에서는 전체 화면을 열 수 없습니다.</p>}
     {resume && <div className="flex items-center justify-between gap-3 border-b border-white/15 px-4 py-2 text-xs text-slate-300">
@@ -50,7 +54,7 @@ export default function PdfPackedReader({url,preview,page,onPageChange,onReady,o
       <button className="min-h-9 px-2 text-slate-400" onClick={()=>setResume(null)}>닫기</button>
     </div>}
     <div ref={viewport} tabIndex={0} aria-label="PDF 문서" className={`overflow-x-auto bg-slate-800 ${fullscreen?'min-h-0 flex-1 overflow-y-auto':''}`}>
-      {width>0 && <PdfPageImages state={{entries,complete:entries.length===count,limited:false,failed:[]}} identity={key} page={page} width={width} zoom={zoom} onReady={onReady} onError={onFallback} />}
+      {width>0 && <PdfPageImages state={{entries,complete:entries.length===count,limited:false,failed:[]}} identity={key} page={page} pageCount={count} pagesPerView={pagesPerView} width={width} zoom={zoom} onReady={onReady} onError={onFallback} />}
     </div>
   </div>
 }
