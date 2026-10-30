@@ -4,6 +4,8 @@ import { startAuthentication, startRegistration } from "@simplewebauthn/browser"
 import { api, setApiSession, type Session } from "./server-storage"
 import { useConfirmation } from "./confirm"
 import { normalizeAdminCode, parseRecoveryFile } from "./recovery-code"
+import { passkeyLoginOptions, type PasskeyLoginMethod } from "./passkey-login"
+import { PasskeySignIn } from "./passkey-sign-in"
 
 import { reauthenticate } from "./reauthenticate"
 import type { PasskeyItem, SecurityControls } from "./security-settings"
@@ -18,6 +20,7 @@ export function CloudAuthGate({ children }: { children: (session: Session, logou
   const [label, setLabel] = useState("")
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
+  const [loginMethod, setLoginMethod] = useState<PasskeyLoginMethod>("device")
   const [keys, setKeys] = useState<PasskeyItem[]>([])
   const [recoveryCode, setRecoveryCode] = useState("")
   const [saved, setSaved] = useState(false)
@@ -62,6 +65,12 @@ export function CloudAuthGate({ children }: { children: (session: Session, logou
     if (mode === "add") setKeys(await (await api("/auth/keys")).json())
   }
   const logout = async () => { await api("/logout", { method: "POST" }); accept(null); setError("") }
+  const login = async (method: PasskeyLoginMethod) => {
+    setLoginMethod(method)
+    const optionsJSON = passkeyLoginOptions(await post("/auth/login/options"), method)
+    const response = await startAuthentication({ optionsJSON })
+    accept((await post("/auth/login/verify", { response })).session)
+  }
   if (loading) return <main className="auth-shell"><section className="auth-card"><div className="admin-brand"><strong>SMP</strong><span>사이트 관리</span></div><LoadingState label="로그인 상태를 확인하고 있어요…" rows={2}/></section></main>
   if (recoveryCode) return <main className="auth-shell"><section className="auth-card">
     <h1>복구 코드를 보관해 주세요</h1><p>기기 분실 또는 관리자 인수인계에 쓰는 일회용 코드입니다. 이 화면을 닫으면 다시 확인할 수 없으므로 안전한 곳에 보관하세요.</p>
@@ -87,9 +96,7 @@ export function CloudAuthGate({ children }: { children: (session: Session, logou
     <p className="auth-intro">{recover ? "패스키 등록 때 보관한 64자리 복구 코드가 필요합니다. 로컬 시험판의 아이디·비밀번호를 입력하는 곳이 아닙니다." : "등록한 패스키로 로그인하세요. 게시 관리에서 승인한 내용만 공식 홈페이지에 반영됩니다."}</p>
     <form onSubmit={e => { e.preventDefault(); void run(async () => {
       if (setup || recover) return register(setup ? "setup" : "recover")
-      const optionsJSON = await post("/auth/login/options")
-      const response = await startAuthentication({ optionsJSON })
-      accept((await post("/auth/login/verify", { response })).session)
+      return login("device")
     }) }}><fieldset disabled={busy} className="auth-fields">
       {(setup || recover) && <><label>{setup ? "초기 설정 키 (64자리)" : "복구 코드 (64자리)"}<input type="password" value={token} onChange={e => { setToken(e.target.value.trim()); setError("") }} autoComplete="off" spellCheck={false} required minLength={64} maxLength={64} pattern="[a-fA-F0-9]{64}" aria-describedby={recover ? "recovery-help" : undefined} onInvalid={e => { e.preventDefault(); setError("64자리 코드를 입력해 주세요. 로컬 시험판 비밀번호와는 다릅니다.") }}/></label>
       {recover && <><small id="recovery-help">다운로드 폴더의 ‘SMP-관리자-복구코드.txt’를 불러오거나 파일 안의 64자리 코드를 입력하세요.</small>
@@ -104,7 +111,8 @@ export function CloudAuthGate({ children }: { children: (session: Session, logou
       <label>기기 이름<input value={label} onChange={e => setLabel(e.target.value)} placeholder="예: 관리자 Mac" required maxLength={60}/></label></>}
       {recover && <p>복구를 완료하면 기존 패스키와 모든 로그인이 해제됩니다. 저장한 리포트는 유지됩니다.</p>}
       {error && <p className="error-panel" role="alert">{error}</p>}
-      <button className="primary">{busy ? <InlineLoading>기기 인증을 기다리고 있어요…</InlineLoading> : setup ? "패스키 등록하고 시작" : recover ? "새 관리자 패스키 등록" : "패스키로 로그인"}</button>
+      {setup || recover ? <button className="primary">{busy ? <InlineLoading>기기 인증을 기다리고 있어요…</InlineLoading> : setup ? "패스키 등록하고 시작" : "새 관리자 패스키 등록"}</button>
+        : <PasskeySignIn busy={busy} method={loginMethod} onPhone={() => void run(() => login("phone"))}/>}
     </fieldset></form>
     {!setup && <button className="secondary" disabled={busy} onClick={() => { setRecover(!recover); setToken(""); setError("") }}>{recover ? "로그인으로 돌아가기" : "복구·인수인계"}</button>}
     {!setup && !recover && <p className="auth-note">로그인한 브라우저에서 24시간 유지됩니다. 로그아웃하면 즉시 종료됩니다.</p>}

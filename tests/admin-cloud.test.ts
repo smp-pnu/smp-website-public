@@ -17,6 +17,7 @@ import { MockDrive } from "./admin-drive-fixture"
 import { DriveConnection, StorageVault } from "../admin-cloud/drive/connection"
 import { safeUploadUrl } from "../admin-cloud/drive/uploads"
 import { authenticator, cookieJar } from "./admin-passkey-fixture.mjs"
+import { passkeyLoginOptions } from "../admin-lab/passkey-login"
 const origin = "https://admin.pnusmp.com"
 const oldOrigin = "https://smp-pdf-admin-trial.smp-website.workers.dev"
 const setupToken = "b".repeat(64)
@@ -632,6 +633,23 @@ test("passkeys bind proof to challenge, origin and user verification; setup cann
   } finally {
     f.close()
   }
+})
+test("cross-device login accepts a registered key, rejects unregistered keys and consumes the challenge once", async () => {
+  const f = await fixture()
+  try {
+    await f.login()
+    await f.call("/api/logout", "POST")
+    let options = passkeyLoginOptions(await (await f.call("/api/auth/login/options", "POST", {})).json(), "phone")
+    assert.equal(options.allowCredentials?.length ?? 0, 0)
+    assert.equal((await f.call("/api/auth/login/verify", "POST", { response: authenticator().authenticate(options, origin) })).status, 403)
+    options = passkeyLoginOptions(await (await f.call("/api/auth/login/options", "POST", {})).json(), "phone")
+    const proof = { ...f.device.authenticate(options, origin), authenticatorAttachment: "cross-platform" }
+    const response = await f.call("/api/auth/login/verify", "POST", { response: proof })
+    assert.equal(response.status, 200)
+    assert.match(response.headers.get("set-cookie")!, /Max-Age=86400/)
+    assert.equal((await f.call("/api/session")).status, 200)
+    assert.equal((await f.call("/api/auth/login/verify", "POST", { response: proof })).status, 403)
+  } finally { f.close() }
 })
 test("recovery replaces keys and sessions atomically, preserves drafts and rotates its secret", async () => {
   const f = await fixture()

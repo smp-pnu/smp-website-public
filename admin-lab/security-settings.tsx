@@ -15,6 +15,7 @@ export function SecuritySettings({ keys, busy, label, error, onLabel, onRegister
         <ul className="passkey-list">{keys.map(key => <li key={key.id}><KeyRound size={18}/><div><strong>{key.label}</strong><span>{new Date(key.created).toLocaleDateString("ko-KR")} 등록</span></div><button className="text-button danger-text" disabled={busy || keys.length <= 1} onClick={() => onRemove(key.id)}>해제</button></li>)}</ul>
         <form className="add-key-form" onSubmit={(e: FormEvent) => { e.preventDefault(); onRegister() }}><fieldset disabled={busy} className="auth-fields"><label>패스키 이름<input value={label} onChange={e => onLabel(e.target.value)} placeholder="예: 관리자 휴대폰" maxLength={60} required/></label><button className="secondary" disabled={keys.length >= 5}>패스키 추가</button></fieldset></form>
         <p className="field-help">추가·해제 전에 기존 패스키로 본인을 확인합니다. 추가 시 두 번째 인증 창에서 ‘다른 기기 사용’을 선택하세요. 마지막 패스키는 해제할 수 없습니다.</p>
+        <p className="field-help">다른 컴퓨터에서 QR로 로그인하려면 휴대폰에도 패스키를 저장해 두세요. ‘패스키 추가’의 두 번째 인증 창에서 휴대폰을 선택하고 QR을 스캔하면 됩니다. 이미 같은 패스키가 휴대폰에 동기화되어 있다면 추가 등록 없이 사용할 수 있습니다.</p>
       </section>
       <section className="settings-panel handover-panel"><header><h2>다음 관리자에게 인수인계</h2></header>
         <p className="section-description">내 패스키나 개인 Apple·Google 계정을 공유하지 않고, 새 관리자의 패스키로 교체합니다.</p>
