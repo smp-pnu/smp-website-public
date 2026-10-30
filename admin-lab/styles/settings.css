@@ -215,6 +215,43 @@
 .auth-fields .error-panel {
   margin: 0;
 }
+.passkey-phone-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 9px;
+}
+.passkey-phone-note {
+  margin: -7px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.passkey-phone-help {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+  color: #647384;
+  font-size: 12px;
+  line-height: 1.9;
+}
+.passkey-phone-help summary {
+  cursor: pointer;
+  color: #344456;
+}
+.passkey-phone-help summary:focus-visible {
+  outline: 2px solid #456d87;
+  outline-offset: 4px;
+}
+.passkey-phone-help ol {
+  padding-left: 20px;
+  margin: 12px 0;
+}
+.passkey-phone-help li + li {
+  margin-top: 7px;
+}
+.passkey-phone-help p {
+  margin: 12px 0 0;
+}
 .auth-card > .secondary {
   width: 100%;
   margin-top: 8px;
