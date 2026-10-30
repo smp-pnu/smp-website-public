@@ -37,7 +37,7 @@ export default function CurriculumPage() {
             </ol>
           </nav>
         </section>
-        {stages.map((stage, index) => <section key={stage.id} id={stage.id} tabIndex={-1} className="grid scroll-mt-24 gap-8 border-t border-site-line py-14 sm:py-20 md:grid-cols-[1fr_1.5fr] md:gap-16">
+        {stages.map((stage, index) => <section key={stage.id} id={stage.id} tabIndex={-1} className="grid scroll-mt-24 outline-none gap-8 border-t border-site-line py-14 sm:py-20 md:grid-cols-[1fr_1.5fr] md:gap-16">
           <div><p className="text-xs tracking-[0.2em] text-site-accent">STEP 0{index + 1} · {stage.label}</p><h2 className="mt-4 text-3xl font-light text-white">{stage.name}</h2></div>
           <div>
             <h3 className="text-xl font-normal text-white">{stage.summary}</h3>
