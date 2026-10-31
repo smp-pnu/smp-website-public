@@ -19,12 +19,12 @@ export default function Page() {
         <HeroSection />
         <BackgroundChapter image="/backgrounds/central-business-district-singapore.webp">
           <WhoWeAreSection />
+          <LatestResearchSection />
           <WhatWeDoSection />
         </BackgroundChapter>
         <BackgroundChapter image="/wall-street.jpg">
           <AchievementsSection />
           <AlumniSection />
-          <LatestResearchSection />
           <RecruitSection />
           <SiteFooter />
         </BackgroundChapter>
