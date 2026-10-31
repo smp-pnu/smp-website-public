@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type CSSProperties, type RefCallback } from "react"
 import Link from "next/link"
 import { ArrowRight, ArrowUpRight, FileText } from "lucide-react"
 import { contentHref, formatDate, type ContentItem } from "@/lib/content-model"
@@ -15,6 +15,10 @@ export function ResearchShowcase({ items, pending = false, error }: {
 }) {
   const reports = items
   const [selectedId, setSelectedId] = useState<string>()
+  const [pendingId, setPendingId] = useState<string>()
+  const [outgoing, setOutgoing] = useState<{ url: string; sequence: number }>()
+  const selectionRequest = useRef(0)
+  const coverImages = useRef(new Map<string, HTMLImageElement>())
   const selected = Math.max(0, reports.findIndex(item => item.id === selectedId))
   const active = reports[selected]
   const companyPrefix = active?.company ? `[${active.company}]` : ""
@@ -23,8 +27,31 @@ export function ResearchShowcase({ items, pending = false, error }: {
   const section = useRef<HTMLElement>(null)
   const [entered, setEntered] = useState(false)
 
+  useEffect(() => () => { selectionRequest.current++ }, [])
+
+  async function selectReport(item: ShowcaseReport) {
+    const sequence = ++selectionRequest.current
+    setPendingId(undefined)
+    if (item.id === active?.id) return
+    const image = coverImages.current.get(item.id)
+    if (image && !image.complete) {
+      setPendingId(item.id)
+      // Keep the current paper and its matching link until the next image is
+      // ready. No timers, animation queues or additional PDF/data fetches.
+      try { await image.decode() } catch { /* The image's fallback remains usable. */ }
+      if (sequence !== selectionRequest.current) return
+    }
+    setPendingId(undefined)
+    const previousImage = active && coverImages.current.get(active.id)
+    const animate = !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    setOutgoing(animate && previousImage?.complete && previousImage.naturalWidth && active.cover?.url
+      ? { url: active.cover.url, sequence } : undefined)
+    setSelectedId(item.id)
+  }
+
   useEffect(() => {
-    if (!section.current || !("IntersectionObserver" in window)) return
+    if (!section.current) return
+    if (!("IntersectionObserver" in window)) { setEntered(true); return }
     const observer = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting) return
       setEntered(true)
@@ -47,7 +74,8 @@ export function ResearchShowcase({ items, pending = false, error }: {
       {active ? <div className="research-showcase__body">
         <div className="research-showcase__choices" role="group" aria-label="미리 볼 리포트 선택">
           {reports.map((item, index) => <button key={item.id} type="button" aria-controls="showcase-report-detail" aria-pressed={index === selected}
-            onClick={() => setSelectedId(item.id)} className="research-showcase__choice">
+            aria-busy={pendingId === item.id || undefined}
+            onClick={() => void selectReport(item)} className="research-showcase__choice">
             <span className="research-showcase__number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
             <span className="research-showcase__choice-name">{item.company || item.title}</span>
             {item.industry && <span className="research-showcase__choice-industry">{item.industry}</span>}
@@ -62,10 +90,24 @@ export function ResearchShowcase({ items, pending = false, error }: {
               // one cover. No PDF or additional data requests on selection.
               if (position > 3) return null
               return <div key={item.id} className="research-showcase__page" data-selected={index === selected} aria-hidden={index !== selected}>
-                <ShowcaseCover url={item.cover?.url} eager={entered} />
+                <ShowcaseCover url={item.cover?.url} eager={entered} imageRef={node => {
+                  if (node) coverImages.current.set(item.id, node)
+                  else coverImages.current.delete(item.id)
+                }} />
                 {index === selected && <Link href={contentHref(item)} className="research-showcase__cover-link" tabIndex={-1} aria-label={`${item.title} 리포트 읽기`} />}
               </div>
             })}
+            {outgoing && <div key={outgoing.sequence} className="research-showcase__outgoing" aria-hidden="true">
+              {[0, 1, 2].map(index => <div key={index} className="research-showcase__slice" style={{ "--slice": index } as CSSProperties}>
+                <div className="research-showcase__slice-paper" onAnimationEnd={event => {
+                  if (event.target !== event.currentTarget) return
+                  // Desktop ends on its last strip; mobile uses only one.
+                  if (index === 2 || event.animationName === "showcase-mobile-exit") {
+                    setOutgoing(current => current?.sequence === outgoing.sequence ? undefined : current)
+                  }
+                }}><img src={outgoing.url} alt="" width={720} height={1018} decoding="async" /></div>
+              </div>)}
+            </div>}
           </div>
           <figcaption className="research-showcase__caption"><span>{[active.semester, active.category || "리포트"].filter(Boolean).join(" · ")}</span><span>{String(selected + 1).padStart(2, "0")} <span className="research-showcase__caption-total">/ {String(reports.length).padStart(2, "0")}</span></span></figcaption>
         </figure>
@@ -74,10 +116,10 @@ export function ResearchShowcase({ items, pending = false, error }: {
           <div key={active.id} id="showcase-report-detail" className="research-showcase__detail">
             <div className="research-showcase__meta">
               {active.industry && <span>{active.industry}</span>}
-              <time dateTime={active.date}>{formatDate(active.date)}</time>
+              <time dateTime={active.date}>{formatDate(active.date)} 발간</time>
             </div>
             <p className="research-showcase__company">{active.company || "SMP Research"}</p>
-            <h3>{headline}</h3>
+            <h3><span className="research-showcase__title-line">{headline}</span></h3>
             <Link href={contentHref(active)} className="research-showcase__read">리포트 읽기<ArrowUpRight size={20} aria-hidden="true" /></Link>
           </div>
 
@@ -91,10 +133,10 @@ export function ResearchShowcase({ items, pending = false, error }: {
   </section>
 }
 
-function ShowcaseCover({ url, eager }: { url?: string; eager: boolean }) {
+function ShowcaseCover({ url, eager, imageRef }: { url?: string; eager: boolean; imageRef: RefCallback<HTMLImageElement> }) {
   const [failed, setFailed] = useState(false)
   useEffect(() => setFailed(false), [url])
   // Only prepared images: this decorative showcase never downloads a PDF.
-  return url && !failed ? <img src={url} alt="" width={720} height={1018} loading={eager ? "eager" : "lazy"} decoding="async" onError={() => setFailed(true)} />
+  return url && !failed ? <img ref={imageRef} src={url} alt="" width={720} height={1018} loading={eager ? "eager" : "lazy"} decoding="async" onError={() => setFailed(true)} />
     : <div className="research-showcase__missing" aria-hidden="true"><FileText size={40} strokeWidth={1} /><span>SMP RESEARCH</span></div>
 }

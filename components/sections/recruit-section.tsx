@@ -15,7 +15,7 @@ export function RecruitSection() {
 
         <Link
           href="/recruit"
-          className="mt-8 inline-flex items-center gap-2 text-sm font-normal text-site-accent transition-colors hover:text-site-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+          className="mt-8 home-editorial-link inline-flex min-h-11 items-center gap-4 text-sm font-normal text-site-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
         >
           RECRUITMENT
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
