@@ -1,43 +1,69 @@
-/* Homepage-only motion. Static content stays readable without JS or animation. */
-.home-entrance, #site-hero { --home-ease: cubic-bezier(.22,1,.36,1); --home-delay: 0ms; }
-.home-activity-list > li:nth-child(2) .home-activity { --home-delay: 80ms; }
-.home-activity-list > li:nth-child(3) .home-activity { --home-delay: 160ms; }
-.home-award:nth-child(2) { --home-delay: 70ms; }
-.home-award:nth-child(3) { --home-delay: 140ms; }
-.home-award:nth-child(4) { --home-delay: 210ms; }
+/* Homepage-only motion. No layout animation, permanent layers, or frame loop. */
+.home-entrance, #site-hero {
+  --home-ease: cubic-bezier(.22,1,.36,1);
+  --home-delay: 0ms;
+  --home-rise: 24px;
+}
+.home-activity-list > li:nth-child(2) .home-activity { --home-delay: 110ms; }
+.home-activity-list > li:nth-child(3) .home-activity { --home-delay: 220ms; }
+.home-award:nth-child(even) { --home-delay: 110ms; }
 
-.home-recruit__link svg { transition: transform 200ms var(--home-ease); }
-.home-recruit__link:focus-visible svg { transform: translateX(4px); }
+.home-entrance a svg { transition: transform 220ms var(--home-ease); }
+.home-entrance a:focus-visible svg { transform: translateX(4px); }
 
-@keyframes home-soft-in { from { opacity: .65; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-@keyframes home-hero-settle { from { opacity: .45; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-@keyframes home-icon-draw { from { stroke-dashoffset: 80; } to { stroke-dashoffset: 0; } }
-@keyframes home-result-in { from { opacity: .45; } to { opacity: 1; } }
+@keyframes home-rise-in {
+  from { opacity: 0; transform: translateY(var(--home-rise)); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes home-hero-settle {
+  from { opacity: .45; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes home-icon-draw {
+  from { stroke-dashoffset: 80; }
+  to { stroke-dashoffset: 0; }
+}
 
 @media (prefers-reduced-motion:no-preference) {
-  .home-soft-reveal[data-entered="true"] { animation: home-soft-in 450ms var(--home-ease) both; }
+  /* Only children move, so the observed box cannot oscillate across its threshold. */
+  /* Waiting content stays readable if observation is unavailable or suspended. */
+  .home-entrance[data-motion="entered"] > * {
+    animation: home-rise-in 800ms var(--home-ease) var(--home-delay) both;
+  }
+  .home-network[data-motion="entered"] > h2,
+  .home-recruit[data-motion="entered"] > h2 { animation-delay: 80ms; }
+  .home-network[data-motion="entered"] > p,
+  .home-recruit[data-motion="entered"] > p { animation-delay: 160ms; }
+  .home-network[data-motion="entered"] > a,
+  .home-recruit[data-motion="entered"] > a { animation-delay: 240ms; }
+
+  .home-activity[data-motion="entered"] .home-activity__icon :is(path,polyline,line) {
+    stroke-dasharray: 80;
+    animation: home-icon-draw 900ms var(--home-ease) var(--home-delay) both;
+  }
   #site-hero h1 { animation: home-hero-settle 900ms cubic-bezier(.2,.65,.35,1) both; }
   #site-hero h1 + p { animation: home-hero-settle 800ms ease 100ms both; }
-  .home-network[data-entered="true"] > :is(h2,p,a),
-  .home-recruit[data-entered="true"] > :is(h2,p,a) { animation: home-soft-in 550ms var(--home-ease) both; }
-  .home-network[data-entered="true"] > p, .home-recruit[data-entered="true"] > p { animation-delay: 70ms; }
-  .home-network[data-entered="true"] > a, .home-recruit[data-entered="true"] > a { animation-delay: 140ms; }
-  .home-activity[data-entered="true"], .home-award[data-entered="true"] { animation: home-soft-in 500ms var(--home-ease) var(--home-delay) both; }
-  .home-activity[data-entered="true"] .home-activity__icon :is(path,polyline,line) { stroke-dasharray: 80; animation: home-icon-draw 750ms var(--home-ease) var(--home-delay) both; }
-  .home-award[data-entered="true"] .home-award__result { animation: home-result-in 400ms ease calc(var(--home-delay) + 160ms) both; }
 }
 @media (hover:hover) and (pointer:fine) {
-  .home-recruit__link:hover svg { transform: translateX(4px); }
+  .home-entrance a:hover svg { transform: translateX(4px); }
 }
 @media (max-width:639px) and (prefers-reduced-motion:no-preference) {
+  .home-entrance { --home-rise: 16px; }
+  .home-entrance[data-motion="entered"] > * {
+    animation-duration: 650ms;
+    animation-delay: 0ms;
+  }
+  .home-network[data-motion="entered"] > p,
+  .home-recruit[data-motion="entered"] > p { animation-delay: 80ms; }
+  .home-network[data-motion="entered"] > a,
+  .home-recruit[data-motion="entered"] > a { animation-delay: 160ms; }
+  .home-activity[data-motion="entered"] .home-activity__icon :is(path,polyline,line) {
+    animation-duration: 700ms;
+    animation-delay: 0ms;
+  }
   #site-hero h1, #site-hero h1 + p { animation-duration: 600ms; }
-  .home-network[data-entered="true"] > :is(h2,p,a), .home-recruit[data-entered="true"] > :is(h2,p,a) { animation-duration: 320ms; animation-delay: 0ms; }
-  .home-soft-reveal[data-entered="true"],
-  .home-activity[data-entered="true"], .home-award[data-entered="true"] { animation-duration: 280ms; animation-delay: 0ms; }
-  .home-activity[data-entered="true"] .home-activity__icon :is(path,polyline,line) { animation-duration: 450ms; animation-delay: 0ms; }
-  .home-award[data-entered="true"] .home-award__result { animation-duration: 260ms; animation-delay: 80ms; }
 }
 @media (prefers-reduced-motion:reduce) {
-  .home-entrance, .home-entrance *, .home-entrance *::after,
+  .home-entrance, .home-entrance *,
   #site-hero h1, #site-hero h1 + p { animation: none !important; transition: none !important; }
 }

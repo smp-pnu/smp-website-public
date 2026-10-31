@@ -29,9 +29,9 @@ export function AchievementsSection() {
   return (
     <section className="px-6 py-16 sm:py-20">
       <div className="mx-auto max-w-6xl">
-        <div className="text-center">
+        <HomeEntrance className="text-center">
           <h2 className="text-xs font-normal tracking-[0.3em] text-site-accent">ACCOLADES</h2>
-        </div>
+        </HomeEntrance>
 
         <div className="home-awards mx-auto mt-12 grid gap-4 sm:grid-cols-2">
           {awards.map((award) => (
@@ -51,7 +51,7 @@ export function AchievementsSection() {
           ))}
         </div>
 
-        <div className="mt-10 flex justify-center">
+        <HomeEntrance className="mt-10 flex justify-center">
           <Link
             href="/achievements"
             className="inline-flex items-center gap-2 text-sm font-normal text-site-accent transition-colors hover:text-site-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
@@ -59,7 +59,7 @@ export function AchievementsSection() {
             MORE ACCOLADES
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
-        </div>
+        </HomeEntrance>
       </div>
     </section>
   )

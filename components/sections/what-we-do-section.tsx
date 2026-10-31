@@ -25,12 +25,12 @@ export function WhatWeDoSection() {
   return (
     <section className="px-6 py-16 sm:py-20">
       <div className="mx-auto max-w-[1600px]">
-        <div className="text-center">
+        <HomeEntrance className="text-center">
           <span className="text-xs font-normal tracking-[0.3em] text-site-accent">WHAT WE DO</span>
           <h2 className="mt-4 text-2xl font-medium leading-snug text-white sm:text-3xl">
             분석하고, 투자하고, 토론하며 시장을 보는 힘을 기릅니다.
           </h2>
-        </div>
+        </HomeEntrance>
 
         <ul className="home-activity-list mt-10 grid grid-cols-1 gap-8 sm:grid-cols-3">
           {ACTIVITIES.map(({ icon: Icon, title, description }) => (
