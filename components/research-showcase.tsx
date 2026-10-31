@@ -46,15 +46,21 @@ export function ResearchShowcase({ items, pending = false, error }: {
   return <section id="latest-research" className="report-exhibit" aria-labelledby="report-exhibit-heading">
     <div className="report-exhibit__inner">
       <header className="report-exhibit__heading">
-        <div><p className="report-exhibit__eyebrow">RESEARCH REPORT</p><h2 id="report-exhibit-heading">우리가 발견한 기업의 가치를<br className="report-exhibit__break" /> 확인해보세요.</h2></div>
-        <p className="report-exhibit__description">산업과 기업에 대한 분석을<br />하나의 투자 아이디어로.</p>
+        <div><p className="report-exhibit__eyebrow">LATEST RESEARCH</p><h2 id="report-exhibit-heading">우리가 발견한 기업의 가치를<br className="report-exhibit__break" /> 확인해보세요.</h2></div>
+        <p className="report-exhibit__description">가장 최근에 발간한<br /> SMP의 기업·산업 분석 리포트입니다.</p>
       </header>
       {active ? <>
-        <div className="report-exhibit__edition"><span>{active.semester ? `${active.semester.replace("-", "년 ")}학기` : "최신 리포트"}</span><time dateTime={active.date}>{formatDate(active.date)} 발간</time><span className="report-exhibit__hint">기업을 선택해 리포트를 펼쳐보세요<ArrowUpRight size={14} aria-hidden="true" /></span></div>
-        <div className="report-exhibit__selectors" role="group" aria-label="최신 리포트 선택" style={{ "--report-count": items.length } as CSSProperties}>
-          {items.map((item, i) => <button key={item.id} ref={node => { buttons.current[i] = node }} type="button" aria-pressed={i === index} aria-controls="report-exhibit-detail" onClick={() => select(i)} onKeyDown={event => onKeyDown(event, i)}>
-            <span className="report-exhibit__index">{String(i + 1).padStart(2, "0")}</span><span>{companyName(item)}</span><ArrowUpRight size={16} aria-hidden="true" />
-          </button>)}
+        <div className="report-exhibit__edition">
+          <span className="report-exhibit__latest">최신 발간</span>
+          {active.semester && <span>{active.semester.replace("-", "년 ")}학기</span>}
+          <time dateTime={active.date}>{formatDate(active.date)}</time>
+          <Link href="/research" className="report-exhibit__all">전체 리포트<ArrowUpRight size={14} aria-hidden="true" /></Link>
+        </div>
+        <div id="report-exhibit-detail" className="report-exhibit__detail" aria-live="polite" aria-atomic="true">
+          <div key={active.id} className="report-exhibit__caption">
+            <h3>{active.title}</h3>
+            <p className="report-exhibit__meta"><span>{active.industry || active.category}</span><span>{publicReportAuthor(active.author)}</span>{active.ticker && <span>{active.ticker}</span>}</p>
+          </div>
         </div>
         <div className="report-exhibit__stage" style={{ "--direction": direction } as CSSProperties}
           onTouchStart={event => { swiped.current = false; const point = event.touches[0]; touch.current = event.touches.length === 1 ? { x: point.clientX, y: point.clientY } : null }}
@@ -73,19 +79,20 @@ export function ResearchShowcase({ items, pending = false, error }: {
               : <button type="button" tabIndex={-1} className="report-exhibit__panel-action" aria-label={`${companyName(item)} 표지 펼치기`} onClick={() => select(i)} />}
           </div>)}
         </div>
-        <div id="report-exhibit-detail" className="report-exhibit__detail" aria-live="polite" aria-atomic="true">
-          <div key={active.id} className="report-exhibit__caption">
-            <p className="report-exhibit__meta"><span>{active.industry || active.category}</span><span>{publicReportAuthor(active.author)}</span>{active.ticker && <span>{active.ticker}</span>}</p>
-            <h3>{active.title}</h3>
-          </div>
+        <div className="report-exhibit__selection-bar">
+          <p className="report-exhibit__hint">최근 발간 리포트 <span>{items.length}편</span></p>
           <div className="report-exhibit__navigation" role="group" aria-label="리포트 넘기기">
             <button type="button" aria-label="이전 리포트" disabled={index === 0} onClick={() => select(index - 1)}><ArrowLeft size={18} aria-hidden="true" /></button>
             <span>{String(index + 1).padStart(2, "0")}<span> / {String(items.length).padStart(2, "0")}</span></span>
             <button type="button" aria-label="다음 리포트" disabled={index === items.length - 1} onClick={() => select(index + 1)}><ArrowRight size={18} aria-hidden="true" /></button>
           </div>
         </div>
+        <div className="report-exhibit__selectors" role="group" aria-label="최신 리포트 선택" style={{ "--report-count": items.length } as CSSProperties}>
+          {items.map((item, i) => <button key={item.id} ref={node => { buttons.current[i] = node }} type="button" aria-pressed={i === index} aria-controls="report-exhibit-detail" onClick={() => select(i)} onKeyDown={event => onKeyDown(event, i)}>
+            <span className="report-exhibit__index">{String(i + 1).padStart(2, "0")}</span><span>{companyName(item)}</span><ArrowUpRight size={16} aria-hidden="true" />
+          </button>)}
+        </div>
       </> : <div className="report-exhibit__empty" role={error ? "alert" : "status"}><FileText size={32} strokeWidth={1} aria-hidden="true" /><p>{pending ? "최신 리포트를 불러오는 중입니다." : error || "공개 리포트를 준비하고 있습니다."}</p></div>}
-      <footer className="report-exhibit__bottom"><span>STOCK MASTERS OF PNU</span><Link href="/research">기업·산업 분석 리포트 전체 보기<ArrowRight size={16} aria-hidden="true" /></Link></footer>
     </div>
   </section>
 }
