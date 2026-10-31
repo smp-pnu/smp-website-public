@@ -13,7 +13,7 @@ export function ResearchShowcase({ items, pending = false, error }: {
   pending?: boolean
   error?: string
 }) {
-  const reports = items.slice(0, 3)
+  const reports = items
   const [selectedId, setSelectedId] = useState<string>()
   const selected = Math.max(0, reports.findIndex(item => item.id === selectedId))
   const active = reports[selected]
@@ -58,6 +58,9 @@ export function ResearchShowcase({ items, pending = false, error }: {
           <div className="research-showcase__stack">
             {reports.map((item, index) => {
               const position = (index - selected + reports.length) % reports.length
+              // All reports remain selectable; only four sheets are needed
+              // for the visual stack, even when an edition is much larger.
+              if (position > 3) return null
               return <div key={item.id} className="research-showcase__sheet" data-position={position}
                 style={{ "--sheet-order": reports.length - position } as CSSProperties}>
                 <ShowcaseCover url={item.cover?.url} />

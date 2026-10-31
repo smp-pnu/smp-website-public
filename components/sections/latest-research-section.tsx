@@ -1,6 +1,6 @@
 import { Suspense } from "react"
 import { getContent } from "@/lib/content-catalog"
-import { sortContent } from "@/lib/content-model"
+import { latestResearchEdition } from "@/lib/latest-research"
 import { savedReportCover } from "@/lib/saved-cover-reader"
 import { ResearchShowcase } from "@/components/research-showcase"
 
@@ -10,7 +10,7 @@ export function LatestResearchSection() {
 
 async function LatestReports() {
   const result = await getContent("research")
-  const items = await Promise.all(sortContent(result.items).slice(0, 3).map(async item => {
+  const items = await Promise.all(latestResearchEdition(result.items).map(async item => {
     const cover = await savedReportCover(item)
     return { ...item, cover: cover ? { url: cover.url } : undefined }
   }))
