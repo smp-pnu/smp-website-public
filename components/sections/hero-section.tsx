@@ -1,30 +1,35 @@
+"use client"
+
 import Link from "next/link"
-import { ArrowDown, ArrowUpRight } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 import { SITE_NAME_KO } from "@/lib/site-config"
 
 export function HeroSection() {
-  return <section id="site-hero" className="home-hero" aria-labelledby="home-title">
-    <div className="home-hero__grid" aria-hidden="true" />
-    <div className="home-hero__inner">
-      <div className="home-hero__eyebrow"><span>PUSAN NATIONAL UNIVERSITY</span><span>INVESTMENT RESEARCH</span></div>
-      <h1 id="home-title" className="home-hero__title">
-        <span className="home-hero__line"><span>STOCK</span></span>
-        <span className="home-hero__line home-hero__line--outline"><span>MASTERS</span></span>
-        <span className="home-hero__line"><span>OF PNU<span className="home-hero__period">.</span></span></span>
-      </h1>
-      <a href="#latest-research" className="home-hero__seal" aria-label="최근 리포트 살펴보기">
-        <span className="home-hero__seal-orbit" aria-hidden="true"><span /><span /><span /></span>
-        <ArrowDown size={40} strokeWidth={1} aria-hidden="true" />
-        <span>EXPLORE<br />OUR RESEARCH</span>
-      </a>
-      <div className="home-hero__bottom">
-        <p className="home-hero__description">{SITE_NAME_KO}<br /><span>숫자 너머의 가치를 발견합니다.</span></p>
-        <nav aria-label="주요 활동 바로가기" className="home-hero__links">
-          <Link href="/research" prefetch={false} className="home-pill home-pill--solid">리포트 보기 <ArrowUpRight size={20} aria-hidden="true" /></Link>
-          <Link href="/recruit" prefetch={false} className="home-pill">모집 안내 <ArrowUpRight size={20} aria-hidden="true" /></Link>
+  const panelWidth = "clamp(320px, 42vw, 620px)"
+
+  return (
+    <section
+      id="site-hero"
+      className="relative flex min-h-[100svh] w-full items-center overflow-hidden"
+    >
+      <div className="absolute inset-y-0 left-0 bg-black/55" style={{ width: panelWidth }} aria-hidden="true" />
+      <div className="relative z-10 flex min-h-[100svh] items-center px-[clamp(20px,3vw,64px)] py-28" style={{ width: panelWidth }}>
+
+        <div className="w-full [container-type:inline-size]">
+        <h1 className="font-[family-name:var(--font-hero)] text-left text-[min(16cqw,5.5rem)] font-light leading-[1.3] tracking-tight text-white">
+          STOCK<br /><span className="whitespace-nowrap">MASTERS OF</span><br />PNU
+        </h1>
+        <p className="mt-7 font-[family-name:var(--font-body)] text-sm font-normal leading-relaxed text-white/85 sm:text-base">{SITE_NAME_KO}</p>
+        <nav aria-label="주요 활동 바로가기" className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-white">
+          <Link href="/research" prefetch={false} className="hero-shortcut">리포트 보기 <ArrowRight className="hero-shortcut__arrow" size={18} strokeWidth={1.5} aria-hidden="true" /></Link>
+          <Link href="/recruit" prefetch={false} className="hero-shortcut">모집 안내 <ArrowRight className="hero-shortcut__arrow" size={18} strokeWidth={1.5} aria-hidden="true" /></Link>
         </nav>
+        </div>
+
+
+
       </div>
-      <a href="#home-about" className="home-hero__scroll"><span>SCROLL TO DISCOVER</span><ArrowDown size={16} aria-hidden="true" /></a>
-    </div>
-  </section>
+    </section>
+  )
 }
+

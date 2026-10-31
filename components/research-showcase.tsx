@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, type CSSProperties, type RefCallback } fro
 import Link from "next/link"
 import { ArrowRight, ArrowUpRight, FileText } from "lucide-react"
 import { contentHref, formatDate, type ContentItem } from "@/lib/content-model"
-import { ResearchOrbit } from "@/components/home-experiment"
 import "./research-showcase.css"
 
 export type ShowcaseReport = ContentItem & { cover?: { url: string } }
@@ -64,10 +63,9 @@ export function ResearchShowcase({ items, pending = false, error }: {
 
   return <section ref={section} id="latest-research" className="research-showcase" aria-labelledby="showcase-heading" data-entered={entered}>
     <div className="research-showcase__inner">
-      <div className="research-showcase__display" aria-hidden="true">RESEARCH<span>↗</span></div>
       <header className="research-showcase__heading">
         <div>
-          <p className="research-showcase__eyebrow">LATEST EDITION / {active?.semester || "SMP"}</p>
+          <p className="research-showcase__eyebrow">SMP RESEARCH</p>
           <h2 id="showcase-heading">기업을 읽고,<br />가치를 발견합니다.</h2>
         </div>
         <p className="research-showcase__intro">산업의 변화에서 기업의 가능성까지.<br />SMP의 시선을 담은 최근 리포트입니다.</p>
@@ -78,7 +76,6 @@ export function ResearchShowcase({ items, pending = false, error }: {
           {reports.map((item, index) => <button key={item.id} type="button" aria-controls="showcase-report-detail" aria-pressed={index === selected}
             aria-busy={pendingId === item.id || undefined}
             onClick={() => void selectReport(item)} className="research-showcase__choice">
-            {item.cover?.url && <img className="research-showcase__choice-cover" src={item.cover.url} alt="" width={36} height={51} loading="lazy" decoding="async" />}
             <span className="research-showcase__number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
             <span className="research-showcase__choice-name">{item.company || item.title}</span>
             {item.industry && <span className="research-showcase__choice-industry">{item.industry}</span>}
@@ -86,7 +83,6 @@ export function ResearchShowcase({ items, pending = false, error }: {
           </button>)}
         </div>
         <figure className="research-showcase__stage">
-          <ResearchOrbit />
           <div className="research-showcase__cover">
             {reports.map((item, index) => {
               const position = (index - selected + reports.length) % reports.length
@@ -118,7 +114,6 @@ export function ResearchShowcase({ items, pending = false, error }: {
 
         <div className="research-showcase__content">
           <div key={active.id} id="showcase-report-detail" className="research-showcase__detail">
-            <div className="research-showcase__edition" aria-hidden="true"><span key={active.id}>{String(selected + 1).padStart(2, "0")}</span><small>/ {String(reports.length).padStart(2, "0")}</small></div>
             <div className="research-showcase__meta">
               {active.industry && <span>{active.industry}</span>}
               <time dateTime={active.date}>{formatDate(active.date)} 발간</time>

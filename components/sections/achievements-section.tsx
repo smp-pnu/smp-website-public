@@ -1,5 +1,4 @@
 import Link from "next/link"
-import { HomeEntrance } from "@/components/home-motion"
 import { Trophy, ArrowRight } from "lucide-react"
 
 const awards = [
@@ -27,12 +26,10 @@ const awards = [
 
 export function AchievementsSection() {
   return (
-    <HomeEntrance className="home-accolades__entrance">
-    <section className="home-accolades px-6 py-16 sm:py-20">
+    <section className="px-6 py-16 sm:py-20">
       <div className="mx-auto max-w-6xl">
         <div className="text-center">
           <h2 className="text-xs font-normal tracking-[0.3em] text-site-accent">ACCOLADES</h2>
-          <p className="home-accolades__headline">우리의 시선이<br /><em>성과가 되는 순간.</em></p>
         </div>
 
         <div className="mx-auto mt-12 grid gap-4 sm:grid-cols-2">
@@ -64,7 +61,6 @@ export function AchievementsSection() {
         </div>
       </div>
     </section>
-    </HomeEntrance>
   )
 }
 

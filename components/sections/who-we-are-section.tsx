@@ -5,14 +5,13 @@ import { HomePanorama } from "@/components/home-motion"
 
 export function WhoWeAreSection() {
   return (
-    <section id="home-about" className="home-about px-6 py-16 sm:py-20">
+    <section className="px-6 py-16 sm:py-20">
       <div className="mx-auto max-w-6xl text-center">
         <div className="flex flex-col items-center gap-6 sm:gap-8">
           <div>
             <span className="text-xs font-normal tracking-[0.3em] text-site-accent">WHO WE ARE</span>
             <h2 className="mt-4 text-2xl font-medium leading-snug text-white sm:text-3xl">
-              <span className="home-about__headline">가능성을 읽는 시선,<br /><em>가치를 만드는 우리.</em></span>
-              <span className="sr-only">{SITE_NAME_KO}</span>
+              {SITE_NAME_KO}
             </h2>
           </div>
           <div className="flex max-w-4xl flex-col items-center">
