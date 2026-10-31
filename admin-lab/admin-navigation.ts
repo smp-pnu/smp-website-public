@@ -75,12 +75,19 @@ export function writeAdminSection(section: AdminSection) {
   writeAdminRoute({ section });
 }
 const resumeKey = "smp-admin-upload-return";
-export type UploadReturn = { target?: string; title?: string; expires: number };
-export function saveUploadReturn(target?: string, title?: string) {
+export type UploadReturn = { target?: string; title?: string; route?: AdminRoute; expires: number };
+export function reportReturnRoute(route?: Partial<AdminRoute>, target?: string): AdminRoute {
+  return readAdminRoute(adminRouteHash({
+    ...(route?.section === "research" ? route : {}),
+    section: "research",
+    entry: target,
+  }));
+}
+export function saveUploadReturn(target?: string, title?: string, route?: AdminRoute) {
   try {
     sessionStorage.setItem(
       resumeKey,
-      JSON.stringify({ target, title, expires: Date.now() + 30 * 60_000 }),
+      JSON.stringify({ target, title, route: reportReturnRoute(route, target), expires: Date.now() + 30 * 60_000 }),
     );
   } catch {
     /* The ordinary upload menu remains available. */
@@ -99,7 +106,7 @@ export function readUploadReturn(): UploadReturn | null {
         (typeof value.title !== "string" || value.title.length > 500))
     )
       return null;
-    return value;
+    return { ...value, route: reportReturnRoute(value.route, value.target) };
   } catch {
     return null;
   }

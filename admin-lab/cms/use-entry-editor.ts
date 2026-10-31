@@ -103,8 +103,11 @@ export function useEntryEditor({
       setForm(e.draft);
       setMessage(
         e.pending
-          ? "PDF 페이지를 준비하고 있습니다. 보통 15분 이내 작업이 시작되며, 실패하면 이 화면에서 확인할 수 있습니다."
-          : "반영했습니다.",
+          ? ""
+          : name === "approve" ? active ? "게시했습니다. 공식 사이트에 반영됐습니다." : "전환 준비본으로 승인했습니다. 공식 사이트는 바뀌지 않습니다."
+          : name === "withdraw" ? "비공개로 전환했습니다. 원본은 보관됩니다."
+          : name === "restore" ? "비공개 초안으로 복원했습니다."
+          : "휴지통으로 옮겼습니다. 30일 동안 복원할 수 있습니다.",
       );
       reload();
     });

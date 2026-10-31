@@ -19,7 +19,7 @@ export function CmsUpload({target,targetTitle,onBack,onStorage,onOpen,onImport,o
   const [checking,setChecking]=useState(true),[error,setError]=useState(''),[dirty,setDirty]=useState(false)
   const [working,setWorking]=useState(false),[editorBusy,setEditorBusy]=useState(false),[tick,setTick]=useState(0)
   const [over,setOver]=useState(false)
-  const input=useRef<HTMLInputElement>(null),operation=useRef(false)
+  const input=useRef<HTMLInputElement>(null),operation=useRef(false),reviewStart=useRef<HTMLDivElement>(null)
   useEffect(()=>{
     let live=true;setChecking(true);setError('')
     void Promise.all([api('/storage/status').then(r=>r.json()),api('/cms/upload-links').then(r=>r.json())])
@@ -31,6 +31,9 @@ export function CmsUpload({target,targetTitle,onBack,onStorage,onOpen,onImport,o
   useEffect(()=>{onBusy(busy);return()=>onBusy(false)},[busy,onBusy])
   useEffect(()=>{onDirty(dirty);return()=>onDirty(false)},[dirty,onDirty])
   const selected=lab.drafts.find(d=>d.id===lab.selected),link=selected?linkedUpload(selected,links):undefined
+  useEffect(()=>{
+    if(selected){reviewStart.current?.focus({preventScroll:true});reviewStart.current?.scrollIntoView({block:'start',behavior:'instant'})}
+  },[selected?.id])
   const pending=pendingUploads(lab.drafts,links)
   const discarded=lab.drafts.filter(d=>d.trashedAt&&!linkedUpload(d,links))
   const canLeave=()=>!dirty||confirm('저장하지 않은 입력을 닫고 이동할까요?')
@@ -50,7 +53,10 @@ export function CmsUpload({target,targetTitle,onBack,onStorage,onOpen,onImport,o
   }
   const changeDirty=useCallback((value:boolean)=>setDirty(value),[])
   return <>
-    <header className="page-heading"><div><h1>{target?'PDF 교체':'리포트 등록'}</h1><p>{target?`‘${targetTitle||'선택한 리포트'}’의 새 PDF를 선택합니다. 기존 제목·분류·순서는 유지합니다.`:'PDF 선택 → 내용 검토 → 리포트 초안. 공개는 리포트에서 ‘게시’를 눌러 결정합니다.'}</p></div><button disabled={busy} onClick={onBack}><ArrowLeft size={16}/>리포트 관리</button></header>
+    <header className="page-heading"><div><h1>{target?'PDF 교체':'리포트 등록'}</h1><p>{target?`‘${targetTitle||'선택한 리포트'}’의 새 PDF를 선택합니다. 기존 제목·분류·순서는 유지합니다.`:'PDF에서 정보를 추출해 초안을 만듭니다. 마지막 ‘게시’ 전에는 공개되지 않습니다.'}</p></div><button disabled={busy} onClick={onBack}><ArrowLeft size={16}/>{target?'리포트 편집으로':'리포트 목록으로'}</button></header>
+    <ol className="upload-steps" aria-label="리포트 등록 단계">
+      {['PDF 선택','내용 검토','초안 확인·게시'].map((label,index)=><li key={label} aria-current={index===(selected?1:0)?'step':undefined}><span>{index+1}</span>{label}</li>)}
+    </ol>
     <div className="upload-storage-status">
       <span>{checking?'저장소 연결 확인 중…':connected?'Google Drive에 비공개로 저장합니다.':'리포트 등록 전에 Google Drive 연결을 완료해 주세요.'}</span>
       <button disabled={busy} onClick={onStorage}>{connected?'연결 관리':'저장소 연결'}</button>
@@ -64,7 +70,7 @@ export function CmsUpload({target,targetTitle,onBack,onStorage,onOpen,onImport,o
     <input ref={input} className="sr-only" type="file" accept=".pdf,application/pdf" aria-label={target?'새 원본 PDF 선택':'등록할 PDF 선택'} multiple={!target} disabled={busy||checking||!connected||!!error} onChange={e=>{const files=Array.from(e.target.files??[]);e.target.value='';void ingest(files)}}/>
     {lab.progress&&<div role="status" className="upload-progress"><Spinner/>{lab.progress}<button onClick={lab.cancel}><X size={15}/>취소</button></div>}
     {selected ? <>
-      <div className="cms-actions upload-review-toolbar"><button disabled={busy} onClick={()=>void choose(null)}><ArrowLeft size={15}/>등록 대기로 돌아가기</button>{!link&&!selected.trashedAt&&selected.approvedRevision===selected.revision&&<button className="primary" disabled={busy||dirty} onClick={()=>void finish(selected)}>게시 초안 만들기</button>}</div>
+      <div ref={reviewStart} tabIndex={-1} className="cms-actions upload-review-toolbar"><button disabled={busy} onClick={()=>void choose(null)}><ArrowLeft size={15}/>{target?'PDF 다시 선택':'등록 대기로 돌아가기'}</button>{!link&&!selected.trashedAt&&selected.approvedRevision===selected.revision&&<button className="primary" disabled={busy||dirty} onClick={()=>void finish(selected)}>게시 초안 만들기</button>}</div>
       {link ? <div className="settings-note"><h2>이미 리포트 관리에 등록된 PDF입니다.</h2><p>{link.title}{link.trashedAt?' · 휴지통에 보관 중':''}</p><p>기존 글은 리포트 관리에서 수정합니다. 동일한 원본을 다시 등록하지 않습니다.</p><button disabled={busy} onClick={()=>void onOpen(link.id).catch(e=>setError(e.message))}>기존 리포트 열기</button></div> : <>
         <DraftEditor key={`${selected.id}:${selected.revision}`} draft={selected} locked={busy} workflow onBusy={setEditorBusy} onDirty={changeDirty} onSave={lab.save} onApprove={finish} onTrash={lab.trash} onRemove={lab.remove} onReanalyze={lab.reanalyze} onReplace={lab.replace}/>
       </>}

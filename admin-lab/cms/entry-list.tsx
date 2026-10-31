@@ -121,7 +121,7 @@ export function EntryList({
               ? "리포트 등록"
               : section === "members"
                 ? "회원 추가"
-                : "새로 만들기"}
+                : "공지 작성"}
           </button>
         </div>
       </header>

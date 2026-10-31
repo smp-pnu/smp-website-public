@@ -13,7 +13,7 @@
   justify-content: space-between;
   gap: 16px;
 }
-.editor-heading h1 {
+.editor-heading h1, .editor-heading h2 {
   font-size: 21px;
   font-weight: 650;
   letter-spacing: -0.5px;

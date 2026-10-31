@@ -8,7 +8,7 @@ import { readRosterWorkbook } from "./member-workbook"
 import { cleanRosterText, duplicateRosterRows, emptyMapping, headerRow, rosterCandidates, rosterFields, rosterLabels, rosterLimits, rosterProfile, suggestMapping, validMemberName, validateRosterMapping, type ExistingMember, type RosterCandidate, type RosterMapping, type RosterSheet } from "./member-import-model"
 import "./member-import.css"
 
-export function MemberImport({ initialGeneration, onClose, onBusy, onComplete }: {initialGeneration:string;onClose:()=>void;onBusy:(value:boolean)=>void;onComplete:(generation:number,count:number,skipped:number)=>void}) {
+export function MemberImport({ initialGeneration, onClose, onBusy, onDirty, onComplete }: {initialGeneration:string;onClose:()=>void;onBusy:(value:boolean)=>void;onDirty?:(value:boolean)=>void;onComplete:(generation:number,count:number,skipped:number)=>void}) {
   const [sheets,setSheets]=useState<RosterSheet[]>([]),[sheetIndex,setSheetIndex]=useState(0),[header,setHeader]=useState(0),[filename,setFilename]=useState("")
   const [generation,setGeneration]=useState(initialGeneration),[group,setGroup]=useState("members"),[mapping,setMapping]=useState<RosterMapping>(emptyMapping)
   const [candidates,setCandidates]=useState<RosterCandidate[]>([]),[existing,setExisting]=useState<ExistingMember[]>([]),[previewPage,setPreviewPage]=useState(1)
@@ -19,6 +19,7 @@ export function MemberImport({ initialGeneration, onClose, onBusy, onComplete }:
   const bulkEligible=(c:RosterCandidate)=>eligible(c)&&!c.note.includes("제외·미수료")
   const selected=candidates.filter(c=>c.selected&&eligible(c))
   const pageCount=Math.max(1,Math.ceil(candidates.length/40)),visible=candidates.slice((previewPage-1)*40,previewPage*40)
+  useEffect(()=>{onDirty?.(sheets.length>0);return()=>onDirty?.(false)},[sheets.length,onDirty])
   useEffect(()=>{const listener=(e:BeforeUnloadEvent)=>{if(sheets.length){e.preventDefault();e.returnValue=""}};window.addEventListener("beforeunload",listener);return()=>window.removeEventListener("beforeunload",listener)},[sheets.length])
   const run=async(work:()=>Promise<void>)=>{
     if(running.current)return;running.current=true;setBusy(true);onBusy(true);setError("")
@@ -73,12 +74,12 @@ export function MemberImport({ initialGeneration, onClose, onBusy, onComplete }:
   }))
   const width=sheet?rosterProfile(sheet,header).length:0
   return <section className="member-import">
-    <div className="detail-navigation"><button disabled={busy} onClick={onClose}><ArrowLeft size={15}/>회원 명단으로</button></div>
+    <div className="detail-navigation"><button disabled={busy} onClick={onClose}><ArrowLeft size={15}/>{initialGeneration?`${initialGeneration}기 명단으로`:'기수 목록으로'}</button></div>
     <header className="page-heading"><div><h1>엑셀 명단 가져오기</h1><p>파일 선택 → 열 연결 → 명단 확인 → 한꺼번에 등록</p></div><FileSpreadsheet size={25}/></header>
     {error&&<p className="error-panel" role="alert">{error}</p>}
     {note&&<p className="success-panel" role="status">{note}</p>}
     <fieldset className="roster-settings" disabled={busy}>
-      <label className="roster-file"><strong>명단 엑셀 파일</strong><input type="file" accept=".xlsx,.csv,.tsv" onChange={e=>{const f=e.target.files?.[0];if(f)void choose(f);e.target.value=""}}/><span>.xlsx · UTF-8 CSV · 최대 2 MB. 파일은 기기에서 읽고, 열의 종류·형식만 Cloudflare AI로 자동 분석합니다.</span></label>
+      <div className="roster-file"><strong>명단 엑셀 파일</strong><div className="roster-file-choice"><label className={`secondary file-picker ${busy?'disabled':''}`}><FileSpreadsheet size={16}/>{filename?'파일 바꾸기':'엑셀 파일 선택'}<input aria-label="명단 엑셀 파일 선택" disabled={busy} type="file" accept=".xlsx,.csv,.tsv" onChange={e=>{const f=e.target.files?.[0];if(f)void choose(f);e.target.value=""}}/></label>{filename&&<span>{filename}</span>}</div><span>.xlsx · UTF-8 CSV · 최대 2 MB. 파일은 기기에서 읽고, 열의 종류·형식만 Cloudflare AI로 자동 분석합니다.</span></div>
       {sheet&&<>
         <div className="roster-options">
           <label>시트<AdminSelect disabled={busy} aria-label="시트" value={sheetIndex} onValueChange={(next) => {const i=Number(next);setSheetIndex(i);configure(sheets[i])}}>{sheets.map((s,i)=><option value={i} key={i}>{s.name}</option>)}</AdminSelect></label>

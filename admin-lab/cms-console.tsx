@@ -26,6 +26,7 @@ import {
   saveUploadReturn,
   readUploadReturn,
   clearUploadReturn,
+  reportReturnRoute,
   type AdminSection,
 } from "./admin-navigation";
 import { SecuritySettings, type SecurityControls } from "./security-settings";
@@ -121,7 +122,7 @@ export function CmsConsole({
   const canLeave = async () =>
     !navigationBusy &&
     !running.current &&
-    ((!dirty && !memberImportOpen) ||
+    (!dirty ||
       (await confirm("저장하지 않은 변경·가져오기 내용을 닫고 이동할까요?")));
   const go = async (
     next: typeof section,
@@ -172,12 +173,29 @@ export function CmsConsole({
       target && selected
         ? (selected.draft.item as ContentItem).title
         : undefined;
+    const returnRoute = reportReturnRoute(listRoute, target);
     if (await go("upload")) {
       setUploadTarget(target);
       setUploadTitle(title);
-      clearUploadReturn();
-      setUploadReturn(null);
+      saveUploadReturn(target, title, returnRoute);
+      setUploadReturn(readUploadReturn());
     }
+  };
+  // Cross-menu navigation must use the destination kind, not a stale section
+  // captured before React applies go(). Keep the original filtered list too.
+  const returnToResearch = async (id?: string) => {
+    if (!(await canLeave())) return;
+    const route = reportReturnRoute(uploadReturn?.route, id);
+    await run(async () => {
+      const entry = id ? await request<Entry>(`/entry/${id}`) : null;
+      if (entry && entry.kind !== "research") throw Error("리포트를 찾지 못했습니다.");
+      await go("research", route.filter, false, false);
+      setQ(route.q); setGroup(route.group); setPage(route.page);
+      if (entry) editor.select(entry);
+      writeAdminRoute(route);
+      clearUploadReturn(); setUploadReturn(null);
+      setUploadTarget(undefined); setUploadTitle(undefined);
+    });
   };
   const importUpload = async (id: string) => {
     if (running.current) return;
@@ -188,8 +206,10 @@ export function CmsConsole({
         id,
         target: uploadTarget,
       });
+      const route = reportReturnRoute(uploadReturn?.route, entry.id);
       setSection("research");
-      writeAdminRoute({ section: "research", entry: entry.id });
+      setQ(route.q); setGroup(route.group); setFilter(route.filter); setPage(route.page);
+      writeAdminRoute(route);
       setUploadTarget(undefined);
       setUploadTitle(undefined);
       setChildDirty(false);
@@ -319,22 +339,19 @@ export function CmsConsole({
           key={uploadTarget ?? "new"}
           target={uploadTarget}
           targetTitle={uploadTitle}
-          onBack={() => void go("research")}
+          onBack={() => void returnToResearch(uploadTarget)}
           onImport={importUpload}
           onBusy={setChildBusy}
           onDirty={setChildDirty}
           onStorage={() =>
             void go("storage").then((ok) => {
               if (ok) {
-                saveUploadReturn(uploadTarget, uploadTitle);
+                saveUploadReturn(uploadTarget, uploadTitle, uploadReturn?.route);
                 setUploadReturn(readUploadReturn());
               }
             })
           }
-          onOpen={async (id) => {
-            if (!(await go("research"))) return;
-            await open(id);
-          }}
+          onOpen={returnToResearch}
         />
       ) : section === "storage" ? (
         <StorageSettings
@@ -347,8 +364,6 @@ export function CmsConsole({
                     if (ok) {
                       setUploadTarget(uploadReturn.target);
                       setUploadTitle(uploadReturn.title);
-                      clearUploadReturn();
-                      setUploadReturn(null);
                     }
                   })
               : undefined
@@ -364,6 +379,7 @@ export function CmsConsole({
         <MemberImport
           initialGeneration={group}
           onBusy={setBusy}
+          onDirty={setChildDirty}
           onClose={() =>
             void canLeave().then((ok) => {
               if (ok) setMemberImportOpen(false);
@@ -400,8 +416,12 @@ export function CmsConsole({
           onBack={() =>
             void canLeave().then((ok) => {
               if (ok) {
+                const route = section === "members" && !group && "generation" in form.item
+                  ? { ...listRoute, group: String(form.item.generation) }
+                  : listRoute;
                 editor.clear();
-                writeAdminRoute(listRoute);
+                setGroup(route.group);
+                writeAdminRoute(route);
                 reload();
               }
             })
@@ -418,8 +438,8 @@ export function CmsConsole({
           query={q}
           filter={filter}
           refresh={tick}
-          onQuery={setQ}
-          onFilter={setFilter}
+          onQuery={(q) => updateList({ q, page: 1 })}
+          onFilter={(filter) => updateList({ filter, page: 1 })}
           onOpen={openCohort}
           onImport={() => {
             cohortOverview.current = { query: q, filter };
