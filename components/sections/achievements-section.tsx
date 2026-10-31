@@ -1,3 +1,4 @@
+import { HomeEntrance } from "@/components/home-motion"
 import Link from "next/link"
 import { Trophy, ArrowRight } from "lucide-react"
 
@@ -28,15 +29,15 @@ export function AchievementsSection() {
   return (
     <section className="px-6 py-16 sm:py-20">
       <div className="mx-auto max-w-6xl">
-        <div className="text-center">
+        <HomeEntrance className="text-center">
           <h2 className="text-xs font-normal tracking-[0.3em] text-site-accent">ACCOLADES</h2>
-        </div>
+        </HomeEntrance>
 
-        <div className="mx-auto mt-12 grid gap-4 sm:grid-cols-2">
+        <div className="home-awards mx-auto mt-12 grid gap-4 sm:grid-cols-2">
           {awards.map((award) => (
-            <div
+            <HomeEntrance
               key={award.title}
-              className="flex flex-col items-center gap-3 p-6 text-center"
+              className="home-award flex flex-col items-center gap-3 p-6 text-center"
             >
               <span className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center text-site-accent">
                 <Trophy className="h-4 w-4" aria-hidden="true" />
@@ -44,13 +45,13 @@ export function AchievementsSection() {
               <div className="flex flex-col items-center gap-1.5">
                 <span className="text-xs font-normal tracking-wide text-site-muted">{award.year}</span>
                 <h3 className="text-base font-medium leading-snug text-white">{award.title}</h3>
-                <p className="text-sm leading-relaxed text-site-accent">{award.result}</p>
+                <p className="home-award__result text-sm leading-relaxed text-site-accent">{award.result}</p>
               </div>
-            </div>
+            </HomeEntrance>
           ))}
         </div>
 
-        <div className="mt-10 flex justify-center">
+        <HomeEntrance className="mt-10 flex justify-center">
           <Link
             href="/achievements"
             className="inline-flex items-center gap-2 text-sm font-normal text-site-accent transition-colors hover:text-site-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
@@ -58,7 +59,7 @@ export function AchievementsSection() {
             MORE ACCOLADES
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
-        </div>
+        </HomeEntrance>
       </div>
     </section>
   )

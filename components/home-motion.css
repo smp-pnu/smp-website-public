@@ -1,0 +1,69 @@
+/* Homepage-only motion. No layout animation, permanent layers, or frame loop. */
+.home-entrance, #site-hero {
+  --home-ease: cubic-bezier(.22,1,.36,1);
+  --home-delay: 0ms;
+  --home-rise: 24px;
+}
+.home-activity-list > li:nth-child(2) .home-activity { --home-delay: 110ms; }
+.home-activity-list > li:nth-child(3) .home-activity { --home-delay: 220ms; }
+.home-award:nth-child(even) { --home-delay: 110ms; }
+
+.home-entrance a svg { transition: transform 220ms var(--home-ease); }
+.home-entrance a:focus-visible svg { transform: translateX(4px); }
+
+@keyframes home-rise-in {
+  from { opacity: 0; transform: translateY(var(--home-rise)); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes home-hero-settle {
+  from { opacity: .45; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes home-icon-draw {
+  from { stroke-dashoffset: 80; }
+  to { stroke-dashoffset: 0; }
+}
+
+@media (prefers-reduced-motion:no-preference) {
+  /* Only children move, so the observed box cannot oscillate across its threshold. */
+  /* Waiting content stays readable if observation is unavailable or suspended. */
+  .home-entrance[data-motion="entered"] > * {
+    animation: home-rise-in 800ms var(--home-ease) var(--home-delay) both;
+  }
+  .home-network[data-motion="entered"] > h2,
+  .home-recruit[data-motion="entered"] > h2 { animation-delay: 80ms; }
+  .home-network[data-motion="entered"] > p,
+  .home-recruit[data-motion="entered"] > p { animation-delay: 160ms; }
+  .home-network[data-motion="entered"] > a,
+  .home-recruit[data-motion="entered"] > a { animation-delay: 240ms; }
+
+  .home-activity[data-motion="entered"] .home-activity__icon :is(path,polyline,line) {
+    stroke-dasharray: 80;
+    animation: home-icon-draw 900ms var(--home-ease) var(--home-delay) both;
+  }
+  #site-hero h1 { animation: home-hero-settle 900ms cubic-bezier(.2,.65,.35,1) both; }
+  #site-hero h1 + p { animation: home-hero-settle 800ms ease 100ms both; }
+}
+@media (hover:hover) and (pointer:fine) {
+  .home-entrance a:hover svg { transform: translateX(4px); }
+}
+@media (max-width:639px) and (prefers-reduced-motion:no-preference) {
+  .home-entrance { --home-rise: 16px; }
+  .home-entrance[data-motion="entered"] > * {
+    animation-duration: 650ms;
+    animation-delay: 0ms;
+  }
+  .home-network[data-motion="entered"] > p,
+  .home-recruit[data-motion="entered"] > p { animation-delay: 80ms; }
+  .home-network[data-motion="entered"] > a,
+  .home-recruit[data-motion="entered"] > a { animation-delay: 160ms; }
+  .home-activity[data-motion="entered"] .home-activity__icon :is(path,polyline,line) {
+    animation-duration: 700ms;
+    animation-delay: 0ms;
+  }
+  #site-hero h1, #site-hero h1 + p { animation-duration: 600ms; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .home-entrance, .home-entrance *,
+  #site-hero h1, #site-hero h1 + p { animation: none !important; transition: none !important; }
+}
