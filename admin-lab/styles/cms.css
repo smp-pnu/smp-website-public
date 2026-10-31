@@ -55,6 +55,38 @@
   margin-top: 28px;
   padding-top: 20px;
 }
+.publication-note {
+  padding: 16px 20px;
+  margin: 0 0 24px;
+  border: 1px solid #d5e1e9;
+  border-radius: var(--radius);
+  background: #edf3f7;
+  color: #415b70;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.publication-note strong { display: block; margin-bottom: 4px; }
+.member-photo-picker { align-self: flex-start; }
+.upload-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.upload-steps li { display: flex; align-items: center; gap: 8px; }
+.upload-steps li > span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #e8edf1; font-size: 12px; }
+.upload-steps [aria-current="step"] { color: var(--accent); font-weight: 650; }
+.upload-steps [aria-current="step"] > span { background: var(--accent); color: white; }
+.upload-review-toolbar:focus { outline: none; }
+@media (max-width: 600px) {
+  .upload-steps { gap: 12px; font-size: 12px; }
+  .upload-steps li { gap: 6px; }
+  .upload-steps li > span { width: 20px; height: 20px; }
+}
 .cms-block-editor {
   border: 0;
   padding: 16px 0;

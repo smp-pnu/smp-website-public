@@ -34,7 +34,8 @@ test('upload return survives an OAuth reload with bounded target and expires saf
   const previous=Object.getOwnPropertyDescriptor(globalThis,'sessionStorage'), map=new Map<string,string>()
   Object.defineProperty(globalThis,'sessionStorage',{configurable:true,value:{setItem:(k:string,v:string)=>map.set(k,v),getItem:(k:string)=>map.get(k)??null,removeItem:(k:string)=>map.delete(k)}})
   try{
-    saveUploadReturn('a'.repeat(32),'Original title');assert.equal(readUploadReturn()?.target,'a'.repeat(32))
+    saveUploadReturn('a'.repeat(32),'Original title',{section:'research',q:'기업',group:'2026-2',filter:'public',page:3});assert.equal(readUploadReturn()?.target,'a'.repeat(32))
+    assert.deepEqual(readUploadReturn()?.route,{section:'research',q:'기업',group:'2026-2',filter:'public',page:3,entry:'a'.repeat(32)})
     clearUploadReturn();assert.equal(readUploadReturn(),null)
     for(const value of [{expires:Date.now()-1},{expires:Date.now()+1000,target:'https://evil.test'},{expires:Date.now()+1000,title:9}]){map.set('smp-admin-upload-return',JSON.stringify(value));assert.equal(readUploadReturn(),null)}
     assert.equal(adminSection('#upload'),'upload');assert.equal(adminSection('#storage'),'storage');assert.equal(adminSection('#unknown'),'dashboard')

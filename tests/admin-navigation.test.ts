@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {adminRouteHash,readAdminRoute} from '../admin-lab/admin-navigation';
+import {adminRouteHash,readAdminRoute,reportReturnRoute} from '../admin-lab/admin-navigation';
 import {entryListPath} from '../admin-lab/cms/entry-list-query';
 import {siteSearchMatches} from '../lib/site-search-query';
 
@@ -15,6 +15,13 @@ test('admin deep links retain article, cohort and filtered page context, with bo
  assert.equal(readAdminRoute('#storage?entry='+'a'.repeat(32)).entry,undefined);
  assert.equal(readAdminRoute('#research?entry=https://elsewhere.test').entry,undefined);
  assert.equal(readAdminRoute('#research?filter=unknown').filter,'all');
+});
+test('PDF intake returns to research with its filters, even when opened from another menu',()=>{
+ const route=readAdminRoute('#research?q=반도체&group=2026-2&filter=draft&page=3&entry='+'a'.repeat(32));
+ assert.deepEqual(reportReturnRoute(route,'b'.repeat(32)),{...route,entry:'b'.repeat(32)});
+ assert.equal(reportReturnRoute(route).entry,undefined);
+ assert.deepEqual(reportReturnRoute(readAdminRoute('#upload'),'a'.repeat(32)),{section:'research',q:'',group:'',filter:'all',page:1,entry:'a'.repeat(32)});
+ assert.equal(reportReturnRoute(route,'not-an-entry').entry,undefined);
 });
 test('admin list queries skip non-list views and preserve escaped search/trash state',()=>{
  const base={section:'research' as const,q:'A&B / 기업',group:'2026-2',filter:'trash',page:2};

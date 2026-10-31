@@ -1,7 +1,7 @@
-import { InlineLoading } from "../ui/loading";
+import { PublicationButtons, PublicationFeedback } from "./publication-controls";
 import { AdminSelect } from "../ui/select";
 import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ImagePlus } from "lucide-react";
 import type { Entry, Payload, Kind } from "../../cms/model";
 import type { ContentItem } from "../../lib/content-model";
 import type { Member } from "../../lib/member-model";
@@ -52,9 +52,9 @@ export function EntryEditor({
       <div className="detail-navigation">
         <button disabled={busy} onClick={() => onBack()}>
           <ArrowLeft size={15} />
-          {section === "members" ? `${group}기 명단으로` : "목록으로"}
+          {section === "members" ? `${group || member.generation}기 명단으로` : "목록으로"}
         </button>
-        <span className={`status-badge ${statusTone(selected)}`}>{status(selected)}</span>
+        <span className={`status-badge ${dirty ? "edited" : statusTone(selected)}`}>{dirty ? "저장 전 변경" : status(selected)}</span>
       </div>
       <header className="page-heading">
         <div>
@@ -74,34 +74,10 @@ export function EntryEditor({
               PDF 교체
             </button>
           )}
-          <button
-            disabled={busy || !dirty || !!selected.trashedAt}
-            onClick={() => onSave()}
-          >
-            초안 저장
-          </button>
-          <button
-            className="primary"
-            disabled={
-              busy ||
-              dirty ||
-              !!selected.trashedAt ||
-              (selected.pending && !selected.error) ||
-              (selected.approvedRevision === selected.revision &&
-                !selected.error)
-            }
-            onClick={() => void onAction("approve")}
-          >
-            {selected.error
-              ? "다시 게시"
-              : selected.pending
-                ? <InlineLoading>준비 중…</InlineLoading>
-                : selected.approvedRevision === selected.revision
-                  ? "게시됨"
-                  : "게시"}
-          </button>
+          <PublicationButtons entry={selected} dirty={dirty} busy={busy} onSave={onSave} onPublish={() => onAction("approve")} />
         </div>
       </header>
+      <PublicationFeedback entry={selected} />
       {dirty && (
         <p className="field-help" role="status">
           수정한 내용을 ‘초안 저장’한 뒤 ‘게시’를 누르면 사이트에 반영됩니다.
@@ -127,8 +103,8 @@ export function EntryEditor({
                 value={member?.group ?? "members"}
                 onValueChange={(next) => change("group", next)}
               >
-                <option value="members">MEMBERS</option>
-                <option value="alumni">ALUMNI</option>
+                <option value="members">MEMBERS · 활동 회원</option>
+                <option value="alumni">ALUMNI · 수료 회원</option>
               </AdminSelect>
             </label>
             <Field
@@ -138,6 +114,7 @@ export function EntryEditor({
             />
             <Field
               label="학번 표시"
+              hint="입학연도 두 자리만 입력합니다. 예: 26"
               value={member?.year}
               onChange={(v) => change("year", v)}
             />
@@ -172,14 +149,19 @@ export function EntryEditor({
                   alt="프로필"
                 />
               )}
-              <input
+              <label className={`secondary file-picker member-photo-picker ${busy || selected.trashedAt ? "disabled" : ""}`}>
+                <ImagePlus size={16} />{member.image ? "사진 변경" : "사진 선택"}
+                <input
                 type="file"
+                aria-label="회원 프로필 사진 선택"
+                disabled={busy || !!selected.trashedAt}
                 accept="image/jpeg,image/png,image/webp"
                 onChange={(e) => {
                   if (e.target.files?.[0]) void onPhoto(e.target.files[0]);
                   e.target.value = "";
                 }}
-              />
+                />
+              </label>
               {member?.image && (
                 <button onClick={() => change("image", undefined)}>
                   사진 내리기
@@ -207,7 +189,7 @@ export function EntryEditor({
             <fieldset className="cms-form-section">
               <legend>분류·노출</legend>
               <Field label="학기" hint="예: 2026-2" value={selectedContent.semester} onChange={(v) => change("semester", v || undefined)} />
-              <Field label="표시 분류" hint="목록의 분류 표시에 사용합니다 (예: R1, N1)." value={selectedContent.category} onChange={(v) => change("category", v)} />
+              <Field label="표시 분류" hint="목록 카드에 표시할 분류입니다. 예: 기업분석, 신입세션" value={selectedContent.category} onChange={(v) => change("category", v)} />
               <Field label="보고서 종류" hint="기업분석·산업분석 등 보고서의 성격" value={selectedContent.reportType} onChange={(v) => change("reportType", v)} />
               <Field label="활동" hint="정규 리서치·대회 등 작성한 활동" value={selectedContent.activity} onChange={(v) => change("activity", v)} />
             </fieldset>
@@ -278,12 +260,6 @@ export function EntryEditor({
             </a>
           )}
       </footer>
-      {selected.error && (
-        <p className="error-panel">
-          게시 준비에 실패했습니다. 파일 연결을 확인하고 ‘게시’를 다시 눌러
-          주세요. 기존 공개본은 유지됩니다.
-        </p>
-      )}
     </>
   );
 }

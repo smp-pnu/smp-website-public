@@ -8,6 +8,7 @@ import { status, statusTone } from "../cms/presentation";
 import type { EntryEditorProps } from "../cms/entry-editor";
 import { NoticeComposer } from "./composer";
 import "./workspace.css";
+import { PublicationButtons, PublicationFeedback } from "../cms/publication-controls";
 
 export function NoticeWorkspace(props: EntryEditorProps) {
   const {
@@ -41,7 +42,7 @@ export function NoticeWorkspace(props: EntryEditorProps) {
           <div>
             <h1>공지 작성</h1>
             <span className={`status-badge ${statusTone(selected)}`}>
-              {status(selected)}
+              {dirty ? "저장 전 변경" : status(selected)}
             </span>
           </div>
         </div>
@@ -66,29 +67,7 @@ export function NoticeWorkspace(props: EntryEditorProps) {
             {preview ? <PenLine size={16} /> : <Eye size={16} />}{" "}
             {preview ? "계속 작성" : "미리보기"}
           </button>
-          <button disabled={readonly || !dirty || !!problem} onClick={onSave}>
-            초안 저장
-          </button>
-          <button
-            className="primary"
-            disabled={
-              readonly ||
-              dirty ||
-              !!problem ||
-              (selected.pending && !selected.error) ||
-              (selected.approvedRevision === selected.revision &&
-                !selected.error)
-            }
-            onClick={() => onAction("approve")}
-          >
-            {selected.error
-              ? "다시 게시"
-              : selected.pending
-                ? "게시 준비 중"
-                : selected.approvedRevision === selected.revision
-                  ? "게시됨"
-                  : "게시"}
-          </button>
+          <PublicationButtons entry={selected} dirty={dirty} busy={busy} invalid={!!problem} onSave={onSave} onPublish={() => onAction("approve")} />
         </div>
       </header>
       {problem && (
@@ -96,12 +75,7 @@ export function NoticeWorkspace(props: EntryEditorProps) {
           {problem} 내용을 조정한 뒤 저장해 주세요.
         </p>
       )}
-      {selected.error && (
-        <p className="error-panel" role="alert">
-          게시 준비에 실패했습니다. 연결을 확인하고 다시 게시해 주세요. 기존
-          공개본은 유지됩니다.
-        </p>
-      )}
+      <PublicationFeedback entry={selected} />
       <div className="notice-workspace-grid">
         <div className="notice-paper">
           <div hidden={preview}>

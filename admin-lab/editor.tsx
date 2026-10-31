@@ -120,7 +120,7 @@ export function DraftEditor({
     <section className="editor" aria-label="리포트 검토">
       <header className="editor-heading">
         <div>
-          <h1 tabIndex={-1}>{draft.trashedAt ? "휴지통의 리포트" : "리포트 편집"}</h1>
+          {workflow ? <h2>입력 내용 검토</h2> : <h1 tabIndex={-1}>{draft.trashedAt ? "휴지통의 리포트" : "리포트 편집"}</h1>}
         </div>
         <span className={`status ${approved ? "approved" : ""}`}>
           {dirty ? "저장 전 변경" : statusOf(draft)}
@@ -381,7 +381,7 @@ export function DraftEditor({
       <footer className="approval">
         {draft.trashedAt ? (
           <>
-            <p>{storageLabel}의 시험 자료만 변경됩니다.</p>
+            <p>휴지통에 보관한 등록 대기 PDF입니다. 복원 후 검토를 이어갈 수 있습니다.</p>
             <div className="button-row">
               <button
                 className="primary"
