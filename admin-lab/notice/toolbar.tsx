@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import {
   Bold,
@@ -34,6 +34,8 @@ export function NoticeToolbar({
   const [linkOpen, setLinkOpen] = useState(false),
     [link, setLink] = useState(""),
     [error, setError] = useState("");
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreId = useId();
   const selected = useRef({ from: 1, to: 1 });
   const file = useRef<HTMLInputElement>(null);
   const command = (action: () => void) => {
@@ -107,24 +109,6 @@ export function NoticeToolbar({
           editor.isActive("bold"),
         )}
         {button(
-          "기울임",
-          <Italic />,
-          () => editor.chain().focus().toggleItalic().run(),
-          editor.isActive("italic"),
-        )}
-        {button(
-          "밑줄",
-          <Underline />,
-          () => editor.chain().focus().toggleUnderline().run(),
-          editor.isActive("underline"),
-        )}
-        {button(
-          "취소선",
-          <Strikethrough />,
-          () => editor.chain().focus().toggleStrike().run(),
-          editor.isActive("strike"),
-        )}
-        {button(
           "링크",
           <Link />,
           () => {
@@ -144,6 +128,27 @@ export function NoticeToolbar({
           <List />,
           () => editor.chain().focus().toggleBulletList().run(),
           editor.isActive("bulletList"),
+        )}
+        <button type="button" disabled={disabled} aria-expanded={moreOpen} aria-controls={moreId} onMouseDown={(e) => e.preventDefault()} onClick={() => setMoreOpen(!moreOpen)}>더보기</button>
+      </div>
+      <div id={moreId} className="notice-extra-tools" hidden={!moreOpen} role="group" aria-label="추가 서식">
+        {button(
+          "기울임",
+          <Italic />,
+          () => editor.chain().focus().toggleItalic().run(),
+          editor.isActive("italic"),
+        )}
+        {button(
+          "밑줄",
+          <Underline />,
+          () => editor.chain().focus().toggleUnderline().run(),
+          editor.isActive("underline"),
+        )}
+        {button(
+          "취소선",
+          <Strikethrough />,
+          () => editor.chain().focus().toggleStrike().run(),
+          editor.isActive("strike"),
         )}
         {button(
           "번호 목록",

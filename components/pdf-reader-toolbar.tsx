@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { PDF_ZOOM_LEVELS, pdfSpread, type PdfPagesPerView } from '@/lib/pdf-reader-layout'
 
-export const pdfButtonClass = 'rounded border border-white/25 px-3 py-2 text-sm text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-2 focus-visible:outline-sky-300'
+export const pdfButtonClass = 'min-h-12 sm:min-h-10 rounded border border-white/25 px-3 py-2 text-sm text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-2 focus-visible:outline-sky-300'
 
 export function PdfReaderToolbar({page,pages,zoom,disabled=false,onNavigate,onZoom,fullscreen,fullscreenAvailable,onFullscreen,pagesPerView=1,onPagesPerView}: {
   page:number; pages:number; zoom:number; disabled?:boolean
@@ -19,7 +19,7 @@ export function PdfReaderToolbar({page,pages,zoom,disabled=false,onNavigate,onZo
     if(draft.trim() && Number.isSafeInteger(value)){const next=pdfSpread(value,pages,pagesPerView).start;setDraft(String(next));onNavigate(next)}
     else setDraft(String(spread.start))
   }
-  return <div role="group" aria-label="PDF 페이지와 확대 설정" className="flex flex-wrap items-center justify-between gap-3 border-b border-white/15 p-3">
+  return <div role="group" aria-label="PDF 페이지와 확대 설정" className="pdf-reader-toolbar flex flex-wrap items-center justify-between gap-4 border-b border-white/15 p-3">
     <div className="flex items-center gap-2">
       <button aria-label="이전 페이지" className={pdfButtonClass} disabled={disabled || spread.start<=1 || !pages} onClick={()=>onNavigate(spread.start-pagesPerView)}>←</button>
       <label className="flex items-center gap-2 text-sm text-slate-200">

@@ -11,8 +11,8 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 16px;
-  padding: 18px 0;
-  margin: -10px 0 24px;
+  padding: 16px 0;
+  margin: 0 0 24px;
   background: var(--page, #f4f5f7);
   border-bottom: 1px solid var(--line, #e0e5e9);
 }
@@ -35,15 +35,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   border: 1px solid #d5dce2;
   background: #fff;
   color: #344654;
-  border-radius: 6px;
+  border-radius: var(--radius);
   padding: 8px 11px;
-  min-height: 36px;
+  min-height: var(--control-height);
   font: inherit;
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
 }
 .notice-workspace button.primary {
@@ -71,8 +71,8 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: #73808b;
-  font-size: 11px;
+  color: var(--muted);
+  font-size: 12px;
   margin-right: 8px;
 }
 .notice-workspace-grid {
@@ -90,9 +90,9 @@
 }
 .notice-title-label {
   display: block;
-  margin: 28px 32px 8px;
-  color: #7b8790;
-  font-size: 11px;
+  margin: 32px 32px 8px;
+  color: var(--muted);
+  font-size: 12px;
 }
 .notice-title-label textarea {
   display: block;
@@ -139,8 +139,8 @@
   padding-bottom: 6px;
 }
 .notice-toolbar button {
-  min-width: 32px;
-  min-height: 32px;
+  min-width: var(--control-height);
+  min-height: var(--control-height);
   padding: 5px 7px;
   border-color: transparent;
   background: transparent;
@@ -154,9 +154,9 @@
   color: #214861;
 }
 .notice-format-row .ui-select {
-  width: 100px;
-  font-size: 12px;
-  min-height: 32px;
+  width: 112px;
+  font-size: 14px;
+  min-height: var(--control-height);
 }
 .notice-tool-divider {
   width: 1px;
@@ -170,7 +170,7 @@
 }
 .notice-insert-row button {
   color: #647786;
-  font-size: 12px;
+  font-size: 14px;
 }
 .notice-table-tools {
   border-top: 1px solid #e1e8ef;
@@ -179,7 +179,7 @@
 }
 .notice-document {
   min-height: 420px;
-  padding: 26px 32px 48px;
+  padding: 24px 32px 48px;
   color: #2b3843;
   font-size: 15px;
   line-height: 1.85;
@@ -251,7 +251,7 @@
   white-space: pre-wrap;
   background: #f3f5f7;
   padding: 16px;
-  border-radius: 6px;
+  border-radius: var(--radius);
 }
 .notice-document table {
   table-layout: fixed;
@@ -294,13 +294,13 @@
   border-top: 1px solid #eef1f3;
   margin: 0;
   padding: 14px 24px;
-  font-size: 11px;
+  font-size: 12px;
   color: #8a949c;
   line-height: 1.8;
 }
 .notice-asset {
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--radius);
   margin: 22px 0;
   padding: 4px;
 }
@@ -311,8 +311,8 @@
 .notice-asset-tools {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
+  gap: 8px;
+  font-size: 12px;
   color: #89959e;
 }
 .notice-asset-tools > button {
@@ -346,11 +346,11 @@
   color: #687984;
   text-align: center;
   font: inherit;
-  font-size: 12px;
+  font-size: 14px;
   box-sizing: border-box;
 }
 .notice-asset details > summary {
-  font-size: 12px;
+  font-size: 14px;
   color: #738593;
   cursor: pointer;
 }
@@ -383,7 +383,7 @@
   gap: 20px;
 }
 .notice-settings .cms-field {
-  font-size: 12px;
+  font-size: 14px;
 }
 .notice-settings input:not([type="checkbox"]),
 .notice-settings textarea {
@@ -404,12 +404,12 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 12px;
+  font-size: 14px;
 }
 .notice-settings-help {
   margin: 16px 4px;
   color: #81909b;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.8;
 }
 .notice-more > div {
@@ -419,7 +419,7 @@
 }
 .notice-more a {
   color: #597486;
-  font-size: 12px;
+  font-size: 14px;
   margin-top: 8px;
 }
 .notice-preview {
@@ -427,7 +427,7 @@
 }
 .notice-preview-label {
   color: #7f919e;
-  font-size: 11px;
+  font-size: 12px;
 }
 .notice-preview > h2 {
   font-size: 28px;
@@ -435,7 +435,7 @@
   line-height: 1.5;
 }
 .notice-preview-meta {
-  font-size: 12px;
+  font-size: 14px;
   color: #82909b;
   padding-bottom: 20px;
   border-bottom: 1px solid #e5eaee;
@@ -447,7 +447,7 @@
 .notice-editor-loading,
 .notice-upload-state {
   padding: 20px 28px;
-  font-size: 12px;
+  font-size: 14px;
   color: #637f93;
 }
 .notice-link-form {
@@ -462,8 +462,8 @@
   flex: 1;
   min-width: 180px;
   display: grid;
-  gap: 6px;
-  font-size: 11px;
+  gap: 8px;
+  font-size: 12px;
   color: #647887;
 }
 .notice-link-form input {
@@ -478,7 +478,7 @@
 .notice-link-form p {
   flex-basis: 100%;
   margin: 0;
-  font-size: 12px;
+  font-size: 14px;
   color: #a63c31;
 }
 @media (max-width: 1200px) {
@@ -540,7 +540,7 @@
     flex-basis: 100%;
   }
   .notice-title-label {
-    margin: 20px 18px 8px;
+    margin: 24px 16px 8px;
   }
   .notice-title-label textarea {
     font-size: 24px;
@@ -552,14 +552,14 @@
     gap: 2px;
   }
   .notice-format-row button {
-    min-width: 30px;
+    min-width: var(--control-height);
     padding: 4px;
   }
   .notice-tool-divider {
     display: none;
   }
   .notice-document {
-    padding: 22px 18px;
+    padding: 24px 16px;
     font-size: 16px;
   }
   .notice-settings input:not([type="checkbox"]),
@@ -573,3 +573,15 @@
     font-size: 24px;
   }
 }
+
+.notice-extra-tools:not([hidden]) { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding-block: 8px; border-top: 1px solid var(--line); }
+.notice-extra-tools[hidden] { display: none; }
+@media (max-width: 700px) {
+  .notice-toolbar { position: relative; top: auto; }
+  .notice-workspace-header { position: relative; }
+  .notice-format-row { gap: 4px; }
+  .notice-toolbar button svg { width: 20px; height: 20px; }
+  .notice-publish-actions button { padding-inline: 12px; }
+}
+
+.notice-heading > button { min-width: var(--control-height); }

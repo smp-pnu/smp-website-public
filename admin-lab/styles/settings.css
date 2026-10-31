@@ -29,22 +29,22 @@
 .settings-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 22px;
+  gap: 24px;
   align-items: start;
   max-width: 1120px;
 }
 .settings-panel {
   background: #fff;
   border: 1px solid #dce1e6;
-  border-radius: 10px;
-  padding: 25px;
+  border-radius: var(--radius-panel);
+  padding: 24px;
 }
 .settings-panel > header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  margin-bottom: 13px;
+  margin-bottom: 16px;
 }
 .settings-panel h2 {
   font-size: 16px;
@@ -69,7 +69,7 @@
 .passkey-list li {
   display: flex;
   align-items: center;
-  gap: 13px;
+  gap: 12px;
   padding: 16px 0;
   border-top: 1px solid var(--line);
 }
@@ -86,7 +86,7 @@
 .passkey-list li span {
   display: block;
   color: #657383;
-  font-size: 11px;
+  font-size: 12px;
   margin-top: 3px;
 }
 .add-key-form {
@@ -98,7 +98,7 @@
 }
 .field-help {
   color: #6e7b88;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.85;
   margin: 10px 0 0;
 }
@@ -209,7 +209,7 @@
   color: #344456;
 }
 .auth-fields small {
-  font-size: 11px;
+  font-size: 12px;
   color: #939fab;
 }
 .auth-fields .error-panel {
@@ -262,7 +262,7 @@
   padding-top: 18px;
   margin: 18px 0 0;
   border-top: 1px solid var(--line);
-  font-size: 11px !important;
+  font-size: 12px !important;
   color: #707d8b !important;
 }
 .auth-note svg {

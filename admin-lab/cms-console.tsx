@@ -291,7 +291,7 @@ export function CmsConsole({
       }
       busy={navigationBusy}
     >
-      {busy && !batch.batchProgress && <div className="upload-progress"><InlineLoading>요청을 처리하는 중…</InlineLoading></div>}
+      {busy && !batch.batchProgress && <div className="cms-task-status"><InlineLoading>요청을 처리하는 중…</InlineLoading></div>}
       {error && (
         <p className="error-panel" role="alert">
           {error}

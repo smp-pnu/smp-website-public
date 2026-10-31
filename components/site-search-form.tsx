@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { ArrowRight } from "lucide-react"
 import { readApi, peekApi, SEARCH_CACHE_TTL } from "@/lib/client-api-cache"
 import { SearchField } from "@/components/search-field"
-import { siteSearchMatches, type SiteSearchEntry } from "@/lib/site-search-query"
+import { siteSearchMatches, siteSearchDescription, type SiteSearchEntry } from "@/lib/site-search-query"
 import { internalHref } from "@/lib/internal-href"
 
 type SearchIndex = { entries: SiteSearchEntry[]; partial: boolean }
@@ -71,10 +71,10 @@ export function SiteSearchForm({ onNavigate }: { onNavigate: () => void }) {
         onNavigate={event => { event.preventDefault(); navigate(href) }}
         onMouseEnter={() => setActive(i)}
         className={`group flex items-start gap-3 px-3 py-3 transition-colors hover:bg-white/[0.05] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-site-accent sm:gap-4 sm:px-4 ${active === i ? "bg-white/[0.05]" : ""}`}>
-        <span className="mt-0.5 min-w-12 shrink-0 rounded-[2px] border border-sky-200/15 bg-sky-200/[0.04] px-2 py-1 text-center text-[11px] leading-4 text-site-accent/80">{item.label}</span>
+        <span className="mt-0.5 min-w-12 shrink-0 rounded-[2px] border border-sky-200/15 bg-sky-200/[0.04] px-2 py-1 text-center text-xs leading-4 text-site-accent/80">{item.label}</span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm leading-6 text-white">{item.title}</span>
-          <span className="mt-1 block truncate text-xs leading-5 text-site-muted">{item.text}</span>
+          <span className="mt-1 block truncate text-xs leading-5 text-site-muted">{siteSearchDescription(item)}</span>
         </span>
         <ArrowRight aria-hidden="true" className="mt-1 hidden h-4 w-4 shrink-0 text-site-muted transition-colors group-hover:text-site-accent sm:block" strokeWidth={1.5} />
       </Link>})}

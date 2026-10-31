@@ -124,7 +124,7 @@
 }
 .report-table-wrap {
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-panel);
   background: var(--surface);
   overflow-x: auto;
   padding-bottom: 4px;
@@ -133,14 +133,14 @@
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: 12px;
+  font-size: 14px;
 }
 .report-table th {
   padding: 10px 16px;
   background: #f7f8fa;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
-  color: #777f89;
+  color: var(--muted);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -149,7 +149,7 @@
   width: 48%;
 }
 .report-table td {
-  padding: 15px 16px;
+  padding: 16px;
   border-bottom: 1px solid #edf0f3;
   white-space: nowrap;
   color: #626c78;
