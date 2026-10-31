@@ -1,3 +1,4 @@
+import { HomeEntrance } from "@/components/home-motion"
 import Link from "next/link"
 import { Trophy, ArrowRight } from "lucide-react"
 
@@ -27,7 +28,7 @@ const awards = [
 export function AchievementsSection() {
   return (
     <section className="px-6 py-16 sm:py-20">
-      <div className="mx-auto max-w-6xl">
+      <HomeEntrance className="home-soft-reveal mx-auto max-w-6xl">
         <div className="text-center">
           <h2 className="text-xs font-normal tracking-[0.3em] text-site-accent">ACCOLADES</h2>
         </div>
@@ -53,13 +54,13 @@ export function AchievementsSection() {
         <div className="mt-10 flex justify-center">
           <Link
             href="/achievements"
-            className="home-editorial-link inline-flex min-h-11 items-center gap-4 text-sm font-normal text-site-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            className="inline-flex items-center gap-2 text-sm font-normal text-site-accent transition-colors hover:text-site-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           >
             MORE ACCOLADES
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
-      </div>
+      </HomeEntrance>
     </section>
   )
 }

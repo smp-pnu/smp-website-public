@@ -1,41 +1,11 @@
-/* One motion language for the home experiment; no continuous scroll handler. */
-.home-entrance { --home-ease: cubic-bezier(.22, 1, .36, 1); }
-.home-panorama { height: clamp(192px, 24vw, 304px); margin-top: 64px; overflow: hidden; }
-.home-panorama__right, .home-panorama__left { width: 100%; height: 100%; overflow: hidden; }
-.home-panorama__right { transform: translateX(-36%); }
-.home-panorama__left { transform: translateX(72%); }
-.home-panorama__image { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 54%; transform: translateX(-36%); }
-/* Equal opposing translations reveal a stationary photo without stretching it. */
-.home-panorama__right, .home-panorama__left, .home-panorama__image { transition: transform 720ms var(--home-ease); }
-.home-panorama[data-entered="true"] .home-panorama__right,
-.home-panorama[data-entered="true"] .home-panorama__left,
-.home-panorama[data-entered="true"] .home-panorama__image { transform: translateX(0); }
-.home-activities { max-width: 1152px; margin-inline: auto; }
-.home-activities__item { position: relative; }
-.home-activities__item::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: rgb(185 225 250 / 48%); transform: scaleX(0); transform-origin: left; transition: transform 500ms var(--home-ease); transition-delay: calc(var(--activity-index) * 100ms); }
-.home-activities[data-entered="true"] .home-activities__item::before { transform: scaleX(1); }
-.home-activities[data-entered="true"] .home-activities__icon { animation: home-icon-in 420ms var(--home-ease) both; animation-delay: calc(var(--activity-index) * 100ms); }
-@keyframes home-icon-in { from { opacity: .4; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-.home-editorial-link { position: relative; }
-.home-editorial-link::after { content: ""; position: absolute; bottom: 3px; left: 0; width: calc(100% - 32px); height: 1px; background: currentColor; transform: scaleX(0); transform-origin: left; transition: transform 180ms ease-out; }
-.home-editorial-link svg { transition: transform 180ms ease-out; }
-.home-editorial-link:focus-visible::after { transform: scaleX(1); }
-.home-editorial-link:focus-visible svg { transform: translateX(3px); }
-@media (hover: hover) and (pointer: fine) {
-  .home-editorial-link:hover::after { transform: scaleX(1); }
-  .home-editorial-link:hover svg { transform: translateX(3px); }
+/* Motion only: keep the deployed homepage's dimensions, colours and content. */
+@keyframes home-soft-in { from { opacity: .6; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion:no-preference) {
+  .home-soft-reveal[data-entered="true"] { animation: home-soft-in 450ms cubic-bezier(.22,1,.36,1) both; }
+  #site-hero h1 { animation: home-soft-in 550ms cubic-bezier(.22,1,.36,1) both; }
+  #site-hero h1 + p { animation: home-soft-in 600ms cubic-bezier(.22,1,.36,1) both; }
 }
-@media (max-width: 767px) {
-  .home-panorama { height: 176px; margin-top: 40px; }
-  /* A small, single entrance on mobile, with no multi-layer reveal. */
-  .home-panorama__right, .home-panorama__left, .home-panorama__image { transform: none; transition: none; }
-  .home-panorama[data-entered="true"] .home-panorama__right { animation: home-photo-in 320ms ease-out both; }
-  .home-activities__item::before { transition-delay: 0ms; }
-  .home-activities[data-entered="true"] .home-activities__icon { animation-delay: 0ms; }
+@media (max-width:639px) and (prefers-reduced-motion:no-preference) {
+  .home-soft-reveal[data-entered="true"], #site-hero h1, #site-hero h1 + p { animation-duration: 280ms; }
 }
-@keyframes home-photo-in { from { opacity: .65; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-@media (prefers-reduced-motion: reduce) {
-  .home-entrance *, .home-entrance *::before, .home-editorial-link::after, .home-editorial-link svg { transition: none !important; animation: none !important; }
-  .home-panorama__right, .home-panorama__left, .home-panorama__image { transform: none; }
-  .home-activities__item::before { transform: scaleX(1); }
-}
+@media (prefers-reduced-motion:reduce) { .home-soft-reveal, #site-hero h1, #site-hero h1 + p { animation: none !important; } }

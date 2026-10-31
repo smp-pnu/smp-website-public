@@ -27,16 +27,3 @@ export function HomeEntrance({ children, className = "", id }: {
   }, [])
   return <div ref={root} id={id} className={`home-entrance ${className}`} data-entered={entered}>{children}</div>
 }
-
-export function HomePanorama() {
-  return <HomeEntrance className="home-panorama" id="home-perspective">
-    <div className="home-panorama__right" aria-hidden="true">
-      <div className="home-panorama__left">
-        <picture>
-          <source media="(max-width: 767px)" srcSet="/backgrounds/pnu-campus-upscaled-mobile.webp" />
-          <img className="home-panorama__image" src="/backgrounds/pnu-campus-upscaled.webp" alt="" width={1920} height={1280} loading="lazy" decoding="async" />
-        </picture>
-      </div>
-    </div>
-  </HomeEntrance>
-}

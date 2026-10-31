@@ -1,12 +1,12 @@
+import { HomeEntrance } from "@/components/home-motion"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { SITE_INTRO, SITE_NAME_KO } from "@/lib/site-config"
-import { HomePanorama } from "@/components/home-motion"
 
 export function WhoWeAreSection() {
   return (
     <section className="px-6 py-16 sm:py-20">
-      <div className="mx-auto max-w-6xl text-center">
+      <HomeEntrance className="home-soft-reveal mx-auto max-w-5xl text-center">
         <div className="flex flex-col items-center gap-6 sm:gap-8">
           <div>
             <span className="text-xs font-normal tracking-[0.3em] text-site-accent">WHO WE ARE</span>
@@ -21,15 +21,14 @@ export function WhoWeAreSection() {
             </p>
             <Link
               href="/about"
-              className="home-editorial-link mt-6 inline-flex min-h-11 items-center gap-4 text-sm font-normal text-site-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+              className="mt-6 inline-flex items-center gap-2 text-sm font-normal text-site-accent transition-colors hover:text-site-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
             >
               부산대 SMP 활동 알아보기
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>
         </div>
-        <HomePanorama />
-      </div>
+      </HomeEntrance>
     </section>
   )
 }

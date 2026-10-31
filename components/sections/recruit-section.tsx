@@ -1,10 +1,11 @@
+import { HomeEntrance } from "@/components/home-motion"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 
 export function RecruitSection() {
   return (
     <section className="px-6 py-16 sm:py-20">
-      <div className="mx-auto max-w-3xl text-center">
+      <HomeEntrance className="home-soft-reveal mx-auto max-w-3xl text-center">
         <span className="text-xs font-normal tracking-[0.3em] text-site-accent">RECRUIT</span>
         <h2 className="mt-4 text-2xl font-medium leading-snug text-white sm:text-3xl">
           SMP의 미래를 이끌어갈 가치투자의 리더를 찾습니다.
@@ -15,12 +16,12 @@ export function RecruitSection() {
 
         <Link
           href="/recruit"
-          className="mt-8 home-editorial-link inline-flex min-h-11 items-center gap-4 text-sm font-normal text-site-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+          className="mt-8 inline-flex items-center gap-2 text-sm font-normal text-site-accent transition-colors hover:text-site-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
         >
           RECRUITMENT
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Link>
-      </div>
+      </HomeEntrance>
     </section>
   )
 }

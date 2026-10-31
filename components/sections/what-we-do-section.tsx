@@ -1,6 +1,5 @@
-import { LineChart, Users, BookOpenText } from "lucide-react"
-import type { CSSProperties } from "react"
 import { HomeEntrance } from "@/components/home-motion"
+import { LineChart, Users, BookOpenText } from "lucide-react"
 
 const ACTIVITIES = [
   {
@@ -25,7 +24,7 @@ const ACTIVITIES = [
 export function WhatWeDoSection() {
   return (
     <section className="px-6 py-16 sm:py-20">
-      <HomeEntrance className="home-activities" id="home-activities">
+      <HomeEntrance className="home-soft-reveal mx-auto max-w-[1600px]">
         <div className="text-center">
           <span className="text-xs font-normal tracking-[0.3em] text-site-accent">WHAT WE DO</span>
           <h2 className="mt-4 text-2xl font-medium leading-snug text-white sm:text-3xl">
@@ -34,13 +33,12 @@ export function WhatWeDoSection() {
         </div>
 
         <ul className="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-3">
-          {ACTIVITIES.map(({ icon: Icon, title, description }, index) => (
+          {ACTIVITIES.map(({ icon: Icon, title, description }) => (
             <li
               key={title}
-              className="home-activities__item flex flex-col items-start gap-4 px-2 py-8"
-              style={{ "--activity-index": index } as CSSProperties}
+              className="flex flex-col items-start gap-4 px-2 py-8"
             >
-              <span className="home-activities__icon inline-flex h-11 w-11 items-center justify-center text-site-accent">
+              <span className="inline-flex h-11 w-11 items-center justify-center text-site-accent">
                 <Icon className="h-5 w-5" aria-hidden="true" />
               </span>
               <h3 className="font-[family-name:var(--font-display)] text-lg font-normal tracking-tight text-white">

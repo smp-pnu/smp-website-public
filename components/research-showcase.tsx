@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect, useRef, useState, type CSSProperties, type RefCallback } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { ArrowRight, ArrowUpRight, FileText } from "lucide-react"
+import { ArrowLeft, ArrowRight, ArrowUpRight, FileText } from "lucide-react"
 import { contentHref, formatDate, type ContentItem } from "@/lib/content-model"
+import { publicReportAuthor } from "@/lib/research-metadata"
 import "./research-showcase.css"
 
 export type ShowcaseReport = ContentItem & { cover?: { url: string } }
@@ -13,130 +14,85 @@ export function ResearchShowcase({ items, pending = false, error }: {
   pending?: boolean
   error?: string
 }) {
-  const reports = items
-  const [selectedId, setSelectedId] = useState<string>()
-  const [pendingId, setPendingId] = useState<string>()
-  const [outgoing, setOutgoing] = useState<{ url: string; sequence: number }>()
-  const selectionRequest = useRef(0)
-  const coverImages = useRef(new Map<string, HTMLImageElement>())
-  const selected = Math.max(0, reports.findIndex(item => item.id === selectedId))
-  const active = reports[selected]
-  const companyPrefix = active?.company ? `[${active.company}]` : ""
-  const headline = companyPrefix && active.title.startsWith(companyPrefix)
-    ? active.title.slice(companyPrefix.length).trim() : active?.title
-  const section = useRef<HTMLElement>(null)
-  const [entered, setEntered] = useState(false)
-
-  useEffect(() => () => { selectionRequest.current++ }, [])
-
-  async function selectReport(item: ShowcaseReport) {
-    const sequence = ++selectionRequest.current
-    setPendingId(undefined)
-    if (item.id === active?.id) return
-    const image = coverImages.current.get(item.id)
-    if (image && !image.complete) {
-      setPendingId(item.id)
-      // Keep the current paper and its matching link until the next image is
-      // ready. No timers, animation queues or additional PDF/data fetches.
-      try { await image.decode() } catch { /* The image's fallback remains usable. */ }
-      if (sequence !== selectionRequest.current) return
-    }
-    setPendingId(undefined)
-    const previousImage = active && coverImages.current.get(active.id)
-    const animate = !window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    setOutgoing(animate && previousImage?.complete && previousImage.naturalWidth && active.cover?.url
-      ? { url: active.cover.url, sequence } : undefined)
-    setSelectedId(item.id)
-  }
+  const shelf = useRef<HTMLUListElement>(null)
+  const [position, setPosition] = useState(0)
+  const first = items[0]
+  const count = items.length
 
   useEffect(() => {
-    if (!section.current) return
-    if (!("IntersectionObserver" in window)) { setEntered(true); return }
-    const observer = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting) return
-      setEntered(true)
-      observer.disconnect()
-    }, { threshold: 0.15 })
-    observer.observe(section.current)
-    return () => observer.disconnect()
-  }, [])
+    const element = shelf.current
+    if (!element) return
+    // Native horizontal scrolling, with only a settled counter update. The
+    // reports themselves never move through React or start additional requests.
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const update = () => {
+      const cards = element.children
+      const stride = cards.length > 1 ? (cards[1] as HTMLElement).offsetLeft - (cards[0] as HTMLElement).offsetLeft : element.clientWidth
+      const next = stride > 0 ? Math.round(element.scrollLeft / stride) : 0
+      setPosition(Math.max(0, Math.min(count - 1, next)))
+    }
+    const onScroll = () => { clearTimeout(timer); timer = setTimeout(update, 80) }
+    element.addEventListener("scroll", onScroll, { passive: true })
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : undefined
+    observer?.observe(element)
+    update()
+    return () => { element.removeEventListener("scroll", onScroll); observer?.disconnect(); clearTimeout(timer) }
+  }, [count])
 
-  return <section ref={section} id="latest-research" className="research-showcase" aria-labelledby="showcase-heading" data-entered={entered}>
-    <div className="research-showcase__inner">
-      <header className="research-showcase__heading">
-        <div>
-          <p className="research-showcase__eyebrow">SMP RESEARCH</p>
-          <h2 id="showcase-heading">기업을 읽고,<br />가치를 발견합니다.</h2>
-        </div>
-        <p className="research-showcase__intro">산업의 변화에서 기업의 가능성까지.<br />SMP의 시선을 담은 최근 리포트입니다.</p>
+  function move(direction: -1 | 1) {
+    const element = shelf.current
+    if (!element) return
+    const cards = element.children
+    const stride = cards.length > 1 ? (cards[1] as HTMLElement).offsetLeft - (cards[0] as HTMLElement).offsetLeft : element.clientWidth
+    if (stride <= 0) return
+    const target = Math.max(0, Math.min(count - 1, position + direction))
+    setPosition(target)
+    element.scrollTo({ left: target * stride, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" })
+  }
+
+  return <section id="latest-research" className="home-reports" aria-labelledby="home-reports-heading">
+    <div className="home-reports__inner">
+      <header className="home-reports__heading">
+        <p className="home-reports__eyebrow">RESEARCH REPORT</p>
+        <h2 id="home-reports-heading">우리가 발견한 기업의 가치를 확인해보세요.</h2>
+        <p className="home-reports__description">산업과 기업에 대한 분석을 하나의 투자 아이디어로 완성한 SMP의 리포트를 소개합니다.</p>
       </header>
-
-      {active ? <div className="research-showcase__body">
-        <div className="research-showcase__choices" role="group" aria-label="미리 볼 리포트 선택">
-          {reports.map((item, index) => <button key={item.id} type="button" aria-controls="showcase-report-detail" aria-pressed={index === selected}
-            aria-busy={pendingId === item.id || undefined}
-            onClick={() => void selectReport(item)} className="research-showcase__choice">
-            <span className="research-showcase__number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
-            <span className="research-showcase__choice-name">{item.company || item.title}</span>
-            {item.industry && <span className="research-showcase__choice-industry">{item.industry}</span>}
-            <ArrowRight size={16} className="research-showcase__choice-arrow" aria-hidden="true" />
-          </button>)}
-        </div>
-        <figure className="research-showcase__stage">
-          <div className="research-showcase__cover">
-            {reports.map((item, index) => {
-              const position = (index - selected + reports.length) % reports.length
-              // Keep a small buffer of prepared images, but display exactly
-              // one cover. No PDF or additional data requests on selection.
-              if (position > 3) return null
-              return <div key={item.id} className="research-showcase__page" data-selected={index === selected} aria-hidden={index !== selected}>
-                <ShowcaseCover url={item.cover?.url} eager={entered} imageRef={node => {
-                  if (node) coverImages.current.set(item.id, node)
-                  else coverImages.current.delete(item.id)
-                }} />
-                {index === selected && <Link href={contentHref(item)} className="research-showcase__cover-link" tabIndex={-1} aria-label={`${item.title} 리포트 읽기`} />}
+      {first ? <>
+        <div className="home-reports__edition"><span>{first.semester ? `${first.semester.replace("-", "년 ")}학기` : "최신 리포트"}</span><time dateTime={first.date}>{formatDate(first.date)} 발간</time></div>
+        <ul ref={shelf} id="home-report-shelf" className="home-reports__shelf" aria-label="최근 리포트">
+          {items.map(item => <li key={item.id} className="home-report">
+            <Link href={contentHref(item)} prefetch={false} className="home-report__link">
+              <div className="home-report__art">
+                <div className="home-report__paper"><ShowcaseCover url={item.cover?.url} title={item.title} /></div>
+                <span className="home-report__open" aria-hidden="true"><ArrowUpRight size={18} strokeWidth={1.5} /></span>
               </div>
-            })}
-            {outgoing && <div key={outgoing.sequence} className="research-showcase__outgoing" aria-hidden="true">
-              {[0, 1, 2].map(index => <div key={index} className="research-showcase__slice" style={{ "--slice": index } as CSSProperties}>
-                <div className="research-showcase__slice-paper" onAnimationEnd={event => {
-                  if (event.target !== event.currentTarget) return
-                  // Desktop ends on its last strip; mobile uses only one.
-                  if (index === 2 || event.animationName === "showcase-mobile-exit") {
-                    setOutgoing(current => current?.sequence === outgoing.sequence ? undefined : current)
-                  }
-                }}><img src={outgoing.url} alt="" width={720} height={1018} decoding="async" /></div>
-              </div>)}
-            </div>}
-          </div>
-          <figcaption className="research-showcase__caption"><span>{[active.semester, active.category || "리포트"].filter(Boolean).join(" · ")}</span><span>{String(selected + 1).padStart(2, "0")} <span className="research-showcase__caption-total">/ {String(reports.length).padStart(2, "0")}</span></span></figcaption>
-        </figure>
-
-        <div className="research-showcase__content">
-          <div key={active.id} id="showcase-report-detail" className="research-showcase__detail">
-            <div className="research-showcase__meta">
-              {active.industry && <span>{active.industry}</span>}
-              <time dateTime={active.date}>{formatDate(active.date)} 발간</time>
-            </div>
-            <p className="research-showcase__company">{active.company || "SMP Research"}</p>
-            <h3><span className="research-showcase__title-line">{headline}</span></h3>
-            <Link href={contentHref(active)} className="research-showcase__read">리포트 읽기<ArrowUpRight size={20} aria-hidden="true" /></Link>
-          </div>
-
-          <Link href="/research" className="research-showcase__archive">전체 리포트 보기<ArrowRight size={16} aria-hidden="true" /></Link>
-        </div>
-      </div> : <div className="research-showcase__empty" role={error ? "alert" : "status"}>
-        {pending ? <><span className="research-showcase__loading" aria-hidden="true" />최근 리포트를 준비하고 있습니다.</> : error || "공개 리포트를 준비하고 있습니다."}
-        {!pending && <Link href="/research">리포트 목록 보기 <ArrowRight size={16} aria-hidden="true" /></Link>}
+              <div className="home-report__info">
+                <p className="home-report__industry" title={item.industry}>{item.industry || item.category || "SMP Research"}</p>
+                <h3 className="home-report__title" title={item.title}>{item.title}</h3>
+                <div className="home-report__footer"><span className="home-report__author">{publicReportAuthor(item.author)}</span><span className="home-report__read">리포트 읽기<ArrowUpRight size={14} aria-hidden="true" /></span></div>
+              </div>
+            </Link>
+          </li>)}
+        </ul>
+      </> : <div className="home-reports__empty" role={error ? "alert" : "status"}>
+        <span className="home-reports__placeholder" aria-hidden="true" />
+        <p>{pending ? "최신 리포트를 불러오는 중입니다." : error || "공개 리포트를 준비하고 있습니다."}</p>
       </div>}
+      <div className="home-reports__bottom">
+        <Link href="/research" className="home-reports__all">기업·산업 분석 리포트 전체 보기<ArrowRight size={16} aria-hidden="true" /></Link>
+        {count > 1 && <div className="home-reports__controls" role="group" aria-label="최근 리포트 넘기기">
+          <button type="button" aria-label="이전 리포트" aria-controls="home-report-shelf" disabled={position === 0} onClick={() => move(-1)}><ArrowLeft size={16} aria-hidden="true" /></button>
+          <span className="home-reports__position" aria-live="polite">{position + 1} / {count}</span>
+          <button type="button" aria-label="다음 리포트" aria-controls="home-report-shelf" disabled={position === count - 1} onClick={() => move(1)}><ArrowRight size={16} aria-hidden="true" /></button>
+        </div>}
+      </div>
     </div>
   </section>
 }
 
-function ShowcaseCover({ url, eager, imageRef }: { url?: string; eager: boolean; imageRef: RefCallback<HTMLImageElement> }) {
+function ShowcaseCover({ url, title }: { url?: string; title: string }) {
   const [failed, setFailed] = useState(false)
   useEffect(() => setFailed(false), [url])
-  // Only prepared images: this decorative showcase never downloads a PDF.
-  return url && !failed ? <img ref={imageRef} src={url} alt="" width={720} height={1018} loading={eager ? "eager" : "lazy"} decoding="async" onError={() => setFailed(true)} />
-    : <div className="research-showcase__missing" aria-hidden="true"><FileText size={40} strokeWidth={1} /><span>SMP RESEARCH</span></div>
+  return url && !failed ? <img src={url} alt={`${title} PDF 첫 페이지`} width={720} height={1018} loading="lazy" decoding="async" onError={() => setFailed(true)} />
+    : <div className="home-report__missing" aria-hidden="true"><FileText size={32} strokeWidth={1} /><span>SMP RESEARCH</span></div>
 }

@@ -1,5 +1,6 @@
 "use client"
 
+import "@/components/home-motion.css"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { SITE_NAME_KO } from "@/lib/site-config"
