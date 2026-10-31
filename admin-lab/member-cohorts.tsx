@@ -160,9 +160,9 @@ export function MemberCohorts({
           : " · 각 기수의 전체 인원 기준. 공개 중인 수정 초안은 두 항목에 함께 집계됩니다."}
       </p>
       <div className="report-table-wrap" aria-busy={loading}>
-        <table className="report-table cohort-table">
-          <thead>
-            <tr>
+        <table className="report-table cohort-table" role="table">
+          <thead role="rowgroup">
+            <tr role="row">
               <th>기수</th>
               <th>구분</th>
               <th>인원</th>
@@ -174,10 +174,10 @@ export function MemberCohorts({
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody role="rowgroup">
             {items.slice((page - 1) * 40, page * 40).map((c) => (
-              <tr key={c.generation}>
-                <td>
+              <tr role="row" key={c.generation}>
+                <td role="cell">
                   <button
                     className="cms-title-button"
                     disabled={loading}
@@ -186,28 +186,28 @@ export function MemberCohorts({
                     {c.generation}기
                   </button>
                 </td>
-                <td>
+                <td role="cell">
                   {c.members && c.alumni
                     ? "MEMBERS · ALUMNI"
                     : c.members
                       ? "MEMBERS"
                       : "ALUMNI"}
                 </td>
-                <td>{c.total}명</td>
-                <td>{c.published}명</td>
-                <td>
+                <td role="cell" data-label="인원">{c.total}명</td>
+                <td role="cell" data-label="공개">{c.published}명</td>
+                <td role="cell" data-label="초안·수정">
                   {c.drafts ? (
                     <span className="cohort-drafts">{c.drafts}명</span>
                   ) : (
                     "—"
                   )}
                 </td>
-                <td>
+                <td role="cell" data-label="최근 수정">
                   {new Date(c.updatedAt).toLocaleDateString("ko-KR", {
                     timeZone: "Asia/Seoul",
                   })}
                 </td>
-                <td>
+                <td role="cell">
                   <button
                     className="text-button"
                     disabled={loading}

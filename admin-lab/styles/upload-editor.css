@@ -7,7 +7,7 @@
   overflow: clip;
 }
 .editor-heading {
-  padding: 25px 30px 15px;
+  padding: 24px 32px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -43,10 +43,10 @@
   color: #747f8c;
 }
 .editor-tabs {
-  padding: 0 30px;
+  padding: 0 32px;
   display: flex;
   align-items: center;
-  gap: 25px;
+  gap: 24px;
   border-bottom: 1px solid var(--line);
 }
 .editor-tabs button {
@@ -70,7 +70,7 @@
   gap: 6px;
 }
 .editor form {
-  padding: 0 30px;
+  padding: 0 32px;
 }
 .review-intro {
   display: flex;
@@ -109,7 +109,7 @@
 .review-intro small {
   display: block;
   color: #9aa1aa;
-  font-size: 11px;
+  font-size: 12px;
   margin-top: 6px;
 }
 fieldset {
@@ -142,7 +142,7 @@ legend {
 }
 .field-grid label small {
   color: #9ba3ac;
-  font-size: 11px;
+  font-size: 12px;
   margin-left: 5px;
 }
 .span-2 {
@@ -182,7 +182,7 @@ legend {
   accent-color: var(--accent);
 }
 .check-row small {
-  font-size: 11px;
+  font-size: 12px;
   color: #737d89;
   margin-left: 5px;
 }
@@ -194,7 +194,7 @@ legend {
   margin-top: 19px;
 }
 .summary-preview small {
-  font-size: 11px;
+  font-size: 12px;
   color: #929ba6;
 }
 .summary-preview p {
@@ -214,7 +214,7 @@ legend {
 .evidence summary span {
   margin-left: 6px;
   color: #727f8b;
-  font-size: 11px;
+  font-size: 12px;
 }
 .evidence dl {
   font-size: 12px;
@@ -227,7 +227,7 @@ legend {
   font-weight: 600;
 }
 .evidence dt small {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
   color: #969ea8;
   margin-left: 6px;
@@ -256,17 +256,17 @@ legend {
 }
 .review-actions > span {
   color: #737d89;
-  font-size: 11px;
+  font-size: 12px;
 }
 .approval {
-  padding: 22px 30px;
+  padding: 24px 32px;
   border-top: 1px solid var(--line);
   background: #fafbfc;
 }
 .approval > small {
   display: block;
   margin-top: 13px;
-  font-size: 11px;
+  font-size: 12px;
   color: #73808c;
 }
 .approval .check-row {
@@ -291,13 +291,13 @@ legend {
   font-size: 13px;
 }
 .article-preview {
-  padding: 25px 30px;
+  padding: 24px 32px;
 }
 .preview-note {
   padding: 9px 12px;
   background: #f7f3e9;
   color: #8f784d;
-  font-size: 11px;
+  font-size: 12px;
   margin-bottom: 24px;
   border-radius: 3px;
 }
@@ -324,7 +324,7 @@ legend {
   color: #677e92;
   border-radius: 3px;
   padding: 3px 7px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .summary {
   border-top: 1px solid var(--line);
@@ -342,6 +342,6 @@ legend {
 }
 .muted {
   color: #72808d;
-  font-size: 11px;
+  font-size: 12px;
   margin: 12px 0;
 }

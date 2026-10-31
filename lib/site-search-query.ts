@@ -36,3 +36,12 @@ export function siteSearchMatches(
   }
   return matches;
 }
+
+/** Keep indexing text intact; compact previews should not expose the search-field concatenation. */
+export function siteSearchDescription(entry: SiteSearchEntry): string {
+  if (entry.label === "리포트" || entry.label === "공지") {
+    const category = entry.text.split(" · ")[0]?.trim();
+    return category ? publicReportAuthor(category) : entry.label;
+  }
+  return entry.text;
+}

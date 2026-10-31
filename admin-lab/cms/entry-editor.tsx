@@ -189,78 +189,28 @@ export function EntryEditor({
           </>
         ) : (
           <>
-            <Field
-              label="제목"
-              value={selectedContent?.title}
-              onChange={(v) => change("title", v)}
-            />
-            <Field
-              label="게시일"
-              type="date"
-              value={selectedContent?.date?.slice(0, 10)}
-              onChange={(v) => change("date", v)}
-            />
-            <Field
-              label="분류"
-              value={selectedContent?.category}
-              onChange={(v) => change("category", v)}
-            />
-            <Field
-              label="작성자·팀"
-              value={selectedContent?.author}
-              onChange={(v) => change("author", v)}
-            />
-            {section === "research" ? (
-              <>
-                <Field
-                  label="학기 (예: 2026-2)"
-                  value={selectedContent?.semester}
-                  onChange={(v) => change("semester", v || undefined)}
-                />
-                <Field
-                  label="기업명"
-                  value={selectedContent?.company}
-                  onChange={(v) => change("company", v)}
-                />
-                <Field
-                  label="종목코드"
-                  value={selectedContent?.ticker}
-                  onChange={(v) => change("ticker", v)}
-                />
-                <Field
-                  label="업종"
-                  value={selectedContent?.industry}
-                  onChange={(v) => change("industry", v)}
-                />
-                <Field
-                  label="보고서 종류"
-                  value={selectedContent?.reportType}
-                  onChange={(v) => change("reportType", v)}
-                />
-                <Field
-                  label="활동"
-                  value={selectedContent?.activity}
-                  onChange={(v) => change("activity", v)}
-                />
-              </>
-            ) : (
-              <label>
-                <input
-                  type="checkbox"
-                  checked={selectedContent?.pinned}
-                  onChange={(e) => change("pinned", e.target.checked)}
-                />
-                상단 고정
+            <fieldset className="cms-form-section">
+              <legend>기본 정보</legend>
+              <Field wide label="제목" value={selectedContent.title} onChange={(v) => change("title", v)} />
+              <Field label="게시일" type="date" value={selectedContent.date?.slice(0, 10)} onChange={(v) => change("date", v)} />
+              <Field label="작성자·팀" value={selectedContent.author} onChange={(v) => change("author", v)} />
+              <label className="cms-field cms-wide">요약
+                <textarea rows={3} value={selectedContent.summary ?? ""} onChange={(e) => change("summary", e.target.value)} />
               </label>
-            )}
-            <label className="cms-field cms-wide">
-              요약
-              <textarea
-                rows={3}
-                value={selectedContent?.summary}
-                onChange={(e) => change("summary", e.target.value)}
-              />
-            </label>
+            </fieldset>
+            <fieldset className="cms-form-section">
+              <legend>기업 정보</legend>
+              <Field label="기업명" value={selectedContent.company} onChange={(v) => change("company", v)} />
+              <Field label="종목코드" value={selectedContent.ticker} onChange={(v) => change("ticker", v)} />
+              <Field wide label="업종" value={selectedContent.industry} onChange={(v) => change("industry", v)} />
+            </fieldset>
+            <fieldset className="cms-form-section">
+              <legend>분류·노출</legend>
+              <Field label="학기" hint="예: 2026-2" value={selectedContent.semester} onChange={(v) => change("semester", v || undefined)} />
+              <Field label="표시 분류" hint="목록의 분류 표시에 사용합니다 (예: R1, N1)." value={selectedContent.category} onChange={(v) => change("category", v)} />
+              <Field label="보고서 종류" hint="기업분석·산업분석 등 보고서의 성격" value={selectedContent.reportType} onChange={(v) => change("reportType", v)} />
+              <Field label="활동" hint="정규 리서치·대회 등 작성한 활동" value={selectedContent.activity} onChange={(v) => change("activity", v)} />
+            </fieldset>
           </>
         )}
       </fieldset>

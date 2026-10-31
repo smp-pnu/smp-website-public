@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { safeSiteHref } from "@/lib/content-navigation"
 import { ArrowRight } from "lucide-react"
-import { siteSearchMatches, type SiteSearchEntry } from "@/lib/site-search-query"
+import { siteSearchMatches, siteSearchDescription, type SiteSearchEntry } from "@/lib/site-search-query"
 export function SiteSearchResults({query, index}: {query: string; index: {entries: SiteSearchEntry[]; partial: boolean}}) {
   const results = siteSearchMatches(index.entries, query)
   return <>
@@ -14,10 +14,10 @@ export function SiteSearchResults({query, index}: {query: string; index: {entrie
       {results.map((item, index) => <li key={`${item.href}-${index}`}>
         <Link prefetch={false} href={safeSiteHref(item.href)} className="group flex items-start gap-4 px-5 py-6 transition-colors hover:bg-white/[0.05] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-site-accent sm:gap-6 sm:px-7 sm:py-7">
           <div className="min-w-0 flex-1 sm:flex sm:items-start sm:gap-6">
-            <span className="inline-block min-w-12 shrink-0 rounded-[2px] border border-sky-200/15 bg-sky-200/[0.04] px-2 py-1 text-center text-[11px] leading-4 text-site-accent/80 sm:mt-0.5">{item.label}</span>
+            <span className="inline-block min-w-12 shrink-0 rounded-[2px] border border-sky-200/15 bg-sky-200/[0.04] px-2 py-1 text-center text-xs leading-4 text-site-accent/80 sm:mt-0.5">{item.label}</span>
             <div className="mt-3 min-w-0 sm:mt-0">
               <h2 className="break-words text-base font-normal leading-7 text-white transition-colors group-hover:text-site-accent sm:text-lg">{item.title}</h2>
-              <p className="mt-2 line-clamp-2 break-words text-xs leading-6 text-site-muted sm:text-sm">{item.text}</p>
+              <p className="mt-2 line-clamp-2 break-words text-xs leading-6 text-site-muted sm:text-sm">{siteSearchDescription(item)}</p>
             </div>
           </div>
           <ArrowRight aria-hidden="true" className="mt-1 h-4 w-4 shrink-0 text-site-muted transition-colors group-hover:text-site-accent" strokeWidth={1.5} />

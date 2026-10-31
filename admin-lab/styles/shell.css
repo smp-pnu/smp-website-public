@@ -10,7 +10,7 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  padding: 25px 14px 20px;
+  padding: 24px 16px;
   background: #19232e;
   color: #c7d1dc;
   border-right: 1px solid #263442;
@@ -18,8 +18,8 @@
 .admin-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 12px 30px;
+  gap: 12px;
+  padding: 0 8px 32px;
 }
 .admin-brand strong {
   color: #fff;
@@ -36,18 +36,18 @@
 }
 .admin-sidebar nav {
   display: grid;
-  gap: 5px;
+  gap: 4px;
 }
 .admin-sidebar nav button {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   background: transparent;
   border: 0;
   padding: 12px;
   color: #b8c5d2;
   text-align: left;
-  font-size: 13px;
+  font-size: 14px;
   border-radius: 5px;
 }
 .admin-sidebar nav button:hover:not(:disabled) {
@@ -121,21 +121,21 @@ progress::-webkit-progress-value {
   min-width: 0;
 }
 .admin-topbar {
-  min-height: 61px;
+  min-height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 15px;
-  padding: 14px 32px;
+  gap: 16px;
+  padding: 16px var(--page-gutter);
   border-bottom: 1px solid var(--line);
   background: #fff;
-  color: #737b86;
+  color: var(--muted);
   font-size: 12px;
 }
 .admin-topbar > div {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 .environment-badge {
   color: #3a654e;
@@ -147,11 +147,11 @@ progress::-webkit-progress-value {
   white-space: nowrap;
 }
 .environment-note {
-  color: #858c94;
+  color: var(--muted);
   font-size: 11px;
 }
 .admin-main {
-  padding: 34px 36px 48px;
+  padding: 32px var(--page-gutter) 48px;
   width: 100%;
   max-width: 1440px;
   margin: 0 auto;
@@ -162,28 +162,28 @@ progress::-webkit-progress-value {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 25px;
+  gap: 24px;
+  margin-bottom: 24px;
 }
 .page-heading h1 {
   font-size: 28px;
   font-weight: 680;
   letter-spacing: -0.8px;
   line-height: 1.4;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
 }
 .page-heading > div {
   min-width: 0;
 }
 .page-heading p {
   overflow-wrap: anywhere;
-  color: #737b86;
-  font-size: 13px;
+  color: var(--muted);
+  font-size: 14px;
   margin: 0;
 }
 
 .admin-main:focus { outline: none; }
-.admin-sidebar nav button:nth-last-child(2) { margin-top: 25px; }
+.admin-sidebar nav button:nth-last-child(2) { margin-top: 24px; }
 .admin-sidebar nav button svg { opacity: .8; }
 .admin-sidebar nav button.active svg { opacity: 1; }
 .admin-brand strong { letter-spacing: -1.4px; font-style: italic; }

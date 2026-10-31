@@ -9,6 +9,10 @@ export function Status({
   error?: Error;
   retry?: () => void;
 }) {
+  if (!error) return <div className="public-loading" aria-busy="true">
+    <p role="status" className="public-loading__status">자료를 불러오는 중입니다.</p>
+    <div className="public-loading__shapes" aria-hidden="true">{Array.from({ length: 6 }, (_, i) => <span key={i} />)}</div>
+  </div>;
   return (
     <div className="py-20 text-center leading-8 text-site-body">
       <p role={error ? "alert" : "status"}>

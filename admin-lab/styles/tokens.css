@@ -1,0 +1,20 @@
+/* Layout rhythm is shared; type, borders and optical details use their own scale. */
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --page-gutter: 32px;
+  --control-height: 40px;
+  --control-font: 14px;
+  --radius-panel: 12px;
+  --page: #f3f5f7;
+}
+@media (max-width: 1150px) { :root { --page-gutter: 24px; } }
+@media (max-width: 700px) {
+  :root { --page-gutter: 16px; --control-height: 48px; }
+}
+@media (pointer: coarse) { :root { --control-height: 48px; } }

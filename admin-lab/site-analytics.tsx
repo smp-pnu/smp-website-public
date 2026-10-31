@@ -23,6 +23,7 @@ export function SiteAnalyticsDetails({data}:{data:SiteSnapshot}){
  const outcomes=p.ready+p.failed
  const rows=[...p.reports].sort((a,b)=>(b[rank]??0)-(a[rank]??0)||b.downloads-a.downloads).slice(0,10)
  const refs=traffic?.referrers.filter(r=>r.host!=='pnusmp.com'&&r.host!=='www.pnusmp.com')??[]
+ const snapshotOld=Date.now()-data.checkedAt>2*3600000
  const trafficOld=data.trafficError||data.trafficCheckedAt===null||Date.now()-data.trafficCheckedAt>2*3600000
  return <>
  <p className="ops-footnote">약 1시간 간격으로 집계합니다. 실시간 수치는 아니며, 자동 작업·통계 처리 지연이 더해질 수 있습니다.</p>
@@ -33,8 +34,7 @@ export function SiteAnalyticsDetails({data}:{data:SiteSnapshot}){
   <div><span>다운로드 클릭</span><strong>{count(p.downloads)}<small>회</small></strong><p>파일 저장 완료 횟수와 다름</p><LastActivity at={p.lastDownloadAt} label="최근 클릭"/></div>
   <div><span>PDF 첫 화면 표시</span><strong>{outcomes?`${(p.ready/outcomes*100).toFixed(1)}`:'—'}<small>%</small></strong><p>완료 결과 {count(outcomes)}건 기준</p></div>
  </div>
- {trafficOld&&<p className="ops-warning">방문·조회 통계 {data.trafficCheckedAt?`${stamp(data.trafficCheckedAt)} 확인값입니다. 최신 수집이 지연됐습니다.`:'연결 또는 첫 수집을 기다리고 있습니다. 확인되지 않은 수치는 0으로 표시하지 않습니다.'}</p>}
- {Date.now()-data.checkedAt>2*3600000&&<p className="ops-warning">집계 갱신이 지연돼 이전 확인값을 표시합니다.</p>}
+ {(trafficOld||snapshotOld)&&<p className="ops-warning" role="status">{!data.trafficCheckedAt ? "방문·조회 첫 수집을 기다리고 있습니다. 확인되지 않은 수치는 0으로 표시하지 않습니다." : "최신 집계가 지연돼 마지막 확인값을 표시합니다."} {snapshotOld ? `다운로드·PDF ${stamp(data.checkedAt)}` : ""}{snapshotOld&&data.trafficCheckedAt ? " · " : ""}{data.trafficCheckedAt ? `방문·조회 ${stamp(data.trafficCheckedAt)}` : ""}</p>}
  {data.limitedDays.length>0&&<p className="ops-warning">다운로드·PDF 집계 보호 한도에 도달한 날이 있습니다. 해당 날짜의 수치는 일부만 수집됐습니다. {data.limitedDays.join(', ')} (UTC 기준)</p>}
  <div className="site-chart"><h3>조회 추이</h3>{traffic&&traffic.views>0?<SiteTrend key={range} days={daily}/>:<p className="site-empty">{traffic?'아직 수집된 조회가 없습니다. 새 방문부터 그래프에 쌓입니다.':'방문 통계가 연결되면 조회 추이를 표시합니다.'}</p>}
  <details className="site-daily"><summary>일별 수치 펼치기</summary><div className="ops-files"><table><thead><tr><th>날짜</th><th>방문</th><th>조회</th><th>다운로드 클릭</th></tr></thead><tbody>{daily.map(d=><tr key={d.day}><td>{d.day}</td><td>{traffic?count(d.visits):'—'}</td><td>{traffic?count(d.views):'—'}</td><td>{count(d.downloads)}</td></tr>)}</tbody></table></div></details></div>

@@ -241,16 +241,16 @@ export function EntryList({
         className={`report-table-wrap${reorder.dragged ? " is-reordering" : ""}`}
         aria-busy={loading}
       >
-        <table className="report-table managed-table">
-          <thead>
-            <tr>
+        <table className={`report-table managed-table cms-entry-table cms-entry-table--${section}`} role="table">
+          <thead role="rowgroup">
+            <tr role="row">
               <th className="select-column">
                 <PageSelection
                   count={visibleChecked}
                   total={data.items.length}
                   disabled={busy || loading}
                   onChange={(value) => onCheck(data.items, value)}
-                />
+                /><span className="mobile-list-label">이 페이지 선택</span>
               </th>
               {section !== "members" && <th>순서</th>}
               <th>{section === "members" ? "이름" : "제목"}</th>
@@ -265,12 +265,13 @@ export function EntryList({
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody role="rowgroup">
             {data.items.map((e, index) => {
               const i = e.draft.item as ContentItem & Member;
               return (
                 <tr
                   key={e.id}
+                  role="row"
                   data-reorder-id={e.id}
                   className={[
                     checkedIds.has(e.id) ? "is-selected" : "",
@@ -280,7 +281,7 @@ export function EntryList({
                       : "",
                   ].join(" ")}
                 >
-                  <td className="select-column">
+                  <td role="cell" className="select-column">
                     <input
                       type="checkbox"
                       aria-label={`${title(e)} 선택`}
@@ -290,7 +291,7 @@ export function EntryList({
                     />
                   </td>
                   {section !== "members" && (
-                    <td className="order-column">
+                    <td role="cell" className="order-column">
                       <div className="order-controls">
                         <DragHandle
                           reorder={reorder}
@@ -337,7 +338,7 @@ export function EntryList({
                       </div>
                     </td>
                   )}
-                  <td>
+                  <td role="cell" className="entry-title">
                     <button
                       className="cms-title-button"
                       disabled={busy || loading}
@@ -351,15 +352,15 @@ export function EntryList({
                         : (i.department ?? i.date?.slice(0, 10))}
                     </small>
                   </td>
-                  <td>
+                  <td role="cell" className="entry-status">
                     <span
                       className={`status-badge ${statusTone(e)}`}
                     >
                       {status(e)}
                     </span>
                   </td>
-                  {section === "members" && <td>{i.generation}기</td>}
-                  <td>
+                  {section === "members" && <td role="cell" className="entry-generation">{i.generation}기</td>}
+                  <td role="cell" className="entry-meta">
                     {section === "members"
                       ? (i.roles ?? []).join(" · ") || "회원"
                       : [i.semester, i.category].filter(Boolean).join(" · ")}
