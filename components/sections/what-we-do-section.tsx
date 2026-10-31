@@ -37,7 +37,7 @@ export function WhatWeDoSection() {
             <li key={title}>
               <HomeEntrance className="home-activity flex flex-col items-start gap-4 px-2 py-8">
                 <span className="inline-flex h-11 w-11 items-center justify-center text-site-accent">
-                  <Icon className="home-activity__icon h-6 w-6" aria-hidden="true" />
+                  <Icon className="home-activity__icon h-5 w-5" aria-hidden="true" />
                 </span>
                 <h3 className="font-[family-name:var(--font-display)] text-lg font-normal tracking-tight text-white">
                   {title}

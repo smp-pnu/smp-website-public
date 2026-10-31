@@ -1,67 +1,43 @@
 /* Homepage-only motion. Static content stays readable without JS or animation. */
 .home-entrance, #site-hero { --home-ease: cubic-bezier(.22,1,.36,1); --home-delay: 0ms; }
-.home-hero-line { display: block; overflow: hidden; }
-.home-hero-line > span { display: block; white-space: nowrap; }
-.home-hero-line:nth-child(2) { --home-delay: 80ms; }
-.home-hero-line:nth-child(3) { --home-delay: 160ms; }
 .home-activity-list > li:nth-child(2) .home-activity { --home-delay: 80ms; }
 .home-activity-list > li:nth-child(3) .home-activity { --home-delay: 160ms; }
 .home-award:nth-child(2) { --home-delay: 70ms; }
 .home-award:nth-child(3) { --home-delay: 140ms; }
 .home-award:nth-child(4) { --home-delay: 210ms; }
 
-.home-network__signature { display: flex; align-items: center; justify-content: center; gap: 24px; }
-.home-network__connection { width: 144px; height: 32px; flex-shrink: 1; min-width: 0; color: var(--site-accent); }
-.home-network__connection[data-mirrored="true"] { transform: scaleX(-1); }
-.home-network__path { stroke: currentColor; stroke-width: 1; opacity: .5; }
-.home-network__node { fill: currentColor; opacity: .75; }
-.home-network__node:nth-of-type(2) { --node-delay: 120ms; }
-.home-network__node:nth-of-type(3) { --node-delay: 240ms; }
-.home-recruit__link { position: relative; min-height: 44px; padding-block: 12px; transition: color 180ms ease; }
-.home-recruit__link::after { content: ""; position: absolute; bottom: 0; left: -48px; right: -48px; height: 1px; background: currentColor; opacity: .5; transform-origin: left; }
 .home-recruit__link svg { transition: transform 200ms var(--home-ease); }
 .home-recruit__link:focus-visible svg { transform: translateX(4px); }
 
-@keyframes home-soft-in { from { opacity: .6; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-@keyframes home-line-in { from { transform: translateY(105%); } to { transform: none; } }
-@keyframes home-line-in-small { from { opacity: .5; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+@keyframes home-soft-in { from { opacity: .65; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes home-hero-settle { from { opacity: .45; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @keyframes home-icon-draw { from { stroke-dashoffset: 80; } to { stroke-dashoffset: 0; } }
-@keyframes home-network-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
-@keyframes home-node-in { from { opacity: .1; } to { opacity: .75; } }
 @keyframes home-result-in { from { opacity: .45; } to { opacity: 1; } }
-@keyframes home-rule-in { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
 @media (prefers-reduced-motion:no-preference) {
   .home-soft-reveal[data-entered="true"] { animation: home-soft-in 450ms var(--home-ease) both; }
-  .home-hero-line > span { animation: home-line-in 650ms var(--home-ease) var(--home-delay) both; }
-  #site-hero h1 + p { animation: home-soft-in 500ms var(--home-ease) 200ms both; }
+  #site-hero h1 { animation: home-hero-settle 900ms cubic-bezier(.2,.65,.35,1) both; }
+  #site-hero h1 + p { animation: home-hero-settle 800ms ease 100ms both; }
+  .home-network[data-entered="true"] > :is(h2,p,a),
+  .home-recruit[data-entered="true"] > :is(h2,p,a) { animation: home-soft-in 550ms var(--home-ease) both; }
+  .home-network[data-entered="true"] > p, .home-recruit[data-entered="true"] > p { animation-delay: 70ms; }
+  .home-network[data-entered="true"] > a, .home-recruit[data-entered="true"] > a { animation-delay: 140ms; }
   .home-activity[data-entered="true"], .home-award[data-entered="true"] { animation: home-soft-in 500ms var(--home-ease) var(--home-delay) both; }
   .home-activity[data-entered="true"] .home-activity__icon :is(path,polyline,line) { stroke-dasharray: 80; animation: home-icon-draw 750ms var(--home-ease) var(--home-delay) both; }
   .home-award[data-entered="true"] .home-award__result { animation: home-result-in 400ms ease calc(var(--home-delay) + 160ms) both; }
-  .home-network[data-entered="true"] .home-network__path { stroke-dasharray: 1; animation: home-network-draw 800ms var(--home-ease) both; }
-  .home-network[data-entered="true"] .home-network__node { animation: home-node-in 400ms ease calc(120ms + var(--node-delay,0ms)) both; }
-  .home-recruit[data-entered="true"] .home-recruit__link::after { animation: home-rule-in 650ms var(--home-ease) 120ms both; }
 }
 @media (hover:hover) and (pointer:fine) {
-  .home-recruit__link:hover { color: #eff7ff; }
   .home-recruit__link:hover svg { transform: translateX(4px); }
 }
-@media (max-width:639px) {
-  .home-network__signature { gap: 16px; }
-  .home-network__connection { width: 72px; height: 24px; }
-  .home-recruit__link::after { left: -24px; right: -24px; }
-}
 @media (max-width:639px) and (prefers-reduced-motion:no-preference) {
-  .home-soft-reveal[data-entered="true"], #site-hero h1 + p,
+  #site-hero h1, #site-hero h1 + p { animation-duration: 600ms; }
+  .home-network[data-entered="true"] > :is(h2,p,a), .home-recruit[data-entered="true"] > :is(h2,p,a) { animation-duration: 320ms; animation-delay: 0ms; }
+  .home-soft-reveal[data-entered="true"],
   .home-activity[data-entered="true"], .home-award[data-entered="true"] { animation-duration: 280ms; animation-delay: 0ms; }
-  .home-hero-line > span { animation-name: home-line-in-small; animation-duration: 380ms; }
   .home-activity[data-entered="true"] .home-activity__icon :is(path,polyline,line) { animation-duration: 450ms; animation-delay: 0ms; }
   .home-award[data-entered="true"] .home-award__result { animation-duration: 260ms; animation-delay: 80ms; }
-  .home-network[data-entered="true"] .home-network__path { animation-duration: 450ms; }
-  .home-network[data-entered="true"] .home-network__node { animation-duration: 240ms; }
-  .home-recruit[data-entered="true"] .home-recruit__link::after { animation-duration: 380ms; animation-delay: 0ms; }
 }
 @media (prefers-reduced-motion:reduce) {
   .home-entrance, .home-entrance *, .home-entrance *::after,
-  #site-hero .home-hero-line > span, #site-hero h1 + p { animation: none !important; transition: none !important; }
+  #site-hero h1, #site-hero h1 + p { animation: none !important; transition: none !important; }
 }
