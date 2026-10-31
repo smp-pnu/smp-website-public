@@ -1,5 +1,6 @@
 import { LineChart, Users, BookOpenText } from "lucide-react"
 import type { CSSProperties } from "react"
+import { ActivityGraphic } from "@/components/home-experiment"
 import { HomeEntrance } from "@/components/home-motion"
 
 const ACTIVITIES = [
@@ -24,7 +25,7 @@ const ACTIVITIES = [
 
 export function WhatWeDoSection() {
   return (
-    <section className="px-6 py-16 sm:py-20">
+    <section className="home-practice px-6 py-16 sm:py-20">
       <HomeEntrance className="home-activities" id="home-activities">
         <div className="text-center">
           <span className="text-xs font-normal tracking-[0.3em] text-site-accent">WHAT WE DO</span>
@@ -40,12 +41,14 @@ export function WhatWeDoSection() {
               className="home-activities__item flex flex-col items-start gap-4 px-2 py-8"
               style={{ "--activity-index": index } as CSSProperties}
             >
+              <span className="home-activities__index" aria-hidden="true">0{index + 1}</span>
               <span className="home-activities__icon inline-flex h-11 w-11 items-center justify-center text-site-accent">
                 <Icon className="h-5 w-5" aria-hidden="true" />
               </span>
               <h3 className="font-[family-name:var(--font-display)] text-lg font-normal tracking-tight text-white">
                 {title}
               </h3>
+              <ActivityGraphic index={index} />
               <p className="text-sm leading-relaxed text-site-body">{description.map(line => <span key={line} className="block">{line}</span>)}</p>
             </li>
           ))}

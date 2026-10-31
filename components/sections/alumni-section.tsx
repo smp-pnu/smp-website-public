@@ -1,10 +1,13 @@
 import Link from "next/link"
+import { HomeEntrance } from "@/components/home-motion"
 import { ArrowRight } from "lucide-react"
 
 export function AlumniSection() {
   return (
-    <section className="px-6 py-16 sm:py-20">
+    <HomeEntrance className="home-network__entrance">
+    <section className="home-network px-6 py-16 sm:py-20">
       <div className="mx-auto max-w-4xl text-center">
+        <div className="home-network__art" aria-hidden="true"><span /><span /><span /><span /><span /></div>
         <span className="text-xs font-normal tracking-[0.3em] text-site-accent">NETWORK</span>
         <h2 className="mt-4 text-2xl font-medium leading-snug text-white sm:text-3xl">
           세대를 잇는 네트워크, 함께 성장하는 SMP
@@ -22,6 +25,7 @@ export function AlumniSection() {
         </Link>
       </div>
     </section>
+    </HomeEntrance>
   )
 }
 
