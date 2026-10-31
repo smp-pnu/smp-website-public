@@ -12,23 +12,22 @@
 .report-exhibit__selectors button { position: relative; display: flex; align-items: center; gap: 12px; min-width: 0; min-height: 64px; padding: 16px 24px; text-align: left; color: #8aa2b4; border-right: 1px solid var(--exhibit-line); transition: color 180ms, background 180ms; }
 .report-exhibit__selectors button:last-child { border-right: 0; }
 .report-exhibit__selectors button::after { content: ""; position: absolute; height: 2px; bottom: 0; inset-inline: 24px; background: #ceeaff; transform: scaleX(0); transform-origin: left; transition: transform 350ms var(--exhibit-ease); }
-.report-exhibit__selectors button[aria-pressed=true] { color: #e4f3fc; background: rgb(158 201 230 / 6%); }
+.report-exhibit__selectors button[aria-pressed=true] { color: #e4f3fc; background: transparent; }
 .report-exhibit__selectors button[aria-pressed=true]::after { transform: scaleX(1); }
 .report-exhibit__selectors button > span:not(.report-exhibit__index) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
 .report-exhibit__selectors button > svg { margin-left: auto; flex-shrink: 0; width: 14px; }
 .report-exhibit__index { font-size: 10px; font-variant-numeric: tabular-nums; opacity: .6; }
-.report-exhibit__stage { display: flex; height: 496px; overflow: hidden; isolation: isolate; border-top: 1px solid var(--exhibit-line); border-bottom: 1px solid var(--exhibit-line); background: #101e28; touch-action: pan-y pinch-zoom; }
-.report-exhibit__panel { position: relative; flex: 1 1 0; min-width: 0; overflow: hidden; contain: layout paint; border-right: 1px solid var(--exhibit-line); background: #122431; transition: flex-grow 620ms var(--exhibit-ease), background 620ms var(--exhibit-ease); }
-.report-exhibit__panel:nth-child(even) { background: #172a36; }
+.report-exhibit__stage { display: flex; height: 496px; overflow: hidden; isolation: isolate; border-top: 1px solid var(--exhibit-line); border-bottom: 1px solid var(--exhibit-line); background: transparent; touch-action: pan-y pinch-zoom; }
+.report-exhibit__panel { position: relative; flex: 1 1 0; min-width: 0; overflow: hidden; contain: layout paint; border-right: 1px solid var(--exhibit-line); background: transparent; transition: flex-grow 620ms var(--exhibit-ease); }
 .report-exhibit__panel:last-child { border-right: 0; }
-.report-exhibit__panel[data-active=true] { flex-grow: 3.5; background: #263b49; }
-.report-exhibit__panel::before { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg,rgb(200 226 242 / 8%),transparent 55%); pointer-events: none; }
+.report-exhibit__panel[data-active=true] { flex-grow: 3.5; }
 .report-exhibit__panel-number { position: absolute; top: 20px; left: 24px; color: #abc3d4; font-size: 10px; letter-spacing: .08em; }
 .report-exhibit__paper { position: absolute; width: 272px; aspect-ratio: 210/297; top: 48px; left: 50%; transform: translateX(-50%) perspective(1000px) rotateY(-24deg) translateY(4px) scale(.76); opacity: .2; background: #f5f5f3; box-shadow: 0 20px 32px rgb(0 0 0 / 28%),3px 0 0 #bcc3c5; transition: transform 700ms var(--exhibit-ease), opacity 450ms ease; }
 .report-exhibit__paper img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .report-exhibit__panel[data-active=true] .report-exhibit__paper { transform: translateX(-50%) perspective(1000px) rotateY(0) translateY(0) scale(1); opacity: 1; }
 .report-exhibit__spine { position: absolute; z-index: 2; inset: auto 24px 24px; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; color: #afc7d7; font-size: 23px; line-height: 1.4; font-weight: 450; letter-spacing: -.045em; word-break: keep-all; overflow-wrap: anywhere; transition: opacity 220ms, transform 420ms var(--exhibit-ease); }
 .report-exhibit__spine > span { min-width: 0; }
+.report-exhibit__spine, .report-exhibit__cover-action span { text-shadow: 0 1px 6px rgb(0 0 0 / 65%); }
 .report-exhibit__spine svg { flex-shrink: 0; margin-bottom: 5px; }
 .report-exhibit__panel[data-active=true] .report-exhibit__spine { opacity: 0; transform: translateY(16px); }
 .report-exhibit__panel-action, .report-exhibit__cover-action { position: absolute; z-index: 3; inset: 0; width: 100%; height: 100%; }
