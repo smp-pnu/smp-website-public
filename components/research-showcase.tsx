@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, type CSSProperties } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { ArrowRight, ArrowUpRight, FileText } from "lucide-react"
 import { contentHref, formatDate, type ContentItem } from "@/lib/content-model"
@@ -54,22 +54,21 @@ export function ResearchShowcase({ items, pending = false, error }: {
             <ArrowRight size={16} className="research-showcase__choice-arrow" aria-hidden="true" />
           </button>)}
         </div>
-        <div className="research-showcase__stage">
-          <div className="research-showcase__stack">
+        <figure className="research-showcase__stage">
+          <div className="research-showcase__cover">
             {reports.map((item, index) => {
               const position = (index - selected + reports.length) % reports.length
-              // All reports remain selectable; only four sheets are needed
-              // for the visual stack, even when an edition is much larger.
+              // Keep a small buffer of prepared images, but display exactly
+              // one cover. No PDF or additional data requests on selection.
               if (position > 3) return null
-              return <div key={item.id} className="research-showcase__sheet" data-position={position}
-                style={{ "--sheet-order": reports.length - position } as CSSProperties}>
-                <ShowcaseCover url={item.cover?.url} />
+              return <div key={item.id} className="research-showcase__page" data-selected={index === selected} aria-hidden={index !== selected}>
+                <ShowcaseCover url={item.cover?.url} eager={entered} />
                 {index === selected && <Link href={contentHref(item)} className="research-showcase__cover-link" tabIndex={-1} aria-label={`${item.title} 리포트 읽기`} />}
               </div>
             })}
           </div>
-          <p className="research-showcase__caption"><span>{String(selected + 1).padStart(2, "0")}</span><span aria-hidden="true" className="research-showcase__caption-rule" />최근 발간 리포트</p>
-        </div>
+          <figcaption className="research-showcase__caption"><span>{[active.semester, active.category || "리포트"].filter(Boolean).join(" · ")}</span><span>{String(selected + 1).padStart(2, "0")} <span className="research-showcase__caption-total">/ {String(reports.length).padStart(2, "0")}</span></span></figcaption>
+        </figure>
 
         <div className="research-showcase__content">
           <div key={active.id} id="showcase-report-detail" className="research-showcase__detail">
@@ -92,10 +91,10 @@ export function ResearchShowcase({ items, pending = false, error }: {
   </section>
 }
 
-function ShowcaseCover({ url }: { url?: string }) {
+function ShowcaseCover({ url, eager }: { url?: string; eager: boolean }) {
   const [failed, setFailed] = useState(false)
   useEffect(() => setFailed(false), [url])
   // Only prepared images: this decorative showcase never downloads a PDF.
-  return url && !failed ? <img src={url} alt="" width={720} height={1018} loading="lazy" decoding="async" onError={() => setFailed(true)} />
+  return url && !failed ? <img src={url} alt="" width={720} height={1018} loading={eager ? "eager" : "lazy"} decoding="async" onError={() => setFailed(true)} />
     : <div className="research-showcase__missing" aria-hidden="true"><FileText size={40} strokeWidth={1} /><span>SMP RESEARCH</span></div>
 }
