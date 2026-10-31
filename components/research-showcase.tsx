@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react"
 import Link from "next/link"
-import { ArrowLeft, ArrowRight, ArrowUpRight, FileText } from "lucide-react"
+import { ArrowUpRight, FileText } from "lucide-react"
 import { contentHref, formatDate, type ContentItem } from "@/lib/content-model"
 import { publicReportAuthor } from "@/lib/research-metadata"
 import "./research-showcase.css"
@@ -78,14 +78,6 @@ export function ResearchShowcase({ items, pending = false, error }: {
             {i === index ? <Link href={contentHref(item)} prefetch={false} className="report-exhibit__cover-action" onClick={event => { if (swiped.current) { event.preventDefault(); swiped.current = false } }} aria-label={`${companyName(item)} 리포트 읽기`}><span>리포트 읽기<ArrowUpRight size={16} aria-hidden="true" /></span></Link>
               : <button type="button" tabIndex={-1} className="report-exhibit__panel-action" aria-label={`${companyName(item)} 표지 펼치기`} onClick={() => select(i)} />}
           </div>)}
-        </div>
-        <div className="report-exhibit__selection-bar">
-          <p className="report-exhibit__hint">최근 발간 리포트 <span>{items.length}편</span></p>
-          <div className="report-exhibit__navigation" role="group" aria-label="리포트 넘기기">
-            <button type="button" aria-label="이전 리포트" disabled={index === 0} onClick={() => select(index - 1)}><ArrowLeft size={18} aria-hidden="true" /></button>
-            <span>{String(index + 1).padStart(2, "0")}<span> / {String(items.length).padStart(2, "0")}</span></span>
-            <button type="button" aria-label="다음 리포트" disabled={index === items.length - 1} onClick={() => select(index + 1)}><ArrowRight size={18} aria-hidden="true" /></button>
-          </div>
         </div>
         <div className="report-exhibit__selectors" role="group" aria-label="최신 리포트 선택" style={{ "--report-count": items.length } as CSSProperties}>
           {items.map((item, i) => <button key={item.id} ref={node => { buttons.current[i] = node }} type="button" aria-pressed={i === index} aria-controls="report-exhibit-detail" onClick={() => select(i)} onKeyDown={event => onKeyDown(event, i)}>
