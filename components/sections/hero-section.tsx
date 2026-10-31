@@ -17,8 +17,10 @@ export function HeroSection() {
       <div className="relative z-10 flex min-h-[100svh] items-center px-[clamp(20px,3vw,64px)] py-28" style={{ width: panelWidth }}>
 
         <div className="w-full [container-type:inline-size]">
-        <h1 className="font-[family-name:var(--font-hero)] text-left text-[min(16cqw,5.5rem)] font-light leading-[1.3] tracking-tight text-white">
-          STOCK<br /><span className="whitespace-nowrap">MASTERS OF</span><br />PNU
+        <h1 aria-label="STOCK MASTERS OF PNU" className="font-[family-name:var(--font-hero)] text-left text-[min(16cqw,5.5rem)] font-light leading-[1.3] tracking-tight text-white">
+          <span className="home-hero-line" aria-hidden="true"><span>STOCK</span></span>
+          <span className="home-hero-line" aria-hidden="true"><span>MASTERS OF</span></span>
+          <span className="home-hero-line" aria-hidden="true"><span>PNU</span></span>
         </h1>
         <p className="mt-7 font-[family-name:var(--font-body)] text-sm font-normal leading-relaxed text-white/85 sm:text-base">{SITE_NAME_KO}</p>
         <nav aria-label="주요 활동 바로가기" className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-white">

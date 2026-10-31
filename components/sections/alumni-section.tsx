@@ -5,8 +5,12 @@ import { ArrowRight } from "lucide-react"
 export function AlumniSection() {
   return (
     <section className="px-6 py-16 sm:py-20">
-      <HomeEntrance className="home-soft-reveal mx-auto max-w-4xl text-center">
-        <span className="text-xs font-normal tracking-[0.3em] text-site-accent">NETWORK</span>
+      <HomeEntrance className="home-network mx-auto max-w-4xl text-center">
+        <div className="home-network__signature">
+          <NetworkConnection />
+          <span className="text-xs font-normal tracking-[0.3em] text-site-accent">NETWORK</span>
+          <NetworkConnection mirrored />
+        </div>
         <h2 className="mt-4 text-2xl font-medium leading-snug text-white sm:text-3xl">
           세대를 잇는 네트워크, 함께 성장하는 SMP
         </h2>
@@ -24,5 +28,14 @@ export function AlumniSection() {
       </HomeEntrance>
     </section>
   )
+}
+
+function NetworkConnection({ mirrored = false }: { mirrored?: boolean }) {
+  return <svg className="home-network__connection" data-mirrored={mirrored} viewBox="0 0 144 32" fill="none" aria-hidden="true" focusable="false">
+    <path className="home-network__path" pathLength={1} d="M4 24H40C56 24 56 8 72 8H140" />
+    <circle className="home-network__node" cx="4" cy="24" r="2.5" />
+    <circle className="home-network__node" cx="72" cy="8" r="2.5" />
+    <circle className="home-network__node" cx="140" cy="8" r="2.5" />
+  </svg>
 }
 

@@ -28,16 +28,16 @@ const awards = [
 export function AchievementsSection() {
   return (
     <section className="px-6 py-16 sm:py-20">
-      <HomeEntrance className="home-soft-reveal mx-auto max-w-6xl">
+      <div className="mx-auto max-w-6xl">
         <div className="text-center">
           <h2 className="text-xs font-normal tracking-[0.3em] text-site-accent">ACCOLADES</h2>
         </div>
 
-        <div className="mx-auto mt-12 grid gap-4 sm:grid-cols-2">
+        <div className="home-awards mx-auto mt-12 grid gap-4 sm:grid-cols-2">
           {awards.map((award) => (
-            <div
+            <HomeEntrance
               key={award.title}
-              className="flex flex-col items-center gap-3 p-6 text-center"
+              className="home-award flex flex-col items-center gap-3 p-6 text-center"
             >
               <span className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center text-site-accent">
                 <Trophy className="h-4 w-4" aria-hidden="true" />
@@ -45,9 +45,9 @@ export function AchievementsSection() {
               <div className="flex flex-col items-center gap-1.5">
                 <span className="text-xs font-normal tracking-wide text-site-muted">{award.year}</span>
                 <h3 className="text-base font-medium leading-snug text-white">{award.title}</h3>
-                <p className="text-sm leading-relaxed text-site-accent">{award.result}</p>
+                <p className="home-award__result text-sm leading-relaxed text-site-accent">{award.result}</p>
               </div>
-            </div>
+            </HomeEntrance>
           ))}
         </div>
 
@@ -60,7 +60,7 @@ export function AchievementsSection() {
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
-      </HomeEntrance>
+      </div>
     </section>
   )
 }
