@@ -1,5 +1,5 @@
 import type {Database} from '../../cloudflare/bindings'
-import {readSiteAnalytics} from '../../cms/site-analytics'
+import {readSiteAnalytics,currentReportDetails,knownReportTitle,UNKNOWN_REPORT_TITLE} from '../../cms/site-analytics'
 import {SITE_RANGES,siteDate,siteStart,emptySitePeriod,type Traffic,type SiteSnapshot,type SitePeriod,type SiteRange} from '../../admin-lab/site-model'
 
 type Count={day:string;report:string;kind:string;bucket:number;count:number;total_ms:number}
@@ -22,10 +22,10 @@ export function parseTraffic(value:unknown):Traffic {
 export function combinePeriod(rows:Count[],traffic:Traffic|null,titles:Map<string,string>,start:string):SitePeriod {
   const out=emptySitePeriod();out.traffic=traffic
   const reports=new Map<string,SitePeriod['reports'][number]>(),daily=new Map<string,number>();let ms=0
-  for(const r of traffic?.reports??[])reports.set(r.id,{id:r.id,title:titles.get(r.id)??'현재 비공개 또는 삭제된 리포트',views:r.views,downloads:0,failed:0})
+  for(const r of traffic?.reports??[])reports.set(r.id,{id:r.id,title:titles.get(r.id)??UNKNOWN_REPORT_TITLE,views:r.views,downloads:0,failed:0})
   for(const row of rows){
     if(row.day<start)continue
-    const report=reports.get(row.report)??{id:row.report,title:titles.get(row.report)??'현재 비공개 또는 삭제된 리포트',views:null,downloads:0,failed:0}
+    const report=reports.get(row.report)??{id:row.report,title:titles.get(row.report)??UNKNOWN_REPORT_TITLE,views:null,downloads:0,failed:0}
     if(row.kind==='download'){out.downloads+=row.count;report.downloads+=row.count;daily.set(row.day,(daily.get(row.day)??0)+row.count)}
     if(row.kind==='start')out.started+=row.count
     if(row.kind==='ready'){out.ready+=row.count;ms+=row.total_ms;if(row.bucket>=4)out.slow+=row.count}
@@ -72,19 +72,22 @@ export async function collectSiteAnalytics(db:Database,config:{account:string;to
     db.prepare('DELETE FROM cms_site_counts WHERE day<?').bind(floor),
     db.prepare('DELETE FROM cms_site_days WHERE day<?').bind(floor),
   ])
-  const [counts,content,limited,lastDownload]=await Promise.all([
+  const [counts,limited,lastDownload]=await Promise.all([
     db.prepare('SELECT * FROM cms_site_counts WHERE day>=? ORDER BY day').bind(floor).all<Count>(),
-    db.prepare("SELECT id,json_extract(item,'$.title') title FROM free_content WHERE kind='research'").all<{id:string;title:string}>(),
     db.prepare('SELECT day FROM cms_site_days WHERE day>=? AND events>=2000 ORDER BY day').bind(floor).all<{day:string}>(),
     db.prepare("SELECT max(expires_at)-172800000 AS at FROM cms_site_receipts WHERE kind='download'").first<{at:number|null}>(),
   ])
-  const titles=new Map(content.results.map(r=>[r.id,r.title])),periods={} as SiteSnapshot['periods']
+  const titles=new Map<string,string>(),periods={} as SiteSnapshot['periods']
+  for(const n of SITE_RANGES)for(const report of previous?.periods?.[n]?.reports??[]){
+    const title=knownReportTitle(report.title)
+    if(title)titles.set(report.id,title)
+  }
   for(const n of SITE_RANGES){
     periods[n]=combinePeriod(counts.results,traffic[n],titles,siteDate(siteStart(now,n)))
     const latest=Math.max(lastDownload?.at??0,previous?.periods[30]?.lastDownloadAt??0)
     periods[n].lastDownloadAt=latest>=siteStart(now,n)&&latest<=now?latest:null
   }
-  const snapshot:SiteSnapshot={startedAt:claimed.started_at,checkedAt:now,trafficCheckedAt:trafficAt,trafficError,limitedDays:limited.results.map(r=>r.day),periods}
+  const snapshot=await currentReportDetails(db,{startedAt:claimed.started_at,checkedAt:now,trafficCheckedAt:trafficAt,trafficError,limitedDays:limited.results.map(r=>r.day),periods})
   await db.prepare('UPDATE cms_site_snapshot SET payload=?,lease_until=0 WHERE id=1 AND lease_until=?').bind(JSON.stringify(snapshot),lease).run()
   return {skipped:false,failed:trafficError}
 }

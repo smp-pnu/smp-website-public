@@ -2,7 +2,7 @@ import { LoadingState } from "./ui/loading";
 import {useEffect,useState} from 'react'
 import {ChartNoAxesCombined} from 'lucide-react'
 import {api} from './server-storage'
-import {SITE_RANGES,siteDate,siteStart,type SiteRange,type SiteSnapshot} from './site-model'
+import {SITE_RANGES,siteDate,siteStart,type SiteRange,type SiteSnapshot,type SitePeriod} from './site-model'
 import './site-analytics.css'
 import {SiteTrend} from './site-trend'
 const count=(n:number)=>n.toLocaleString('ko-KR')
@@ -39,14 +39,20 @@ export function SiteAnalyticsDetails({data}:{data:SiteSnapshot}){
  <div className="site-chart"><h3>조회 추이</h3>{traffic&&traffic.views>0?<SiteTrend key={range} days={daily}/>:<p className="site-empty">{traffic?'아직 수집된 조회가 없습니다. 새 방문부터 그래프에 쌓입니다.':'방문 통계가 연결되면 조회 추이를 표시합니다.'}</p>}
  <details className="site-daily"><summary>일별 수치 펼치기</summary><div className="ops-files"><table><thead><tr><th>날짜</th><th>방문</th><th>조회</th><th>다운로드 클릭</th></tr></thead><tbody>{daily.map(d=><tr key={d.day}><td>{d.day}</td><td>{traffic?count(d.visits):'—'}</td><td>{traffic?count(d.views):'—'}</td><td>{count(d.downloads)}</td></tr>)}</tbody></table></div></details></div>
  <div className="site-columns"><div><div className="site-subhead"><h3>인기 리포트</h3><div className="site-periods" role="group" aria-label="리포트 순위 기준"><button aria-pressed={rank==='views'} onClick={()=>setRank('views')}>조회순</button><button aria-pressed={rank==='downloads'} onClick={()=>setRank('downloads')}>다운로드순</button></div></div>
- {rows.length?<div className="ops-files"><table><thead><tr><th>리포트</th><th>조회</th><th>다운로드 클릭</th></tr></thead><tbody>{rows.map((r,i)=><tr key={r.id}><td><span className="site-rank">{i+1}</span><a href={`https://pnusmp.com/research/${r.id}`} target="_blank" rel="noopener noreferrer">{r.title}</a></td><td>{r.views===null?'—':count(r.views)}</td><td>{count(r.downloads)}</td></tr>)}</tbody></table></div>:<p className="site-empty">리포트 조회·다운로드가 모이면 표시됩니다.</p>}<p className="ops-footnote">다운로드 버튼을 누른 횟수입니다. 파일 저장 완료 횟수는 아닙니다.</p></div>
+ {rows.length?<div className="ops-files"><table><thead><tr><th>리포트</th><th>조회</th><th>다운로드 클릭</th></tr></thead><tbody>{rows.map((r,i)=><tr key={r.id}><td><span className="site-rank">{i+1}</span><ReportIdentity report={r}/></td><td>{r.views===null?'—':count(r.views)}</td><td>{count(r.downloads)}</td></tr>)}</tbody></table></div>:<p className="site-empty">리포트 조회·다운로드가 모이면 표시됩니다.</p>}<p className="ops-footnote">다운로드 버튼을 누른 횟수입니다. 공개 여부를 바꿔도 기존 집계는 유지됩니다.</p></div>
  <div><h3>유입 경로</h3>{refs.length?<ol className="site-referrers">{refs.slice(0,8).map(r=><li key={r.host}><span>{r.host||'직접 방문 · 출처 확인 불가'}</span><strong>{count(r.visits)}<small>회</small></strong></li>)}</ol>:<p className="site-empty">수집된 유입 경로가 없습니다.</p>}<p className="ops-footnote">외부 사이트 도메인만 표시합니다. 검색어·개인 식별정보는 수집하지 않습니다. 앱·메신저는 직접 방문으로 표시될 수 있습니다.</p></div></div>
  <div className="site-pdf"><h3>PDF 열람 상태</h3><dl><div><dt>열람 시작</dt><dd>{count(p.started)}회</dd></div><div><dt>첫 화면 표시</dt><dd>{count(p.ready)}회</dd></div><div><dt>첫 화면 최종 실패</dt><dd className={p.failed?'ops-warning':''}>{count(p.failed)}회</dd></div><div><dt>표시까지 평균</dt><dd>{p.averageMs===null?'—':`${(p.averageMs/1000).toFixed(1)}초`}</dd></div><div><dt>10초 초과 표시</dt><dd>{count(p.slow)}회</dd></div></dl><p className="ops-footnote">뷰어 시작부터 실제 PDF 화면 표시까지 측정하며 수동 재시도는 새 시도입니다. 표지 미리보기·페이지 넘김·자동 파일 요청은 제외합니다. 준비 중 이탈·차단·전송 누락은 실패로 간주하지 않습니다.</p></div>
  <details className="site-definition"><summary>집계 기준과 무료 운영 보호</summary><p>방문은 고유 인원 수가 아닙니다. Cloudflare Web Analytics의 방문·조회는 봇을 제외한 추정 집계이며 광고 차단 등으로 누락될 수 있습니다. 다운로드는 사람이 다운로드 링크를 누른 횟수입니다.</p><p>최근 조회는 Cloudflare가 수집한 마지막 분, 최근 클릭은 서버가 수신한 시각입니다. 모두 KST이며 현재 집계에 포함된 기록 기준입니다.</p><p>다운로드·PDF 이벤트는 하루 최대 2,000건(UTC 기준)을 저장합니다. 한도에 도달해도 PDF와 웹사이트는 계속 작동합니다. 식별용 쿠키·IP·검색어·PDF 내용은 저장하지 않습니다. 중복 방지 기록은 2일, 일별 집계는 30일 보관합니다. 자동 정리가 2일 넘게 중단되면 새 이벤트 수집도 멈춥니다.</p><p>집계 시작 {stamp(data.startedAt)} · 과거 자료를 소급 집계하지 않습니다. 방문·조회는 시간당 1회, 다운로드·PDF도 기존 게시 작업을 통해 시간당 1회 갱신합니다.</p></details>
- <p className="ops-footnote">다운로드·PDF 확인 {stamp(data.checkedAt)}{data.trafficCheckedAt?` · 방문·조회 확인 ${stamp(data.trafficCheckedAt)}`:''} · 상단 새로고침으로 최신 저장본을 불러옵니다. 화면을 열어 둔 동안 자동 갱신하지 않습니다.</p>
+ <p className="ops-footnote">다운로드·PDF 확인 {stamp(data.checkedAt)}{data.trafficCheckedAt?` · 방문·조회 확인 ${stamp(data.trafficCheckedAt)}`:''} · 상단 새로고침으로 최신 저장본을 불러옵니다. 제목·공개 상태는 화면을 불러오거나 새로고침할 때 반영합니다.</p>
  </>
 }
 
 function LastActivity({at,label}:{at?:number|null;label:string}) {
  return <p className="site-last-activity">{label} <time dateTime={at?new Date(at).toISOString():undefined}>{at?new Date(at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}):'기록 없음'}</time></p>
+}
+
+function ReportIdentity({report}:{report:SitePeriod['reports'][number]}) {
+ if(report.visibility==='public')return <a href={`https://pnusmp.com/research/${report.id}`} target="_blank" rel="noopener noreferrer">{report.title}</a>
+ const label=report.visibility==='private'?'비공개':report.visibility==='trashed'?'휴지통':'연결할 자료 없음'
+ return <><span className="site-report-title">{report.title}</span><span className="site-report-visibility">{label}</span></>
 }

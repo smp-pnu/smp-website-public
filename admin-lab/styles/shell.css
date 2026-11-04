@@ -14,7 +14,7 @@
   background: var(--brand-dark);
   color: var(--brand-on-dark);
   border-right: 1px solid var(--brand-line);
-  --focus-ring: var(--brand-sky);
+  --focus-ring: var(--brand-highlight);
 }
 .admin-brand {
   display: flex;
@@ -56,9 +56,9 @@
   color: #fff;
 }
 .admin-sidebar nav button.active {
-  color: var(--brand-sky);
+  color: var(--brand-highlight);
   background: var(--brand-selected);
-  box-shadow: inset 2px 0 var(--brand-sky);
+  box-shadow: inset 2px 0 var(--brand-highlight);
   font-weight: 650;
 }
 .sidebar-bottom {

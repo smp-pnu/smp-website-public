@@ -80,7 +80,7 @@
 .upload-steps li { display: flex; align-items: center; gap: 8px; }
 .upload-steps li > span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #e8edf1; font-size: 12px; }
 .upload-steps [aria-current="step"] { color: var(--accent); font-weight: 650; }
-.upload-steps [aria-current="step"] > span { background: var(--brand-sky); color: var(--brand-dark); }
+.upload-steps [aria-current="step"] > span { background: var(--brand-primary); color: var(--brand-on-primary); }
 .upload-review-toolbar:focus { outline: none; }
 @media (max-width: 600px) {
   .upload-steps { gap: 12px; font-size: 12px; }
@@ -268,9 +268,9 @@
   min-height: var(--control-height);
 }
 .cms-actions button.primary {
-  background: var(--brand-sky);
-  border-color: var(--brand-sky);
-  color: var(--brand-dark);
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: var(--brand-on-primary);
 }
 .cms-actions button[aria-pressed="true"] {
   background: var(--accent-soft);
@@ -289,9 +289,9 @@
   font-variant-numeric: tabular-nums;
 }
 .cms-pagination .cms-page-number[aria-current="page"] {
-  color: var(--brand-dark);
-  background: var(--brand-sky);
-  border-color: var(--brand-sky);
+  color: var(--brand-on-primary);
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
   font-weight: 650;
 }
 .cms-page-gap {

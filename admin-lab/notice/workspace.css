@@ -47,16 +47,16 @@
   cursor: pointer;
 }
 .notice-workspace button.primary {
-  color: var(--brand-dark);
-  background: var(--brand-sky);
-  border-color: var(--brand-sky);
+  color: var(--brand-on-primary);
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
 }
 .notice-workspace button:hover:not(:disabled) {
   background: #edf2f6;
 }
 .notice-workspace button.primary:hover:not(:disabled) {
-  background: var(--brand-sky-hover);
-  border-color: var(--brand-sky-hover);
+  background: var(--brand-primary-hover);
+  border-color: var(--brand-primary-hover);
 }
 .notice-workspace button:disabled {
   cursor: default;
