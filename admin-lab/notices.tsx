@@ -293,7 +293,7 @@ export function Notices({
             </button>
           </div>
           {manual && <p className="library-hint" id="notice-order-help">
-            <span className="drag-help">손잡이를 끌어 파란 선 위치에 놓으세요. Esc로 취소할 수 있습니다. </span>
+            <span className="drag-help">손잡이를 끌어 삽입선 위치에 놓으세요. Esc로 취소할 수 있습니다. </span>
             화살표로도 순서를 바꿀 수 있습니다. 고정 공지는 위에 유지하며, 같은 그룹 안에서 이동 후 자동 저장됩니다.
           </p>}
           <div className={`report-table-wrap${dragged ? " is-reordering" : ""}`} ref={reorder.table}>

@@ -101,13 +101,13 @@ a {
   text-decoration: none;
 }
 .primary {
-  color: var(--brand-dark);
-  background: var(--brand-sky);
-  border-color: var(--brand-sky);
+  color: var(--brand-on-primary);
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
 }
 .primary:hover:not(:disabled) {
-  background: var(--brand-sky-hover);
-  border-color: var(--brand-sky-hover);
+  background: var(--brand-primary-hover);
+  border-color: var(--brand-primary-hover);
 }
 .secondary {
   background: #fff;

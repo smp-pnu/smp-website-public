@@ -13,6 +13,9 @@ import { cmsApi, cmsExport } from "../cms/api";
 import { storePages, removePage, enqueue } from "../free/server/catalog";
 import { rich } from "../cms/rich-text";
 import { sortContent } from "../lib/content-model";
+import { readSiteAnalytics, readSiteDashboard } from "../cms/site-analytics";
+import { collectSiteAnalytics } from "../free/jobs/site-analytics";
+import { recordEvents } from "../free/server/site-events";
 function fixture() {
   const sql = new DatabaseSync(":memory:");
   for (const f of readdirSync("cloudflare/migrations").sort())
@@ -487,4 +490,53 @@ test('list pagination clamps after deletion and handles fractional, empty and ou
   const empty=await f.store.list('notice',new URLSearchParams({page:'99',q:'not found'}));
   assert.equal(empty.page,1);assert.equal(empty.total,0);assert.equal(empty.items.length,0);
  }finally{f.close()}
+});
+
+test("report withdrawal, collection while private, republication and trash restoration preserve analytics and original PDF identity", async () => {
+  const f = fixture();
+  try {
+    f.active();
+    const now = Date.parse("2026-10-27T10:00:00Z");
+    const p = structuredClone(f.payload);
+    p.item = { ...p.item, kind: "research", title: "재공개 리포트", externalUrl: "https://drive.google.com/file/d/abcdefghijk123456789/view" } as ContentItem;
+    const entry = await f.store.create("research", p);
+    const ready = { ...entry.draft, cover: { sourceKey: sourceKey(entry.draft.item as ContentItem), url: `/report-covers/${entry.id}/${"d".repeat(64)}.webp` } };
+    await f.store.complete(entry.id, entry.revision, ready);
+    const graph: typeof fetch = async () => Response.json({ data: { viewer: { accounts: [{
+      total: [{ count: 11, sum: { visits: 4 } }], hours: [],
+      reports: [{ count: 11, dimensions: { requestPath: `/research/${entry.id}` } }], referrers: []
+    }] } } });
+    const config = { account: "a".repeat(32), token: "local-only" };
+    await collectSiteAnalytics(f.db, config, now, graph);
+    await recordEvents({ CMS_DB: f.db, ASSETS: { fetch } }, [1, 2, 3].map(n => ({ id: `${String(n).padStart(32, "0")}:download`, report: entry.id, kind: "download" as const, ms: 0 })), now);
+    await collectSiteAnalytics(f.db, config, now + 61 * 60_000, graph);
+    const counts = f.sql.prepare("SELECT * FROM cms_site_counts ORDER BY day,report,kind,bucket").all();
+    const check = async (visibility: string) => {
+      const snapshot = await readSiteDashboard(f.db);
+      assert.equal(snapshot?.periods[7].reports[0].id, entry.id);
+      assert.equal(snapshot?.periods[7].reports[0].title, "재공개 리포트");
+      assert.equal(snapshot?.periods[7].reports[0].visibility, visibility);
+      assert.equal(snapshot?.periods[7].reports[0].views, 11);
+      assert.equal(snapshot?.periods[7].reports[0].downloads, 3);
+      assert.deepEqual(f.sql.prepare("SELECT * FROM cms_site_counts ORDER BY day,report,kind,bucket").all(), counts);
+      assert.deepEqual((await f.store.get(entry.id)).draft.cover, ready.cover);
+      assert.equal(((await f.store.get(entry.id)).draft.item as ContentItem).externalUrl, (p.item as ContentItem).externalUrl);
+    };
+    await check("public");
+    await f.store.change(entry.id, 1, "withdraw");
+    assert.equal(f.sql.prepare("SELECT count(*) n FROM free_content WHERE id=?").get(entry.id)?.n, 0);
+    await check("private");
+    await collectSiteAnalytics(f.db, config, now + 122 * 60_000, graph);
+    assert.equal((await readSiteAnalytics(f.db))?.periods[7].reports[0].title, "재공개 리포트");
+    await check("private");
+    await f.store.approve(entry.id, 2);
+    await check("public");
+    assert.equal(f.sql.prepare("SELECT count(*) n FROM cms_jobs").get()?.n, 0, "same prepared PDF must not be regenerated");
+    await f.store.change(entry.id, 2, "trash");
+    await check("trashed");
+    await f.store.change(entry.id, 3, "restore");
+    await check("private");
+    await f.store.approve(entry.id, 4);
+    await check("public");
+  } finally { f.close(); }
 });

@@ -5,8 +5,8 @@ import {readFileSync} from 'node:fs'
 import type {Database,Statement} from '../cloudflare/bindings'
 import {validateEvents,recordEvents,siteEvents,SITE_EVENT_LIMIT} from '../free/server/site-events'
 import {collectSiteAnalytics,parseTraffic,combinePeriod} from '../free/jobs/site-analytics'
-import {siteStart,siteDate} from '../admin-lab/site-model'
-import {readSiteAnalytics} from '../cms/site-analytics'
+import {siteStart,siteDate,emptySitePeriod,type SiteSnapshot} from '../admin-lab/site-model'
+import {readSiteAnalytics,readSiteDashboard,currentReportDetails,UNKNOWN_REPORT_TITLE} from '../cms/site-analytics'
 import type {Env} from '../free/server/types'
 import {publicReportId,type SiteEvent} from '../lib/site-events'
 const report='a'.repeat(32),now=Date.parse('2026-10-28T05:00:00Z')
@@ -85,5 +85,43 @@ test('private collector throttles, keeps previous traffic on errors, purges rete
  assert.equal((await readSiteAnalytics(db))?.periods[1].lastDownloadAt,null)
  await collectSiteAnalytics(db,{account:'a'.repeat(32),token:'SECRET'},now+32*86400000,async()=>Response.json(graph))
  assert.equal(sql.prepare('SELECT count(*) n FROM cms_site_receipts').get()?.n,0);assert.equal(sql.prepare('SELECT count(*) n FROM cms_site_counts').get()?.n,0);assert.equal((await readSiteAnalytics(db))?.periods[30].lastDownloadAt,null)
+ }finally{sql.close()}
+})
+
+test('dashboard repairs stale report labels immediately without changing counts, collection times or stored snapshots',async()=>{
+ const {sql,db}=fixture()
+ try{
+  const period={...emptySitePeriod(),downloads:7,reports:[{id:report,title:'현재 비공개 또는 삭제된 리포트',views:12,downloads:7,failed:0}]}
+  const snapshot:SiteSnapshot={startedAt:now,checkedAt:now,trafficCheckedAt:now,trafficError:false,limitedDays:[],periods:{1:period,7:period,30:period}}
+  const original=JSON.stringify(snapshot)
+  sql.prepare('UPDATE cms_site_snapshot SET payload=?').run(original)
+  const repaired=await readSiteDashboard(db)
+  assert.equal(repaired?.periods[7].reports[0].title,'테스트 기업')
+  assert.equal(repaired?.periods[7].reports[0].visibility,'public')
+  assert.equal(repaired?.periods[7].reports[0].views,12)
+  assert.equal(repaired?.periods[7].downloads,7)
+  assert.equal(repaired?.checkedAt,now)
+  assert.equal(sql.prepare('SELECT payload FROM cms_site_snapshot').get()?.payload,original)
+  sql.prepare('DELETE FROM free_content').run()
+  const missing=await currentReportDetails(db,repaired!)
+  assert.equal(missing.periods[7].reports[0].title,'테스트 기업','keep a known historical title for removed records')
+  assert.equal(missing.periods[7].reports[0].visibility,'missing','do not offer a broken public link')
+  const unknown=await currentReportDetails(db,snapshot)
+  assert.equal(unknown.periods[7].reports[0].title,UNKNOWN_REPORT_TITLE)
+ }finally{sql.close()}
+})
+
+test('metadata refresh looks up only ranked IDs in one bounded query',async()=>{
+ const {sql,db}=fixture()
+ try{
+  const make=(offset:number)=>({...emptySitePeriod(),reports:Array.from({length:20},(_,i)=>({id:(offset+i).toString(16).padStart(32,'0'),title:'기존 제목',views:1,downloads:0,failed:0}))})
+  const snapshot:SiteSnapshot={startedAt:now,checkedAt:now,trafficCheckedAt:now,trafficError:false,limitedDays:[],periods:{1:make(0),7:make(20),30:make(40)}}
+  let queries=0
+  const bounded:Database={...db,prepare(query){queries++;assert.ok(query.includes('json_each(?)'));return db.prepare(query)}}
+  await currentReportDetails(bounded,snapshot)
+  assert.equal(queries,1)
+  snapshot.periods[30].reports.push({id:'f'.repeat(32),title:'초과',views:1,downloads:0,failed:0})
+  await assert.rejects(()=>currentReportDetails(bounded,snapshot),/bounded size/)
+  assert.equal(queries,1)
  }finally{sql.close()}
 })

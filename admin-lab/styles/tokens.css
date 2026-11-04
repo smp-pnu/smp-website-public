@@ -12,19 +12,20 @@
   --control-font: 14px;
   --radius-panel: 12px;
   --page: #f4f5f6;
-  /* Same charcoal and sky accent as the public site's brand. */
+  /* Official charcoal identity, with restrained graphite controls for work. */
   --brand-dark: #080a0c;
   --brand-surface: #141517;
-  --brand-sky: #7dd3fc;
-  --brand-sky-hover: #bae6fd;
+  --brand-primary: #252b31;
+  --brand-primary-hover: #3a424b;
+  --brand-on-primary: #ffffff;
+  --brand-highlight: #d5dbe1;
   --brand-on-dark: #e4e4e7;
   --brand-muted: #b8b8bf;
   --brand-line: rgb(255 255 255 / 0.18);
-  --brand-selected: rgb(125 211 252 / 0.12);
-  /* Darker blue for readable text and focus rings on light work surfaces. */
-  --accent: #075985;
-  --accent-soft: #f0f9ff;
-  --focus-ring: #0369a1;
+  --brand-selected: rgb(255 255 255 / 0.08);
+  --accent: #465463;
+  --accent-soft: #eef0f2;
+  --focus-ring: #58677a;
 }
 @media (max-width: 1150px) { :root { --page-gutter: 24px; } }
 @media (max-width: 700px) {
