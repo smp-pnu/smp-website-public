@@ -1,4 +1,5 @@
 import { LoadingState, InlineLoading } from "./ui/loading";
+import { AdminBrand } from "./admin-brand";
 import { useEffect, useState, type ReactNode } from "react"
 import { startAuthentication, startRegistration } from "@simplewebauthn/browser"
 import { api, setApiSession, type Session } from "./server-storage"
@@ -71,8 +72,9 @@ export function CloudAuthGate({ children }: { children: (session: Session, logou
     const response = await startAuthentication({ optionsJSON })
     accept((await post("/auth/login/verify", { response })).session)
   }
-  if (loading) return <main className="auth-shell"><section className="auth-card"><div className="admin-brand"><strong>SMP</strong><span>사이트 관리</span></div><LoadingState label="로그인 상태를 확인하고 있어요…" rows={2}/></section></main>
+  if (loading) return <main className="auth-shell"><section className="auth-card"><AdminBrand /><LoadingState label="로그인 상태를 확인하고 있어요…" rows={2}/></section></main>
   if (recoveryCode) return <main className="auth-shell"><section className="auth-card">
+    <AdminBrand />
     <h1>복구 코드를 보관해 주세요</h1><p>기기 분실 또는 관리자 인수인계에 쓰는 일회용 코드입니다. 이 화면을 닫으면 다시 확인할 수 없으므로 안전한 곳에 보관하세요.</p>
     <label className="recovery-code">복구 코드<input readOnly value={recoveryCode} onFocus={e => e.target.select()} aria-label="복구 코드"/></label>
     <button className="secondary" onClick={() => {
@@ -91,7 +93,7 @@ export function CloudAuthGate({ children }: { children: (session: Session, logou
       try { await api("/session") } catch { accept(null) }
     })})
   return <main className="auth-shell"><section className="auth-card">
-    <div className="admin-brand"><strong>SMP</strong><span>사이트 관리</span></div>
+    <AdminBrand />
     <h1>{setup ? "첫 관리자 패스키 등록" : recover ? "복구·인수인계" : "관리자 로그인"}</h1>
     <p className="auth-intro">{recover ? "패스키 등록 때 보관한 64자리 복구 코드가 필요합니다. 로컬 시험판의 아이디·비밀번호를 입력하는 곳이 아닙니다." : "등록한 패스키로 로그인하세요. 게시 관리에서 승인한 내용만 공식 홈페이지에 반영됩니다."}</p>
     <form onSubmit={e => { e.preventDefault(); void run(async () => {

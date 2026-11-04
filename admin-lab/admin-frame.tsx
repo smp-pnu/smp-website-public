@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cloudMode, serverMode } from "./mode";
 import { limits, sizeLabel } from "./model";
+import { AdminBrand } from "./admin-brand";
 
 type Props = {
   children: ReactNode;
@@ -91,10 +92,7 @@ export function AdminFrame({
         본문으로 이동
       </a>
       <aside className={`admin-sidebar ${menuOpen ? "is-menu-open" : ""}`}>
-        <div className="admin-brand">
-          <strong>SMP</strong>
-          <span>사이트 관리</span>
-        </div>
+        <AdminBrand />
         <button className="mobile-menu-toggle" aria-label={menuOpen ? "관리 메뉴 닫기" : "관리 메뉴 열기"} aria-expanded={menuOpen} aria-controls="admin-navigation" onClick={() => setMenuOpen((open) => !open)}>
           {menuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>

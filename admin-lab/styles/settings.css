@@ -144,7 +144,7 @@
   display: grid;
   place-items: center;
   min-height: 100vh;
-  background: #19232e;
+  background: var(--brand-dark);
   padding: 30px 20px;
 }
 .auth-card {
@@ -153,11 +153,11 @@
   border: 1px solid #dce1e6;
   border-radius: 12px;
   background: #fff;
-  padding: 34px;
+  padding: 32px;
 }
 .auth-card .admin-brand {
-  padding: 0 0 27px;
-  margin-bottom: 26px;
+  padding: 0 0 24px;
+  margin-bottom: 24px;
   border-bottom: 1px solid var(--line);
 }
 .auth-card h1 {
@@ -168,7 +168,7 @@
 }
 .auth-card > p {
   font-size: 13px;
-  color: #7d8996;
+  color: var(--muted);
   line-height: 1.9;
 }
 .auth-heading {

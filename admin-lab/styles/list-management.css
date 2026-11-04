@@ -201,7 +201,7 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: #3b82f6;
+  background: var(--focus-ring);
   z-index: 2;
   pointer-events: none;
 }
@@ -218,7 +218,7 @@
   left: 3px;
   width: 7px;
   height: 7px;
-  border: 2px solid #3b82f6;
+  border: 2px solid var(--focus-ring);
   border-radius: 50%;
   background: #fff;
   z-index: 3;
