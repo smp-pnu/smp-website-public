@@ -47,15 +47,16 @@
   cursor: pointer;
 }
 .notice-workspace button.primary {
-  color: #fff;
-  background: var(--accent, #2d475a);
-  border-color: var(--accent, #2d475a);
+  color: var(--brand-dark);
+  background: var(--brand-sky);
+  border-color: var(--brand-sky);
 }
 .notice-workspace button:hover:not(:disabled) {
   background: #edf2f6;
 }
 .notice-workspace button.primary:hover:not(:disabled) {
-  background: #213c50;
+  background: var(--brand-sky-hover);
+  border-color: var(--brand-sky-hover);
 }
 .notice-workspace button:disabled {
   cursor: default;
@@ -115,7 +116,7 @@
   color: #b3bcc4;
 }
 .notice-title-label textarea:focus-visible {
-  outline: 2px solid #b9cbd8;
+  outline: 2px solid var(--focus-ring);
   outline-offset: 6px;
   border-radius: 2px;
 }
@@ -150,8 +151,8 @@
   height: 16px;
 }
 .notice-toolbar button[aria-pressed="true"] {
-  background: #e9f0f5;
-  color: #214861;
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 .notice-format-row .ui-select {
   width: 112px;
