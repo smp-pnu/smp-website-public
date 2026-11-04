@@ -1,4 +1,5 @@
 import { LoadingState, InlineLoading } from "./ui/loading";
+import { AdminBrand } from "./admin-brand";
 import { useEffect, useState, type ReactNode } from "react"
 import { LockKeyhole, ShieldCheck } from "lucide-react"
 import { api, setApiSession, type Session } from "./server-storage"
@@ -24,10 +25,10 @@ export function AuthGate({ children }: { children: (session: Session, logout: ()
   const logout = async () => {
     await api("/logout", { method: "POST" }); setApiSession(null); setSession(null); setError(""); setPassword("")
   }
-  if (loading) return <main className="auth-shell"><section className="auth-card"><div className="admin-brand"><strong>SMP</strong><span>사이트 관리</span></div><LoadingState label="로그인 상태를 확인하고 있어요…" rows={2}/></section></main>
+  if (loading) return <main className="auth-shell"><section className="auth-card"><AdminBrand /><LoadingState label="로그인 상태를 확인하고 있어요…" rows={2}/></section></main>
   if (session) return children(session, logout)
   return <main className="auth-shell"><section className="auth-card">
-    <div className="admin-brand"><strong>SMP</strong><span>사이트 관리</span></div>
+    <AdminBrand />
     <div className="auth-heading"><LockKeyhole size={22}/><div><h1>{setup ? "첫 관리자 설정" : "관리자 로그인"}</h1></div></div>
     <p className="auth-intro">PDF와 초안을 관리하는 별도 시험 서버입니다. 운영 사이트에는 게시되지 않습니다.</p>
     <form onSubmit={async e => {

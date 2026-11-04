@@ -14,8 +14,8 @@
 .ui-select-list { max-height: min(320px, var(--available-height)); overflow-y: auto; overscroll-behavior: contain; scroll-padding: 5px; }
 .ui-select-item { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 9px 10px; min-height: var(--control-height); border-radius: 5px; color: var(--ink); font-size: 14px; cursor: default; outline: none; }
 .ui-select-item > span:last-child { flex-shrink: 0; display: flex; }
-.ui-select-item[data-highlighted] { background: #edf2f6; }
-.ui-select-item[data-selected] { color: #214969; font-weight: 600; }
+.ui-select-item[data-highlighted] { background: var(--accent-soft); }
+.ui-select-item[data-selected] { color: var(--accent); font-weight: 600; }
 .ui-select-item[data-disabled] { opacity: .45; }
 .ui-select-group { padding: 11px 10px 4px; color: var(--muted); font-size: 12px; letter-spacing: .02em; }
 .ui-inline-loading { display: inline-flex; align-items: center; gap: 8px; color: inherit; font-size: inherit; vertical-align: middle; }
