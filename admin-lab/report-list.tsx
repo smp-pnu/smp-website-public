@@ -140,7 +140,7 @@ export function ReportList({
       </div>
       {manual && (
         <p className="library-hint" id="report-order-help">
-          <span className="drag-help">손잡이를 끌어 파란 선 위치에 놓으세요. Esc로 취소할 수 있습니다. </span>
+          <span className="drag-help">손잡이를 끌어 삽입선 위치에 놓으세요. Esc로 취소할 수 있습니다. </span>
           화살표로도 이동할 수 있으며, 순서는 놓은 뒤 자동 저장됩니다.
         </p>
       )}

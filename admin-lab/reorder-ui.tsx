@@ -10,7 +10,7 @@ export function DragHandle({ reorder, id, title, disabled, helpId }: {
     onPointerDown={(event) => { if (!disabled) reorder.start(event, id) }}
     onPointerMove={reorder.move} onPointerUp={reorder.end}
     onPointerCancel={reorder.cancel} onLostPointerCapture={reorder.cancel}
-    aria-describedby={helpId} title={`${title} 순서 변경: 파란 선에 놓기`}>
+    aria-describedby={helpId} title={`${title} 순서 변경: 삽입선에 놓기`}>
     <GripVertical size={14} />
   </span>
 }
