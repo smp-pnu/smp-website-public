@@ -1,22 +1,23 @@
 import { LoadingState } from "./ui/loading";
 import {useEffect,useState} from 'react'
-import {ChartNoAxesCombined} from 'lucide-react'
+import {ChartNoAxesCombined,ArrowUpRight} from 'lucide-react'
 import {api} from './server-storage'
 import {SITE_RANGES,siteDate,siteStart,type SiteRange,type SiteSnapshot,type SitePeriod} from './site-model'
 import './site-analytics.css'
 import {SiteTrend} from './site-trend'
 const count=(n:number)=>n.toLocaleString('ko-KR')
 const stamp=(n:number)=>new Date(n).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})
-export function SiteAnalytics({refresh}:{refresh:number}){
+type RankingLink={onAllReports?:(range:SiteRange,metric:"views"|"downloads")=>void}
+export function SiteAnalytics({refresh,onAllReports}:{refresh:number}&RankingLink){
  const [state,setState]=useState<{data:SiteSnapshot|null;loaded:boolean;error:string}>({data:null,loaded:false,error:''})
  useEffect(()=>{let live=true;void api('/dashboard/site').then(r=>r.json()).then((data:SiteSnapshot|null)=>{if(live)setState({data,loaded:true,error:''})}).catch((e:Error)=>{if(live)setState(p=>({...p,loaded:true,error:e.message}))});return()=>{live=false}},[refresh])
  return <section className="ops-panel ops-site" aria-label="사이트 현황"><header><h2><ChartNoAxesCombined size={18}/> 사이트 현황</h2><span className="ops-muted">pnusmp.com · 공개 사이트</span></header>
  {state.error&&<p className="ops-warning" role="alert">통계를 확인하지 못했습니다. {state.data?'이전 확인값입니다.':''} {state.error}</p>}
  {!state.data&&!state.error&&(state.loaded?<p className="site-empty">집계를 시작합니다. 첫 자동 수집이 완료되면 표시됩니다.</p>:<LoadingState label="저장된 사이트 통계를 불러오는 중…" />)}
- {state.data&&<SiteAnalyticsDetails data={state.data}/>}
+ {state.data&&<SiteAnalyticsDetails data={state.data} onAllReports={onAllReports}/>}
  </section>
 }
-export function SiteAnalyticsDetails({data}:{data:SiteSnapshot}){
+export function SiteAnalyticsDetails({data,onAllReports}:{data:SiteSnapshot}&RankingLink){
  const [range,setRange]=useState<SiteRange>(7),[rank,setRank]=useState<'views'|'downloads'>('views')
  const p=data.periods[range],traffic=p.traffic,days=Array.from({length:range},(_,i)=>siteDate(siteStart(data.checkedAt,range)+i*86400000))
  const daily=days.map(day=>({day,views:traffic?.daily.find(d=>d.day===day)?.views??0,visits:traffic?.daily.find(d=>d.day===day)?.visits??0,downloads:p.dailyDownloads.find(d=>d.day===day)?.count??0}))
@@ -38,7 +39,7 @@ export function SiteAnalyticsDetails({data}:{data:SiteSnapshot}){
  {data.limitedDays.length>0&&<p className="ops-warning">다운로드·PDF 집계 보호 한도에 도달한 날이 있습니다. 해당 날짜의 수치는 일부만 수집됐습니다. {data.limitedDays.join(', ')} (UTC 기준)</p>}
  <div className="site-chart"><h3>조회 추이</h3>{traffic&&traffic.views>0?<SiteTrend key={range} days={daily}/>:<p className="site-empty">{traffic?'아직 수집된 조회가 없습니다. 새 방문부터 그래프에 쌓입니다.':'방문 통계가 연결되면 조회 추이를 표시합니다.'}</p>}
  <details className="site-daily"><summary>일별 수치 펼치기</summary><div className="ops-files"><table><thead><tr><th>날짜</th><th>방문</th><th>조회</th><th>다운로드 클릭</th></tr></thead><tbody>{daily.map(d=><tr key={d.day}><td>{d.day}</td><td>{traffic?count(d.visits):'—'}</td><td>{traffic?count(d.views):'—'}</td><td>{count(d.downloads)}</td></tr>)}</tbody></table></div></details></div>
- <div className="site-columns"><div><div className="site-subhead"><h3>인기 리포트</h3><div className="site-periods" role="group" aria-label="리포트 순위 기준"><button aria-pressed={rank==='views'} onClick={()=>setRank('views')}>조회순</button><button aria-pressed={rank==='downloads'} onClick={()=>setRank('downloads')}>다운로드순</button></div></div>
+ <div className="site-columns"><div><div className="site-subhead"><h3>인기 리포트</h3>{onAllReports&&<button className="ops-text-button" onClick={()=>onAllReports(range,rank)}>전체 순위 <ArrowUpRight size={14}/></button>}<div className="site-periods" role="group" aria-label="리포트 순위 기준"><button aria-pressed={rank==='views'} onClick={()=>setRank('views')}>조회순</button><button aria-pressed={rank==='downloads'} onClick={()=>setRank('downloads')}>다운로드순</button></div></div>
  {rows.length?<div className="ops-files"><table><thead><tr><th>리포트</th><th>조회</th><th>다운로드 클릭</th></tr></thead><tbody>{rows.map((r,i)=><tr key={r.id}><td><span className="site-rank">{i+1}</span><ReportIdentity report={r}/></td><td>{r.views===null?'—':count(r.views)}</td><td>{count(r.downloads)}</td></tr>)}</tbody></table></div>:<p className="site-empty">리포트 조회·다운로드가 모이면 표시됩니다.</p>}<p className="ops-footnote">다운로드 버튼을 누른 횟수입니다. 공개 여부를 바꿔도 기존 집계는 유지됩니다.</p></div>
  <div><h3>유입 경로</h3>{refs.length?<ol className="site-referrers">{refs.slice(0,8).map(r=><li key={r.host}><span>{r.host||'직접 방문 · 출처 확인 불가'}</span><strong>{count(r.visits)}<small>회</small></strong></li>)}</ol>:<p className="site-empty">수집된 유입 경로가 없습니다.</p>}<p className="ops-footnote">외부 사이트 도메인만 표시합니다. 검색어·개인 식별정보는 수집하지 않습니다. 앱·메신저는 직접 방문으로 표시될 수 있습니다.</p></div></div>
  <div className="site-pdf"><h3>PDF 열람 상태</h3><dl><div><dt>열람 시작</dt><dd>{count(p.started)}회</dd></div><div><dt>첫 화면 표시</dt><dd>{count(p.ready)}회</dd></div><div><dt>첫 화면 최종 실패</dt><dd className={p.failed?'ops-warning':''}>{count(p.failed)}회</dd></div><div><dt>표시까지 평균</dt><dd>{p.averageMs===null?'—':`${(p.averageMs/1000).toFixed(1)}초`}</dd></div><div><dt>10초 초과 표시</dt><dd>{count(p.slow)}회</dd></div></dl><p className="ops-footnote">뷰어 시작부터 실제 PDF 화면 표시까지 측정하며 수동 재시도는 새 시도입니다. 표지 미리보기·페이지 넘김·자동 파일 요청은 제외합니다. 준비 중 이탈·차단·전송 누락은 실패로 간주하지 않습니다.</p></div>

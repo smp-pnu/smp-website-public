@@ -1,5 +1,6 @@
 export const adminSections = [
   "dashboard",
+  "analytics",
   "research",
   "notice",
   "members",
@@ -16,6 +17,8 @@ export type AdminRoute = {
   filter: string;
   page: number;
   entry?: string;
+  range?: 1 | 7 | 30;
+  metric?: "views" | "downloads";
 };
 export function readAdminRoute(hash: string): AdminRoute {
   const [name, search = ""] = hash.replace(/^#/, "").split("?");
@@ -27,6 +30,10 @@ export function readAdminRoute(hash: string): AdminRoute {
   const entry = params.get("entry") ?? "";
   return {
     section,
+    ...(section === "analytics" ? {
+      range: ([1,7,30].includes(Number(params.get("range"))) ? Number(params.get("range")) : 7) as 1|7|30,
+      metric: params.get("metric") === "downloads" ? "downloads" as const : "views" as const,
+    } : {}),
     q: (params.get("q") ?? "").slice(0, 100),
     group: (params.get("group") ?? "").slice(0, 30),
     filter: ["public", "draft", "trash"].includes(params.get("filter") ?? "")
@@ -52,6 +59,10 @@ export function adminRouteHash(
   if (route.filter && route.filter !== "all")
     params.set("filter", route.filter);
   if (route.page && route.page > 1) params.set("page", String(route.page));
+  if (route.section === "analytics") {
+    if (route.range && route.range !== 7) params.set("range", String(route.range));
+    if (route.metric === "downloads") params.set("metric", "downloads");
+  }
   if (route.entry) params.set("entry", route.entry);
   return "#" + route.section + (params.size ? "?" + params : "");
 }

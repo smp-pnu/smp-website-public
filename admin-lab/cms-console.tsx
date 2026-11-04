@@ -15,6 +15,9 @@ import { AdminFrame } from "./admin-frame";
 import { api } from "./server-storage";
 import { useConfirmation } from "./confirm";
 import { StorageSettings } from "./storage-settings";
+import { ReportRanking } from "./analytics/report-ranking";
+import type { SiteRange } from "./site-model";
+import type { RankingMetric } from "./analytics/report-insights";
 import { OperationsDashboard } from "./operations-dashboard";
 import { MemberImport } from "./member-import";
 import { MemberCohorts } from "./member-cohorts";
@@ -48,6 +51,7 @@ export function CmsConsole({
     [group, setGroup] = useState(initialRoute.current.group),
     [filter, setFilter] = useState(initialRoute.current.filter),
     [page, setPage] = useState(initialRoute.current.page);
+  const [insightOptions,setInsightOptions] = useState<{range:SiteRange;metric:RankingMetric}>({range:initialRoute.current.range??7,metric:initialRoute.current.metric??"views"});
   const { busy, setBusy, error, setError, message, setMessage, running, run } =
     useCmsTask();
   const [tick, setTick] = useState(0);
@@ -132,6 +136,7 @@ export function CmsConsole({
   ) => {
     if (guard && !(await canLeave())) return false;
     setSection(next);
+    setInsightOptions({range:7,metric:"views"});
     if (push) writeAdminSection(next);
     setChildDirty(false);
     cohortOverview.current = { query: "", filter: state };
@@ -150,6 +155,7 @@ export function CmsConsole({
     setQ(route.q);
     setGroup(route.group);
     setPage(route.page);
+    setInsightOptions({range:route.range??7,metric:route.metric??"views"});
     if (route.entry)
       await run(() =>
         editor.load(route.entry!, route.section as Entry["kind"]),
@@ -160,8 +166,9 @@ export function CmsConsole({
     if (route.entry)
       void run(() => editor.load(route.entry!, route.section as Entry["kind"]));
   }, []);
-  const listRoute = { section, q, group, filter, page };
+  const listRoute = { section, q, group, filter, page, ...(section === "analytics" ? insightOptions : {}) };
   const updateList = (patch: Partial<typeof listRoute>) => {
+    if (patch.range || patch.metric) setInsightOptions(p=>({...p,...(patch.range?{range:patch.range}:{}),...(patch.metric?{metric:patch.metric}:{})}));
     if (patch.q !== undefined) setQ(patch.q);
     if (patch.group !== undefined) setGroup(patch.group);
     if (patch.filter !== undefined) setFilter(patch.filter);
@@ -284,7 +291,7 @@ export function CmsConsole({
           ? "reports"
           : section === "notice"
             ? "notices"
-            : section
+            : section === "analytics" ? "dashboard" : section
       }
       cmsActive={active}
       cmsEnabled
@@ -327,7 +334,10 @@ export function CmsConsole({
           onNavigate={(kind, state) => void go(kind, state)}
           onStorage={() => void go("storage")}
           onUpload={() => void openUpload()}
+          onReportAnalytics={(range,metric)=>void go("analytics").then(ok=>{if(ok){setInsightOptions({range,metric});writeAdminRoute({section:"analytics",range,metric},true)}})}
         />
+      ) : section === "analytics" ? (
+        <ReportRanking query={{q,group,page,...insightOptions}} onChange={updateList} onBack={()=>void go("dashboard")}/>
       ) : section === "security" ? (
         security ? (
           <SecuritySettings {...security} />

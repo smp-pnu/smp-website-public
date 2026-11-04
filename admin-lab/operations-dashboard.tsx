@@ -7,11 +7,12 @@ import { capacityLabel, type DashboardData, type DriveCapacity, type Snapshot } 
 import "./operations-dashboard.css"
 import { CloudflareUsage } from "./cloudflare-usage"
 import { TrashCleanup } from "./trash-cleanup"
+import type { SiteRange } from "./site-model"
 import { SiteAnalytics } from "./site-analytics"
 
 const names: Record<Kind,string> = {research:"리포트",notice:"공지사항",members:"회원 명단"}
 const time = (value: number | null) => value ? new Date(value).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}) : "아직 확인하지 못함"
-type Props = { onNavigate: (kind: Kind, state?: string) => void; onStorage: () => void; onUpload: () => void }
+type Props = { onReportAnalytics?: (range:SiteRange,metric:"views"|"downloads")=>void; onNavigate: (kind: Kind, state?: string) => void; onStorage: () => void; onUpload: () => void }
 type State<T> = { snapshot: Snapshot<T> | null; error: string }
 
 function Meter({ label, value, limit, bytes = true }: {label:string;value:number;limit:number;bytes?:boolean}) {
@@ -49,7 +50,7 @@ export function OperationsDashboard(props: Props) {
       <SnapshotNote snapshot={overview.snapshot} error={overview.error} label="운영 현황"/>
       {!overview.snapshot?.value && !overview.error && !overview.snapshot && <LoadingState label="관리 자료를 확인하는 중…" />}
       {overview.snapshot?.value && <ContentSummary data={overview.snapshot.value} {...props}/>}
-      <SiteAnalytics refresh={tick}/>
+      <SiteAnalytics refresh={tick} onAllReports={props.onReportAnalytics}/>
       <CloudflareUsage refresh={tick}/>
       <div className="ops-columns">
         <section className="ops-panel ops-drive">
