@@ -17,8 +17,20 @@ Daily aggregates expire after 30 days. Inserts stop if the last completed snapsh
 
 ## Operation
 
-Refresh reloads the stored snapshot. Collection and Cloudflare processing can lag. `—` means no result/measurement, not zero. Report view ranking uses the top 100 report paths from Cloudflare; a report outside that set may have an unknown view count even when a download click was recorded. Download ranking separately includes the highest measured click counts.
+Refresh reloads the stored snapshot. Collection and Cloudflare processing can lag. `—` means no result/measurement, not zero. Report view ranking uses the complete bounded report-path result from Cloudflare. Unavailable measurements display —; zero is used only when the report-path result is complete. Download ranking uses the separately measured click counts.
 
 Revert the analytics commit to remove client collection. Keep the manual Web Analytics setting to avoid injecting analytics on administrator subdomains. The added tables are independent of CMS content, sessions and Drive originals. Historical measurements cannot be reconstructed before the collector was enabled.
 
 References: [Cloudflare metrics](https://developers.cloudflare.com/web-analytics/data-metrics/high-level-metrics/), [FAQ and custom-event limitation](https://developers.cloudflare.com/web-analytics/faq/), [D1 free allowances](https://developers.cloudflare.com/d1/platform/pricing/).
+
+## Full report rankings
+
+The overview's “전체 순위” opens an authenticated detail route (`#analytics`). The period and ranking metric carry over; search, semester, page, period and metric survive refresh/history. Current catalogue entries, including private/trash entries and zero-activity reports, remain distinguishable from measured historical IDs. Ties share a rank; zero/unknown values are unranked. Filters retain the overall rank rather than renumbering results.
+
+The hourly snapshot stores all measured report aggregates (up to 1,000 report IDs) alongside the small overview list. The Cloudflare request now asks for up to 1,001 report paths: receiving the sentinel limit rejects an incomplete result instead of presenting it as a complete ranking. The existing three hourly requests, lease, 2,000 daily event cap and 30-day retention remain unchanged. Older snapshots without a full list show a preparation state in the detail view. Provider errors retain previous traffic and show its original collection time.
+
+`/api/dashboard/reports` uses the existing session authentication, private/no-store response policy and admin request budget. It reads one stored snapshot and one bounded catalogue join (at most 1,000 IDs); it does not query Cloudflare or scan event counters during browsing. Search/sort/pagination are client-side and render 20 rows at a time. The overview strips full-report arrays from its response and still resolves at most 60 metadata IDs. No new dependency, analytics tracker, scheduled job, credential, service or migration is added.
+
+Insights include measured report views, download clicks, active reports, top-five view concentration, semester distribution and per-report PDF start/ready/failure/mean-display time. Views and clicks have different collection methods; they are not a conversion funnel. The week comparison uses two complete seven-day windows excluding today; it stays unavailable until 14 complete days have been collected and excludes delayed/limited data. These views are operational estimates, not person-level or academic performance measures.
+
+Design references: [Plausible Top Pages](https://plausible.io/docs/top-pages) and its [live dashboard](https://plausible.io/plausible.io) informed the compact overview → searchable full table flow and sortable metrics. SMP keeps its own charcoal palette, shared controls and mobile rows. No Plausible service is connected.

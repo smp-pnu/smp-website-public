@@ -6,7 +6,7 @@ import type {Database,Statement} from '../cloudflare/bindings'
 import {validateEvents,recordEvents,siteEvents,SITE_EVENT_LIMIT} from '../free/server/site-events'
 import {collectSiteAnalytics,parseTraffic,combinePeriod} from '../free/jobs/site-analytics'
 import {siteStart,siteDate,emptySitePeriod,type SiteSnapshot} from '../admin-lab/site-model'
-import {readSiteAnalytics,readSiteDashboard,currentReportDetails,UNKNOWN_REPORT_TITLE} from '../cms/site-analytics'
+import {readSiteAnalytics,readSiteDashboard,currentReportDetails,readReportAnalytics,UNKNOWN_REPORT_TITLE} from '../cms/site-analytics'
 import type {Env} from '../free/server/types'
 import {publicReportId,type SiteEvent} from '../lib/site-events'
 const report='a'.repeat(32),now=Date.parse('2026-10-28T05:00:00Z')
@@ -58,12 +58,12 @@ test('cross-origin, bots, oversized, malformed and rate-limited requests cannot 
  assert.equal((await siteEvents(new Request(url),env,now)).status,405)
  }finally{sql.close()}
 })
-test('traffic uses KST days, validates missing/error responses, and does not turn unknown report views into zero',()=>{
+test('traffic uses KST days, validates missing/error responses, and distinguishes complete zero counts from unavailable measurements',()=>{
  const traffic=parseTraffic(graph);assert.equal(traffic.daily[0].day,'2026-10-28');assert.equal(traffic.visits,3);assert.equal(traffic.lastViewAt,Date.parse('2026-10-28T04:32:00Z'))
  assert.throws(()=>parseTraffic({errors:[{message:'denied'}]}));assert.throws(()=>parseTraffic({data:{viewer:{accounts:[{}]}}}))
  assert.equal(siteDate(siteStart(now,7)),'2026-10-22')
  const p=combinePeriod([{day:'2026-10-28',report:'b'.repeat(32),kind:'download',bucket:0,count:2,total_ms:0},{day:'2026-10-28',report,kind:'ready',bucket:4,count:2,total_ms:22000}],traffic,new Map([[report,'기업']]),'2026-10-28')
- assert.equal(p.downloads,2);assert.equal(p.averageMs,11000);assert.equal(p.slow,2);assert.equal(p.reports.find(r=>r.id==='b'.repeat(32))?.views,null)
+ assert.equal(p.downloads,2);assert.equal(p.averageMs,11000);assert.equal(p.slow,2);assert.equal(p.reports.find(r=>r.id==='b'.repeat(32))?.views,0)
 })
 test('private collector throttles, keeps previous traffic on errors, purges retention, and stores no credentials',async()=>{
  const {sql,db,env}=fixture();sql.prepare('UPDATE cms_site_snapshot SET payload=NULL').run();let calls=0
@@ -124,4 +124,37 @@ test('metadata refresh looks up only ranked IDs in one bounded query',async()=>{
   await assert.rejects(()=>currentReportDetails(bounded,snapshot),/bounded size/)
   assert.equal(queries,1)
  }finally{sql.close()}
+})
+
+test('full report analytics retains ranks beyond ten, includes unviewed catalogue, and keeps overview light',async()=>{
+ const {sql,db}=fixture()
+ try{
+  const paths=Array.from({length:45},(_,i)=>({count:45-i,dimensions:{requestPath:'/research/'+(i+1).toString(16).padStart(32,'0')}}))
+  for(const row of paths)sql.prepare('INSERT INTO free_content VALUES(?,?,?)').run(row.dimensions.requestPath.split('/').at(-1)!,'research',JSON.stringify({title:'기업 '+row.count,semester:'2026-2'}))
+  const traffic=parseTraffic({data:{viewer:{accounts:[{...graph.data.viewer.accounts[0],reports:paths}]}}})
+  const p=combinePeriod([{day:siteDate(now),report,kind:'download',bucket:0,count:3,total_ms:0}],traffic,new Map(),siteDate(siteStart(now,30)))
+  assert.equal(p.allReports?.length,46)
+  assert.ok(p.reports.length<=20)
+  const snapshot=await currentReportDetails(db,{startedAt:now,checkedAt:now,trafficCheckedAt:now,trafficError:false,limitedDays:[],periods:{1:p,7:p,30:p}},true)
+  sql.prepare('UPDATE cms_site_snapshot SET payload=?').run(JSON.stringify(snapshot))
+  const full=await readReportAnalytics(db)
+  assert.equal(full?.catalogSize,46);assert.equal(full?.complete[7],true)
+  assert.equal(full?.periods[7].reports.find(r=>r.id===report)?.views,0)
+  assert.equal(full?.periods[7].reports.find(r=>r.id==='0000000000000000000000000000002d')?.views,1)
+  assert.equal(full?.periods[7].downloads,3)
+  const compact=await readSiteDashboard(db)
+  assert.equal(compact?.periods[7].allReports,undefined)
+  assert.deepEqual(compact?.periods[7].traffic?.reports,[])
+  assert.equal(compact?.periods[7].downloads,3)
+  sql.prepare('UPDATE cms_site_snapshot SET payload=?').run(JSON.stringify({...snapshot,periods:{1:{...p,allReports:undefined},7:p,30:p}}))
+  assert.equal(await readReportAnalytics(db),null,'legacy top-ten snapshots must not pretend to be complete rankings')
+ }finally{sql.close()}
+})
+test('truncated Cloudflare report lists fail closed, without silently presenting a partial overall rank',()=>{
+ const data=structuredClone(graph)
+ data.data.viewer.accounts[0].reports=Array.from({length:1001},()=>({count:1,dimensions:{requestPath:'/research/'+report}}))
+ assert.throws(()=>parseTraffic(data),/Incomplete/)
+ const traffic=parseTraffic(graph)
+ const p=combinePeriod([{day:siteDate(now),report,kind:'start',bucket:0,count:5,total_ms:0},{day:siteDate(now),report,kind:'ready',bucket:1,count:3,total_ms:6000},{day:siteDate(now),report,kind:'failed',bucket:0,count:1,total_ms:0}],traffic,new Map(),siteDate(now))
+ assert.equal(p.allReports?.[0].started,5);assert.equal(p.allReports?.[0].ready,3);assert.equal(p.allReports?.[0].failed,1);assert.equal(p.allReports?.[0].totalMs,6000)
 })

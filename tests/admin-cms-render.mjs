@@ -14,8 +14,11 @@ import {EntryList} from './admin-lab/cms/entry-list';import {EntryEditor} from '
 import {ListPagination} from './admin-lab/list-pagination';import {CmsBulkControls} from './admin-lab/cms-bulk-controls';
 import {AdminSelect} from './admin-lab/ui/select';import {LoadingState} from './admin-lab/ui/loading';
 import {defaultQuery} from './admin-lab/library-model';import {emptyFields} from './admin-lab/model';
+import {ReportRankingContent} from './admin-lab/analytics/report-ranking';
 import {SiteAnalyticsDetails} from './admin-lab/site-analytics';import {emptySitePeriod} from './admin-lab/site-model';
 const analyticsPeriod={...emptySitePeriod(),reports:['public','private','trashed','missing'].map((visibility,i)=>({id:String(i).repeat(32),title:'<리포트 '+i+'>',visibility,views:10-i,downloads:2,failed:0}))};
+const rankingData={startedAt:Date.now(),checkedAt:Date.now(),trafficCheckedAt:null,trafficError:false,limitedDays:[],catalogSize:4,complete:{1:false,7:false,30:false},periods:{1:analyticsPeriod,7:analyticsPeriod,30:analyticsPeriod}};
+export const ranking=renderToStaticMarkup(<ReportRankingContent data={rankingData} query={{range:7,metric:'views',q:'',group:'',page:1}} onChange={()=>{}}/>);
 export const analytics=renderToStaticMarkup(<SiteAnalyticsDetails data={{startedAt:Date.now(),checkedAt:Date.now(),trafficCheckedAt:null,trafficError:false,limitedDays:[],periods:{1:analyticsPeriod,7:analyticsPeriod,30:analyticsPeriod}}}/>);
 export const select=renderToStaticMarkup(<AdminSelect aria-label="모집 상태" value="open" disabled onValueChange={()=>{}}><option value="upcoming">모집 예정</option><option value="open">모집 중</option></AdminSelect>);
 export const skeleton=renderToStaticMarkup(<LoadingState label="목록 확인 중" rows={4}/>);
@@ -38,7 +41,9 @@ export const bulk=renderToStaticMarkup(<CmsBulkControls entries={[{id:'a',revisi
 `
 try {
  await build({stdin:{contents:source,resolveDir:process.cwd(),loader:'tsx'},bundle:true,outfile:target,platform:'node',format:'esm',jsx:'automatic',external:['react','react-dom','react-dom/server','lucide-react','@base-ui/react/select','@tiptap/*'],define:{'import.meta.env.MODE':'"admin-cloud"'}})
- const {select,skeleton,content,listing,pages,longPages,bulk,loadingList,failedList,publishedEditor,analytics}=await import(pathToFileURL(target).href)
+ const {select,skeleton,content,listing,pages,longPages,bulk,loadingList,failedList,publishedEditor,analytics,ranking}=await import(pathToFileURL(target).href)
+ assert.equal((ranking.match(/href="https:\/\/pnusmp.com\/research\//g)||[]).length,1);
+ assert.ok(ranking.includes('&lt;리포트 1&gt;'));assert.ok(ranking.includes('비공개'));assert.ok(ranking.includes('aria-label="리포트 통계 검색"'));assert.ok(ranking.includes('전체 조회 집계가 아직 준비되지'));
  assert.equal((analytics.match(/href="https:\/\/pnusmp.com\/research\//g)||[]).length,1,'only public reports offer a public link');
  for(const text of ['&lt;리포트 0&gt;','&lt;리포트 1&gt;','비공개','휴지통','연결할 자료 없음'])assert.ok(analytics.includes(text));
  assert.ok(select.includes('role="combobox"'));assert.ok(select.includes('aria-label="모집 상태"'));assert.ok(select.includes('disabled'));assert.ok(select.includes('모집 중'));assert.ok(!select.includes('<option'));
