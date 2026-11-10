@@ -22,6 +22,7 @@ import { jobErrorCode, type JobErrorCode } from "../server/job-errors"
 import { repairRegionalImages } from "./regional-image-repair"
 import { publicationAssets, requiresAssetDeployment } from "./publication-assets"
 import { prepareReaderAssets } from "./reader-assets"
+import { prepareReportShares } from "./report-shares"
 import { queueReaderBackfill } from "./reader-backfill"
 
 import {ensureAdminSchema,setAdminConfig} from "./admin-schema"
@@ -143,6 +144,7 @@ async function main() {
     const updated=new Map(readerRecords.results.map(row=>[row.id,{id:row.id,date:row.date||"",cover:JSON.parse(row.cover)}]))
     for(const result of complete) if(result.job.kind==='research') updated.set(result.job.id,{id:result.job.id,date:(result.job.item as ContentItem).date||"",cover:result.cover})
     await prepareReaderAssets([...updated.values()],origin,Math.min(Date.now()+8*60_000,acquiredUntil-(libraryMigration?12:2)*60_000))
+    await prepareReportShares([...updated.values()])
     command("scripts/build-free.mjs")
     command("scripts/deploy-free.mjs")
     await setAdminConfig(env.CMS_DB,"recruitment_deployed",recruitment.fingerprint)
