@@ -1,9 +1,14 @@
 import type { ContentItem } from "../../lib/content-model"
 import { publicCover, type CoveredItem } from "../../lib/public-cover"
+import {reportSharePath,reportShareSize} from '../../lib/report-share-image'
 import { SITE_ALTERNATE_NAMES, SITE_CHANNELS, SITE_DESCRIPTION, SITE_HOME_TITLE, SITE_INTRO, SITE_NAME_KO, SITE_ORIGIN, SITE_PAGE_METADATA, SITE_SHORT_NAME_KO } from "../../lib/site-config"
 
 export const siteOrigin=SITE_ORIGIN
 export const siteName=SITE_NAME_KO
+export const defaultShareImage={
+  url:`${siteOrigin}/share/smp-official-20261110.png`,
+  type:'image/png',width:1200,height:630,alt:`${SITE_NAME_KO} 공식 홈페이지`,
+}
 export const staticPages:Record<string,{title:string;description:string;noindex?:boolean}>={
   "/":{title:SITE_HOME_TITLE,description:SITE_DESCRIPTION},
   "/about":SITE_PAGE_METADATA.about,
@@ -47,9 +52,12 @@ export function pageMetadata(path:string,item?:SeoItem) {
   const noindex=(!base&&!article)||!!base?.noindex||filtered
   const title=article?articleTitle(article):pathname==="/"?base.title:`${base?.title??"페이지를 찾을 수 없습니다"}${paginated?` · ${page}페이지`:""} | ${SITE_SHORT_NAME_KO}`
   const description=(article?[article.company,article.ticker,article.industry,article.summary||`${article.author||"SMP"}의 ${article.category||"리포트"}`].filter(Boolean).join(" · "):base?.description??"요청한 페이지를 찾을 수 없습니다.").replace(/\s+/g," ").slice(0,200)
-  let image=`${siteOrigin}/backgrounds/research-desk.webp`
   const cover=article && publicCover(article)
-  if(cover) image=siteOrigin+cover.previewUrl
+  const shareImage=cover?{
+    url:siteOrigin+reportSharePath(cover.previewUrl??cover.url),type:'image/png',
+    ...reportShareSize,alt:`${article.title} 리포트 표지`,
+  }:defaultShareImage
+  const image=shareImage.url
   const schema:unknown[]=[organization,{"@type":"WebSite","@id":`${siteOrigin}/#website`,url:siteOrigin,name:siteName,alternateName:SITE_ALTERNATE_NAMES,inLanguage:"ko-KR",publisher:{"@id":organization["@id"]}}]
   if(article) schema.push({"@type":article.kind==="research"?"Report":"Article","@id":`${canonical}#article`,url:canonical,mainEntityOfPage:canonical,headline:article.title,description,inLanguage:"ko-KR",image,
     ...(article.date?{datePublished:article.date}:{}),...(article.editedAt?{dateModified:article.editedAt}:{}),
@@ -59,12 +67,14 @@ export function pageMetadata(path:string,item?:SeoItem) {
     ...(article?[{"@type":"ListItem",position:2,name:staticPages[`/${article.kind}`].title,item:`${siteOrigin}/${article.kind}`}]:[]),
     {"@type":"ListItem",position:article?3:2,name:article?.title||base?.title,item:canonical},
   ]})
-  return {title,description,canonical,image,noindex,schema:{"@context":"https://schema.org","@graph":schema},article:!!article}
+  return {title,description,canonical,image,shareImage,noindex,schema:{"@context":"https://schema.org","@graph":schema},article:!!article}
 }
 export function metadataHtml(path:string,item?:SeoItem) {
   const m=pageMetadata(path,item),tag=(name:string,value:string,property=false)=>`<meta data-smp-seo ${property?"property":"name"}="${name}" content="${escapeHtml(value)}">`
+  const imageTags=tag('og:image',m.image,true)+tag('og:image:type',m.shareImage.type,true)+tag('og:image:alt',m.shareImage.alt,true)+
+    (m.shareImage.width&&m.shareImage.height?tag('og:image:width',String(m.shareImage.width),true)+tag('og:image:height',String(m.shareImage.height),true):'')
   return `<title data-smp-seo>${escapeHtml(m.title)}</title>`+tag("description",m.description)+`<link data-smp-seo rel="canonical" href="${escapeHtml(m.canonical)}">`+
-    tag("robots",m.noindex?"noindex, follow":"index, follow, max-image-preview:large")+tag("og:site_name",siteName,true)+tag("og:locale","ko_KR",true)+tag("og:type",m.article?"article":"website",true)+tag("og:title",m.title,true)+tag("og:description",m.description,true)+tag("og:url",m.canonical,true)+tag("og:image",m.image,true)+tag("twitter:card","summary_large_image")+tag("twitter:title",m.title)+tag("twitter:description",m.description)+tag("twitter:image",m.image)+`<script data-smp-seo type="application/ld+json">${scriptJson(m.schema)}</script>`
+    tag("robots",m.noindex?"noindex, follow":"index, follow, max-image-preview:large")+tag("og:site_name",siteName,true)+tag("og:locale","ko_KR",true)+tag("og:type",m.article?"article":"website",true)+tag("og:title",m.title,true)+tag("og:description",m.description,true)+tag("og:url",m.canonical,true)+imageTags+tag("twitter:card","summary_large_image")+tag("twitter:title",m.title)+tag("twitter:description",m.description)+tag("twitter:image",m.image)+tag('twitter:image:alt',m.shareImage.alt)+`<script data-smp-seo type="application/ld+json">${scriptJson(m.schema)}</script>`
 }
 export function injectPage(template:string,path:string,body:string,item?:SeoItem,bootstrap?:{path:string;value:unknown}) {
   return template.replace(/<!--smp-head-->[\s\S]*?<!--\/smp-head-->/,()=>`<!--smp-head-->${metadataHtml(path,item)}<!--/smp-head-->`)

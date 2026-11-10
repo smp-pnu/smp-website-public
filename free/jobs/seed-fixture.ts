@@ -9,6 +9,7 @@ import { rebuildDocuments,searchEntry } from "../server/catalog"
 import { staticEntries } from "../../lib/site-search-static"
 import type { Env } from "../server/types"
 import type { Statement } from "../../cloudflare/bindings"
+import {prepareReportShares} from './report-shares'
 async function main() {
 const sources = { research: "33333333333343338333333333333333", notice: "22222222222242228222222222222222" }
 const quote = (value: string) => `'${value.replaceAll("'", "''")}'`
@@ -23,6 +24,7 @@ await mkdir(`.smp-cache/covers/${id}`,{recursive:true})
 await writeFile(`.smp-cache/covers/${id}/${hash(large.data)}.webp`,large.data)
 await writeFile(`.smp-cache/covers/${id}/${hash(small)}.webp`,small)
 const cover = {url:`/report-covers/${id}/${hash(small)}.webp`,previewUrl:`/report-covers/${id}/${hash(large.data)}.webp`,width:large.info.width,height:large.info.height}
+await prepareReportShares([{id,cover}])
 const search = staticEntries.map(item=>({...item,label:item.href.startsWith('/achievements#')?'수상':'페이지'}))
 for (const kind of ["research","notice"] as const) {
   let cursor: string | null = null

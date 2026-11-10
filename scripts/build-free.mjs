@@ -3,6 +3,7 @@ import { cp, mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises"
 import { spawnSync } from "node:child_process"
 import path from "node:path"
 import { stageReaderAssets } from "./stage-reader-assets.mjs"
+import { stageReportShares } from './stage-report-shares.mjs'
 const readerLimits = JSON.parse(await readFile(new URL("../free/reader-storage-limits.json",import.meta.url),"utf8"))
 const root = path.resolve(import.meta.dirname, "..")
 const fixture = process.argv.includes("--fixture")
@@ -16,12 +17,13 @@ await mkdir(path.join(client,"api"),{recursive:true})
 await writeFile(path.join(client,"api/health"),JSON.stringify({ok:true,mode:fixture?"fixture":"free",readOnly:fixture}))
 await cp(path.join(root, "public"), client, { recursive: true, filter: name => !["home-gwangan-3.png", "page-gwangan-3.png", ".assetsignore", "_headers"].includes(path.basename(name)) })
 const covers = path.join(root, ".smp-cache/covers")
-try { await cp(covers, path.join(client,"report-covers"), { recursive: true, filter: name => !name.endsWith(".json") && (!fixture || name===covers || path.relative(covers,name).split(path.sep)[0]==="a0000000000000000000000000000001") }) } catch (error) { if (error.code !== "ENOENT") throw error }
+try { await cp(covers, path.join(client,"report-covers"), { recursive: true, filter: name => path.basename(name)!=='_share' && !name.endsWith(".json") && (!fixture || name===covers || path.relative(covers,name).split(path.sep)[0]==="a0000000000000000000000000000001") }) } catch (error) { if (error.code !== "ENOENT") throw error }
+await stageReportShares(path.join(covers,'_share'),path.join(client,'report-shares'),fixture)
 const readerPdfs=path.join(root,".smp-cache/reader-pdfs")
 await stageReaderAssets(readerPdfs,path.join(client,"_reader-pdfs"),fixture)
 run("scripts/prerender-free.mjs",fixture?["--fixture"]:[])
 const policy = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://static.cloudflareinsights.com; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; font-src 'self' data:; connect-src 'self' https://cloudflareinsights.com; worker-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
-await writeFile(path.join(client,"_headers"), `/*\n  Content-Security-Policy: ${policy}\n  X-Content-Type-Options: nosniff\n  X-Frame-Options: DENY\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()\n  Strict-Transport-Security: max-age=31536000\n${fixture ? "  X-Robots-Tag: noindex, nofollow, noarchive\n" : ""}/api/health\n  Content-Type: application/json; charset=utf-8\n  Cache-Control: public, max-age=300\n/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n/report-covers/*\n  Cache-Control: public, max-age=31536000, immutable\n/pdfjs/*\n  Cache-Control: public, max-age=31536000, immutable\n`)
+await writeFile(path.join(client,"_headers"), `/*\n  Content-Security-Policy: ${policy}\n  X-Content-Type-Options: nosniff\n  X-Frame-Options: DENY\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()\n  Strict-Transport-Security: max-age=31536000\n${fixture ? "  X-Robots-Tag: noindex, nofollow, noarchive\n" : ""}/api/health\n  Content-Type: application/json; charset=utf-8\n  Cache-Control: public, max-age=300\n/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n/report-covers/*\n  Cache-Control: public, max-age=31536000, immutable\n/report-shares/*\n  Cache-Control: public, max-age=31536000, immutable\n/share/*\n  Cache-Control: public, max-age=31536000, immutable\n/pdfjs/*\n  Cache-Control: public, max-age=31536000, immutable\n`)
 await build({ entryPoints: ["free/server/worker.ts"], outfile: "dist/free/worker.js", bundle: true, platform: "neutral", target: "es2022", format: "esm", minify: true,
   external: ["node:*"], define: { __SMP_FIXTURE__: String(fixture) }, alias: fixture ? { "@/lib/upstream-fetch": path.join(root,"tests/cloudflare/fixture.ts") } : {},
   plugins: [{ name: "server-marker", setup(api) { api.onResolve({ filter: /^server-only$/ }, () => ({ path: "empty", namespace: "marker" })); api.onLoad({ filter: /.*/, namespace: "marker" }, () => ({ contents: "export {}" })) } }],

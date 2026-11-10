@@ -3,7 +3,7 @@ import { preparedReader, readerPreview, readerPackSource,type ReaderPreview } fr
 
 export type PublicCover = { url: string; previewUrl?: string; width?: number; height?: number; reader?:ReaderPreview }
 export type CoveredItem = ContentItem & { cover?: PublicCover }
-export function publicCover(item: CoveredItem) {
+export function publicCover(item: Pick<CoveredItem,'id'|'kind'|'cover'>) {
   const cover=item.cover
   if(item.kind!=="research" || !/^[a-f0-9]{32}$/.test(item.id) || !cover) return null
   const path=new RegExp(`^/report-covers/${item.id}/[a-f0-9]{64}\\.webp$`)

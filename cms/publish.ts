@@ -10,6 +10,7 @@ import { CmsStore } from "./store";
 import { prepareCover } from "../free/jobs/prepare";
 import { prepareRecruitment } from "../free/jobs/recruitment";
 import { prepareReaderAssets } from "../free/jobs/reader-assets";
+import { prepareReportShares } from "../free/jobs/report-shares";
 import { publicationAssets } from "../free/jobs/publication-assets";
 import { setAdminConfig } from "../free/jobs/admin-schema";
 import {
@@ -197,7 +198,7 @@ export async function publishCms(
         },
       ]),
   );
-  for (const { job, p } of complete)
+  for (const { job, p } of complete) if('kind' in p.item && p.item.kind==='research')
     reader.set(job.id, {
       id: job.id,
       date: (p.item as ContentItem).date,
@@ -205,6 +206,7 @@ export async function publishCms(
       requiredOriginal: !!(p.item as ContentItem).managedPdf,
     });
   await prepareReaderAssets([...reader.values()], origin, deadline - 60000);
+  await prepareReportShares([...reader.values()]);
   if (!deploy) return;
   for (const script of ["scripts/build-free.mjs", "scripts/deploy-free.mjs"]) {
     const r = spawnSync(process.execPath, [script], {
