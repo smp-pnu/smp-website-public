@@ -6,8 +6,8 @@ import { SITE_ALTERNATE_NAMES, SITE_CHANNELS, SITE_DESCRIPTION, SITE_HOME_TITLE,
 export const siteOrigin=SITE_ORIGIN
 export const siteName=SITE_NAME_KO
 export const defaultShareImage={
-  url:`${siteOrigin}/share/smp-official-20261110.png`,
-  type:'image/png',width:1200,height:630,alt:`${SITE_NAME_KO} 공식 홈페이지`,
+  url:`${siteOrigin}/share/smp-panorama-hd-20261110.jpg`,
+  type:'image/jpeg',width:2400,height:1260,alt:`${SITE_NAME_KO} 공식 홈페이지`,
 }
 export const staticPages:Record<string,{title:string;description:string;noindex?:boolean}>={
   "/":{title:SITE_HOME_TITLE,description:SITE_DESCRIPTION},

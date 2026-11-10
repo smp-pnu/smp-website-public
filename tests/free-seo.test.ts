@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { DatabaseSync } from 'node:sqlite'
 import { readFileSync } from 'node:fs'
+import sharp from 'sharp'
 import type { Database, Statement } from '../cloudflare/bindings'
 import type { ContentItem, NotionPage } from '../lib/content-model'
 import type { Env } from '../free/server/types'
@@ -16,19 +17,20 @@ const id='a0000000000000000000000000000001'
 const item:ContentItem={id,kind:'research',title:'기업 분석',summary:'목표주가 100,000원',date:'2020-01-01',category:'기업분석',author:'SMP',pinned:false,attachments:[],externalUrl:null}
 const shell='<!doctype html><html><head><!--smp-head--><title>Shell</title><!--/smp-head--></head><body><div id="seo-content"></div></body></html>'
 
-test('official sharing card is a real static PNG with matching metadata, separate from favicons',()=>{
-  const png=readFileSync(new URL('../public/share/smp-official-20261110.png',import.meta.url))
-  assert.equal(png.subarray(0,8).toString('hex'),'89504e470d0a1a0a')
-  assert.equal(png.readUInt32BE(16),defaultShareImage.width)
-  assert.equal(png.readUInt32BE(20),defaultShareImage.height)
-  assert.ok(png.length<500_000)
+test('official sharing card is a high-resolution static JPEG with matching metadata, separate from favicons',async()=>{
+  const jpg=readFileSync(new URL('../public'+new URL(defaultShareImage.url).pathname,import.meta.url))
+  const image=await sharp(jpg).metadata()
+  assert.equal(image.format,'jpeg')
+  assert.equal(image.width,defaultShareImage.width)
+  assert.equal(image.height,defaultShareImage.height)
+  assert.ok(jpg.length<1_500_000)
   for(const path of ['/','/about','/research','/notice']){
     assert.equal(pageMetadata(path).image,defaultShareImage.url)
     const html=metadataHtml(path)
     assert.equal((html.match(/property="og:image"/g)??[]).length,1)
-    assert.match(html,/property="og:image:type" content="image\/png"/)
-    assert.match(html,/property="og:image:width" content="1200"/)
-    assert.match(html,/property="og:image:height" content="630"/)
+    assert.match(html,/property="og:image:type" content="image\/jpeg"/)
+    assert.match(html,/property="og:image:width" content="2400"/)
+    assert.match(html,/property="og:image:height" content="1260"/)
     assert.match(html,/property="og:image:alt" content="부산대학교 금융투자학회 SMP 공식 홈페이지"/)
     assert.doesNotMatch(html,/research-desk\.webp/)
   }
