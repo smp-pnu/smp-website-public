@@ -17,6 +17,7 @@ import { sortContent } from "../lib/content-model";
 import { readSiteAnalytics, readSiteDashboard } from "../cms/site-analytics";
 import { collectSiteAnalytics } from "../free/jobs/site-analytics";
 import { recordEvents } from "../free/server/site-events";
+import {selectReportShares,reportSharesNeedDeployment,deployReportShareManifest} from '../free/jobs/report-share-manifest';
 function fixture() {
   const sql = new DatabaseSync(":memory:");
   for (const f of readdirSync("cloudflare/migrations").sort())
@@ -550,4 +551,47 @@ test("report withdrawal, collection while private, republication and trash resto
     await f.store.complete(entry.id,4,ready);
     await check("public");
   } finally { f.close(); }
+});
+
+test('share deployment follows approval, withdrawal, deletion and restore, and retries failed or stale deployments',async()=>{
+  const f=fixture();
+  try{
+    f.active();
+    const p=structuredClone(f.payload);
+    p.item={...p.item,kind:'research',title:'자동 배너',externalUrl:'https://drive.google.com/file/d/abcdefghijk123456789/view'} as ContentItem;
+    const entry=await f.store.create('research',p);
+    const ready={...entry.draft,cover:{sourceKey:sourceKey(entry.draft.item as ContentItem),url:`/report-covers/${entry.id}/${'d'.repeat(64)}.webp`}};
+    const files=[...selectReportShares([{...ready.item,id:entry.id,cover:ready.cover}]).keys()];
+    await deployReportShareManifest(f.db,[],()=>{});
+    assert.equal(await reportSharesNeedDeployment(f.db),false,'private drafts do not generate public banners');
+    await f.store.approve(entry.id,1);
+    await deployReportShareManifest(f.db,files,()=>{});
+    await f.store.complete(entry.id,1,ready);
+    assert.equal(await reportSharesNeedDeployment(f.db),false,'successful publication converges without repeated builds');
+    await f.store.change(entry.id,1,'withdraw');
+    assert.equal(f.sql.prepare('SELECT count(*) n FROM cms_jobs').get()?.n,0);
+    assert.equal(await reportSharesNeedDeployment(f.db),true,'withdrawal alone schedules banner cleanup with no PDF job');
+    await assert.rejects(()=>deployReportShareManifest(f.db,[],()=>{throw Error('deploy failed')}),/deploy failed/);
+    assert.equal(await reportSharesNeedDeployment(f.db),true,'failed cleanup retries on the next scheduled run');
+    await deployReportShareManifest(f.db,[],()=>{});
+    assert.equal(await reportSharesNeedDeployment(f.db),false);
+    assert.deepEqual((await f.store.get(entry.id)).draft.cover,ready.cover);
+    await f.store.approve(entry.id,2);
+    await deployReportShareManifest(f.db,files,()=>{});
+    await f.store.complete(entry.id,2,ready);
+    assert.equal(await reportSharesNeedDeployment(f.db),false);
+    await deployReportShareManifest(f.db,files,async()=>{await f.store.change(entry.id,2,'trash')});
+    assert.equal(await reportSharesNeedDeployment(f.db),true,'deletion during deployment is not lost when the old snapshot completes');
+    await deployReportShareManifest(f.db,[],()=>{});
+    await f.store.change(entry.id,3,'restore');
+    assert.equal(await reportSharesNeedDeployment(f.db),false,'restored private report remains unpublished');
+    await f.store.approve(entry.id,4);
+    await deployReportShareManifest(f.db,files,()=>{});
+    await f.store.complete(entry.id,4,ready);
+    assert.equal(await reportSharesNeedDeployment(f.db),false);
+    const edited=structuredClone((await f.store.get(entry.id)).draft);
+    (edited.item as ContentItem).title='다음 배너 제목';
+    await f.store.save(entry.id,4,edited);
+    assert.equal(await reportSharesNeedDeployment(f.db),false,'unapproved title edits keep the published banner');
+  }finally{f.close()}
 });
