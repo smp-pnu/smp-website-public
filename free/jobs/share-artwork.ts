@@ -64,10 +64,10 @@ export async function createShareRenderer() {
     textBlock(ctx,copy.title,font,96,378,470,3,34,26)
     ctx.font=`400 19px ${font}`;ctx.fillStyle='#dee5ea';ctx.fillText('pnusmp.com',96,556)
     const cover=await sharp(data,{limitInputPixels:20_000_000}).resize({width:750,height:1084,fit:'inside'}).png().toBuffer({resolveWithObject:true})
-    const image=await loadImage(cover.data),w=cover.info.width/2,h=cover.info.height/2,left=1116-w,top=(630-h)/2
+    const coverImage=await loadImage(cover.data),w=cover.info.width/2,h=cover.info.height/2,left=1116-w,top=(630-h)/2
     ctx.shadowColor='#0007';ctx.shadowBlur=28;ctx.shadowOffsetY=16
     ctx.fillStyle='#fff';ctx.fillRect(left,top,w,h)
-    ctx.shadowColor='transparent';ctx.drawImage(image,left,top,w,h)
+    ctx.shadowColor='transparent';ctx.drawImage(coverImage,left,top,w,h)
     const pixels=await canvas.encode('png')
     let image=await sharp(pixels).jpeg({quality:88,chromaSubsampling:'4:4:4'}).toBuffer()
     for(const quality of [82,76]) {
