@@ -24,7 +24,7 @@ await mkdir(`.smp-cache/covers/${id}`,{recursive:true})
 await writeFile(`.smp-cache/covers/${id}/${hash(large.data)}.webp`,large.data)
 await writeFile(`.smp-cache/covers/${id}/${hash(small)}.webp`,small)
 const cover = {url:`/report-covers/${id}/${hash(small)}.webp`,previewUrl:`/report-covers/${id}/${hash(large.data)}.webp`,width:large.info.width,height:large.info.height}
-await prepareReportShares([{id,cover}])
+const shareCandidates:Array<ReturnType<typeof toContentItem> & {cover:typeof cover}>=[]
 const search = staticEntries.map(item=>({...item,label:item.href.startsWith('/achievements#')?'수상':'페이지'}))
 for (const kind of ["research","notice"] as const) {
   let cursor: string | null = null
@@ -34,6 +34,7 @@ for (const kind of ["research","notice"] as const) {
     const result = await response.json() as {results:NotionPage[];next_cursor:string|null}
     for(const page of result.results) {
       const item=toContentItem(page,kind)!
+      if(kind==='research')shareCandidates.push({...item,cover})
       const blocks=[{id:"fixture-body",type:"paragraph",paragraph:{rich_text:[{plain_text:"정적 화면과 경량 API의 무료 운영 검증 본문입니다."}]}}]
       const entry=searchEntry(item); search.push(entry)
       items.push({...item,...(kind==='research'?{cover}:{})})
@@ -42,6 +43,7 @@ for (const kind of ["research","notice"] as const) {
     cursor=result.next_cursor
   } while(cursor)
 }
+await prepareReportShares(shareCandidates)
 const prepare=(sql:string,params:unknown[]=[]):Statement=>({
   bind:(...values)=>prepare(sql,values),
   async run(){let i=0;statements.push(sql.replace(/\?/g,()=>{const value=params[i++];return typeof value==='number'?String(value):quote(String(value))})+';')},

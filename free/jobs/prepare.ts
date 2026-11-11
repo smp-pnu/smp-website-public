@@ -15,7 +15,7 @@ import { cmsImageUrl } from "../../lib/cms-image-url"
 import { notion } from "../server/notion"
 import type { Env } from "../server/types"
 const children=new Set(["paragraph","heading_1","heading_2","heading_3","bulleted_list_item","numbered_list_item","quote","callout","toggle","to_do","column_list","column","table"])
-export type Cover={url:string;previewUrl:string;width:number;height:number;sourceKey?:string;pdfHash?:string;reader?:PreparedReader}
+export type Cover={url:string;previewUrl:string;width:number;height:number;sourceKey?:string;pdfHash?:string;reader?:PreparedReader;shareCopy?:string}
 export async function saveImage(id:string,bytes:Uint8Array) {
   const hash=createHash("sha256").update(bytes).digest("hex")
   const dir=`.smp-cache/covers/${id}`

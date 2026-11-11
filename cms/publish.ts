@@ -19,6 +19,9 @@ import {
 } from "../admin-publisher/assets";
 import { chunkBytes, fileIdentity } from "../admin-cloud/protocol";
 import { spend } from "../free/server/budget";
+import {sourceKey} from '../lib/report-source-key';
+import {reportShareKey} from '../lib/report-share-image';
+import type {Cover} from '../free/jobs/prepare';
 
 type Job = { id: string; revision: number; payload: string; attempts: number };
 async function download(env: Env, job: Job, p: Payload) {
@@ -110,9 +113,13 @@ export async function publishCms(
       .first<Job>();
     if (!job) break;
     try {
-      await spend(env.CMS_DB, "cms-pdf-day", 10, 86400000);
       const p: Payload = JSON.parse(job.payload);
-      if (p.upload) {
+      // Copy-only edits and re-publication reuse the approved PDF/reader assets.
+      // They neither download/render the PDF nor spend the daily PDF allowance.
+      const cover=p.cover as Cover|null;
+      const samePdf=!!cover?.sourceKey && cover.sourceKey===sourceKey(p.item as ContentItem);
+      if (!samePdf) await spend(env.CMS_DB, "cms-pdf-day", 10, 86400000);
+      if (!samePdf && p.upload) {
         const root = path.resolve(
             ".smp-tools/cms-preparation",
             `${job.id}-${job.revision}`,
@@ -136,7 +143,7 @@ export async function publishCms(
         }
         p.cover = edition.cover;
         p.original = edition.original;
-      } else
+      } else if (!samePdf)
         p.cover = await prepareCover(
           p.item as ContentItem,
           p.cover as Parameters<typeof prepareCover>[1],
@@ -193,6 +200,8 @@ export async function publishCms(
         {
           id: r.id,
           date: JSON.parse(r.item).date,
+          title: JSON.parse(r.item).title as string,
+          company: (JSON.parse(r.item).company || '') as string,
           cover: JSON.parse(r.cover!),
           requiredOriginal: !!JSON.parse(r.item).managedPdf,
         },
@@ -202,6 +211,8 @@ export async function publishCms(
     reader.set(job.id, {
       id: job.id,
       date: (p.item as ContentItem).date,
+      title: (p.item as ContentItem).title,
+      company: (p.item as ContentItem).company || '',
       cover: p.cover,
       requiredOriginal: !!(p.item as ContentItem).managedPdf,
     });
@@ -217,6 +228,7 @@ export async function publishCms(
       throw Error("CMS deployment failed; previous approvals preserved");
   }
   for (const { job, p } of complete) {
+    p.cover={...(p.cover as Cover),shareCopy:reportShareKey(p.item as ContentItem)};
     await store.complete(job.id, job.revision, p);
     await env.CMS_DB.batch([
       env.CMS_DB.prepare(

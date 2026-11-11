@@ -6,8 +6,8 @@ import { SITE_ALTERNATE_NAMES, SITE_CHANNELS, SITE_DESCRIPTION, SITE_HOME_TITLE,
 export const siteOrigin=SITE_ORIGIN
 export const siteName=SITE_NAME_KO
 export const defaultShareImage={
-  url:`${siteOrigin}/share/smp-official-20261110.png`,
-  type:'image/png',width:1200,height:630,alt:`${SITE_NAME_KO} 공식 홈페이지`,
+  url:`${siteOrigin}/share/smp-panorama-20261111.jpg`,
+  type:'image/jpeg',width:2400,height:1260,alt:`${SITE_NAME_KO} 공식 홈페이지`,
 }
 export const staticPages:Record<string,{title:string;description:string;noindex?:boolean}>={
   "/":{title:SITE_HOME_TITLE,description:SITE_DESCRIPTION},
@@ -54,7 +54,7 @@ export function pageMetadata(path:string,item?:SeoItem) {
   const description=(article?[article.company,article.ticker,article.industry,article.summary||`${article.author||"SMP"}의 ${article.category||"리포트"}`].filter(Boolean).join(" · "):base?.description??"요청한 페이지를 찾을 수 없습니다.").replace(/\s+/g," ").slice(0,200)
   const cover=article && publicCover(article)
   const shareImage=cover?{
-    url:siteOrigin+reportSharePath(cover.previewUrl??cover.url),type:'image/png',
+    url:siteOrigin+reportSharePath(cover.previewUrl??cover.url,article),type:'image/jpeg',
     ...reportShareSize,alt:`${article.title} 리포트 표지`,
   }:defaultShareImage
   const image=shareImage.url

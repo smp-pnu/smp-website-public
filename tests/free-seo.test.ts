@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { DatabaseSync } from 'node:sqlite'
 import { readFileSync } from 'node:fs'
+import sharp from 'sharp'
 import type { Database, Statement } from '../cloudflare/bindings'
 import type { ContentItem, NotionPage } from '../lib/content-model'
 import type { Env } from '../free/server/types'
@@ -16,19 +17,20 @@ const id='a0000000000000000000000000000001'
 const item:ContentItem={id,kind:'research',title:'기업 분석',summary:'목표주가 100,000원',date:'2020-01-01',category:'기업분석',author:'SMP',pinned:false,attachments:[],externalUrl:null}
 const shell='<!doctype html><html><head><!--smp-head--><title>Shell</title><!--/smp-head--></head><body><div id="seo-content"></div></body></html>'
 
-test('official sharing card is a real static PNG with matching metadata, separate from favicons',()=>{
-  const png=readFileSync(new URL('../public/share/smp-official-20261110.png',import.meta.url))
-  assert.equal(png.subarray(0,8).toString('hex'),'89504e470d0a1a0a')
-  assert.equal(png.readUInt32BE(16),defaultShareImage.width)
-  assert.equal(png.readUInt32BE(20),defaultShareImage.height)
-  assert.ok(png.length<500_000)
+test('official sharing card is a high-resolution static JPEG with matching metadata, separate from favicons',async()=>{
+  const jpg=readFileSync(new URL('../public'+new URL(defaultShareImage.url).pathname,import.meta.url))
+  const image=await sharp(jpg).metadata()
+  assert.equal(image.format,'jpeg')
+  assert.equal(image.width,defaultShareImage.width)
+  assert.equal(image.height,defaultShareImage.height)
+  assert.ok(jpg.length<1_500_000)
   for(const path of ['/','/about','/research','/notice']){
     assert.equal(pageMetadata(path).image,defaultShareImage.url)
     const html=metadataHtml(path)
     assert.equal((html.match(/property="og:image"/g)??[]).length,1)
-    assert.match(html,/property="og:image:type" content="image\/png"/)
-    assert.match(html,/property="og:image:width" content="1200"/)
-    assert.match(html,/property="og:image:height" content="630"/)
+    assert.match(html,/property="og:image:type" content="image\/jpeg"/)
+    assert.match(html,/property="og:image:width" content="2400"/)
+    assert.match(html,/property="og:image:height" content="1260"/)
     assert.match(html,/property="og:image:alt" content="부산대학교 금융투자학회 SMP 공식 홈페이지"/)
     assert.doesNotMatch(html,/research-desk\.webp/)
   }
@@ -39,16 +41,16 @@ test('report sharing keeps each title and validated cover, with a safe fallback 
   const report={...item,title:'테스트기업 <새로운 성장>',cover}
   const html=metadataHtml(`/research/${id}?page=3`,report)
   assert.match(html,/property="og:title" content="테스트기업 &lt;새로운 성장&gt; \| 부산대 SMP"/)
-  assert.match(html,/property="og:image:type" content="image\/png"/)
-  assert.match(html,/property="og:image:width" content="1200"/)
-  assert.equal(pageMetadata(`/research/${id}`,report).image,'https://pnusmp.com'+reportSharePath(cover.previewUrl))
+  assert.match(html,/property="og:image:type" content="image\/jpeg"/)
+  assert.match(html,/property="og:image:width" content="2400"/)
+  assert.equal(pageMetadata(`/research/${id}`,report).image,'https://pnusmp.com'+reportSharePath(cover.previewUrl,report))
   assert.equal(pageMetadata(`/notice/${id}`,report).image,defaultShareImage.url)
   assert.equal(pageMetadata(`/research/${id}`,item).image,defaultShareImage.url)
   const foreign={...report,cover:{...cover,url:'https://external.invalid/cover.png'}}
   assert.equal(pageMetadata(`/research/${id}`,foreign).image,defaultShareImage.url)
   const fallback={...report,cover:{...cover,previewUrl:'https://external.invalid/cover.png'}}
-  assert.equal(pageMetadata(`/research/${id}`,fallback).image,'https://pnusmp.com'+reportSharePath(cover.url))
-  assert.match(metadataHtml(`/research/${id}`,fallback),/property="og:image:height" content="630"/)
+  assert.equal(pageMetadata(`/research/${id}`,fallback).image,'https://pnusmp.com'+reportSharePath(cover.url,fallback))
+  assert.match(metadataHtml(`/research/${id}`,fallback),/property="og:image:height" content="1260"/)
 })
 
 test('canonical pages, pagination and search filters have distinct indexing rules',()=>{
@@ -193,7 +195,7 @@ test('cover discovery, large sharing images and related links use the same publi
   const html=detailHtml(report,[],false,related)
   assert.match(html,new RegExp(`src="${cover.previewUrl}"`));assert.match(html,/alt="기업 분석 리포트 표지"/)
   assert.match(html,/href="\/research\/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"/);assert.match(html,/관련 &lt;기업&gt;/)
-  assert.equal(pageMetadata(`/research/${id}`,report).image,'https://pnusmp.com'+reportSharePath(cover.previewUrl))
+  assert.equal(pageMetadata(`/research/${id}`,report).image,'https://pnusmp.com'+reportSharePath(cover.previewUrl,report))
   const xml=sitemapXml([report],false)
   assert.match(xml,/xmlns:image=/);assert.match(xml,new RegExp(`<image:loc>https://pnusmp.com${cover.previewUrl}</image:loc>`))
   assert.match(listHtml('research',[report],new URLSearchParams()).body,/loading="lazy"/)
