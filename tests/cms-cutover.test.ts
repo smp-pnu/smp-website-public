@@ -18,6 +18,7 @@ import { readSiteAnalytics, readSiteDashboard } from "../cms/site-analytics";
 import { collectSiteAnalytics } from "../free/jobs/site-analytics";
 import { recordEvents } from "../free/server/site-events";
 import {selectReportShares,reportSharesNeedDeployment,deployReportShareManifest} from '../free/jobs/report-share-manifest';
+import {reportSharePath} from '../lib/report-share-image';
 function fixture() {
   const sql = new DatabaseSync(":memory:");
   for (const f of readdirSync("cloudflare/migrations").sort())
@@ -101,6 +102,38 @@ function fixture() {
   };
   return { sql, db, store, active, payload, close: () => sql.close() };
 }
+test('report banner previews use only the published edition and disappear when private or trashed',async()=>{
+  const f=fixture();
+  try{
+    f.active();
+    const p=structuredClone(f.payload);
+    p.item={...p.item,kind:'research',title:'공개된 제목',company:'인바디',externalUrl:'https://drive.google.com/file/d/abcdefghijk123456789/view'} as ContentItem;
+    const e=await f.store.create('research',p);
+    assert.equal(e.sharePreview,null);
+    const url=`/report-covers/${e.id}/${'b'.repeat(64)}.webp`,previewUrl=`/report-covers/${e.id}/${'c'.repeat(64)}.webp`;
+    const ready={...e.draft,cover:{url,previewUrl,sourceKey:sourceKey(e.draft.item as ContentItem)}};
+    await f.store.complete(e.id,1,ready);
+    const expected={url:reportSharePath(previewUrl,ready.item as ContentItem),title:'공개된 제목'};
+    assert.deepEqual((await f.store.get(e.id)).sharePreview,expected);
+    const edit=structuredClone(ready);(edit.item as ContentItem).title='아직 게시하지 않은 제목';
+    const edited=await f.store.save(e.id,1,edit);
+    assert.deepEqual(edited.sharePreview,expected,'draft edits must not request a nonexistent or unapproved banner');
+    const pending=await f.store.approve(e.id,2);
+    assert.equal(pending.pending,true);assert.deepEqual(pending.sharePreview,expected);
+    const list=await f.store.list('research',new URLSearchParams());
+    assert.equal(list.items[0].sharePreview,undefined,'lists must not add preview work for every report');
+    await f.store.complete(e.id,2,edit);
+    assert.notEqual((await f.store.get(e.id)).sharePreview?.url,expected.url);
+    await f.store.change(e.id,2,'withdraw');
+    assert.equal((await f.store.get(e.id)).sharePreview,null);
+    await f.store.change(e.id,3,'trash');
+    assert.equal((await f.store.get(e.id)).sharePreview,null);
+    await f.store.change(e.id,4,'restore');
+    assert.equal((await f.store.get(e.id)).sharePreview,null);
+    const notice=await f.store.create('notice',structuredClone(f.payload));
+    assert.equal(notice.sharePreview,undefined);
+  }finally{f.close()}
+});
 test("new notices publish in the same manual order as the administrator list", async () => {
   const f = fixture();
   try {

@@ -11,6 +11,7 @@ const source=`
 import React from 'react';import {renderToStaticMarkup} from 'react-dom/server';
 import {NoticeContent} from './admin-lab/notice-preview';import {ReportList} from './admin-lab/report-list';
 import {EntryList} from './admin-lab/cms/entry-list';import {EntryEditor} from './admin-lab/cms/entry-editor';
+import {ReportSharePreview} from './admin-lab/cms/report-share-preview';
 import {ListPagination} from './admin-lab/list-pagination';import {CmsBulkControls} from './admin-lab/cms-bulk-controls';
 import {AdminSelect} from './admin-lab/ui/select';import {LoadingState} from './admin-lab/ui/loading';
 import {defaultQuery} from './admin-lab/library-model';import {emptyFields} from './admin-lab/model';
@@ -33,6 +34,16 @@ export const listing=renderToStaticMarkup(<ReportList drafts={rows} allDrafts={r
 export const pages=renderToStaticMarkup(<ListPagination page={3} pages={5} disabled={false} onPage={()=>{}}/>);
 export const longPages=[1,9,17].map(page=>renderToStaticMarkup(<ListPagination page={page} pages={17} disabled={false} onPage={()=>{}}/>));
 const entry={id:'a'.repeat(32),kind:'notice',revision:2,approvedRevision:2,pending:false,trashedAt:null,source:'admin',draft:{item:{id:'a'.repeat(32),title:'Published notice',kind:'notice',date:'2026-01-01',summary:'',author:'SMP',category:'공지'},blocks:[],cover:null}};
+const shareEntry={...entry,kind:'research',sharePreview:{url:'/report-shares/'+'a'.repeat(32)+'/v2-'+'b'.repeat(64)+'-'+'c'.repeat(16)+'.jpg',title:'<공개 제목>'}};
+export const shareStates={
+  current:renderToStaticMarkup(<ReportSharePreview entry={shareEntry} dirty={false}/>),
+  draft:renderToStaticMarkup(<ReportSharePreview entry={shareEntry} dirty={true}/>),
+  pending:renderToStaticMarkup(<ReportSharePreview entry={{...shareEntry,pending:true}} dirty={false}/>),
+  new:renderToStaticMarkup(<ReportSharePreview entry={{...shareEntry,approvedRevision:null}} dirty={false}/>),
+  trash:renderToStaticMarkup(<ReportSharePreview entry={{...shareEntry,trashedAt:'2026-11-11'}} dirty={false}/>),
+  notice:renderToStaticMarkup(<ReportSharePreview entry={entry} dirty={false}/>),
+  unsafe:renderToStaticMarkup(<ReportSharePreview entry={{...shareEntry,sharePreview:{url:'https://external.test/track',title:'wrong'}}} dirty={false}/>),
+};
 const listProps={section:'notice',data:{items:[],total:0,groups:[]},group:'',q:'',filter:'all',page:1,busy:false,checked:[],batchResult:null,batchProgress:null,stopping:false,onCohorts:()=>{},onImport:()=>{},onCreate:()=>{},onQuery:()=>{},onGroup:()=>{},onFilter:()=>{},onRefresh:()=>{},onOpen:()=>{},onPage:()=>{},onAction:()=>{},onCheck:()=>{},onClear:()=>{},onStop:()=>{},move:async()=>{}};
 export const loadingList=renderToStaticMarkup(<EntryList {...listProps} loading={true} loadError=""/>);
 export const failedList=renderToStaticMarkup(<EntryList {...listProps} loading={false} loadError="연결 오류"/>);
@@ -41,7 +52,12 @@ export const bulk=renderToStaticMarkup(<CmsBulkControls entries={[{id:'a',revisi
 `
 try {
  await build({stdin:{contents:source,resolveDir:process.cwd(),loader:'tsx'},bundle:true,outfile:target,platform:'node',format:'esm',jsx:'automatic',external:['react','react-dom','react-dom/server','lucide-react','@base-ui/react/select','@tiptap/*'],define:{'import.meta.env.MODE':'"admin-cloud"'}})
- const {select,skeleton,content,listing,pages,longPages,bulk,loadingList,failedList,publishedEditor,analytics,ranking}=await import(pathToFileURL(target).href)
+ const {select,skeleton,content,listing,pages,longPages,bulk,loadingList,failedList,publishedEditor,analytics,ranking,shareStates}=await import(pathToFileURL(target).href)
+ assert.match(shareStates.current,/src="https:\/\/pnusmp.com\/report-shares\//);assert.match(shareStates.current,/loading="lazy"/);assert.match(shareStates.current,/width="2400" height="1260"/);
+ assert.match(shareStates.current,/&lt;공개 제목&gt;/);assert.match(shareStates.current,/현재 공개본/);assert.match(shareStates.current,/크게 보기/);
+ assert.match(shareStates.draft,/수정한 초안을 게시하면/);assert.match(shareStates.pending,/기존 공개 배너/);
+ for(const state of ['new','trash','unsafe'])assert.doesNotMatch(shareStates[state],/<img|href=/);
+ assert.match(shareStates.new,/게시하면 자동으로 생성/);assert.match(shareStates.trash,/복원한 뒤 게시하면/);assert.equal(shareStates.notice,'');
  assert.equal((ranking.match(/href="https:\/\/pnusmp.com\/research\//g)||[]).length,1);
  assert.ok(ranking.includes('&lt;리포트 1&gt;'));assert.ok(ranking.includes('비공개'));assert.ok(ranking.includes('aria-label="리포트 통계 검색"'));assert.ok(ranking.includes('전체 조회 집계가 아직 준비되지'));
  assert.equal((analytics.match(/href="https:\/\/pnusmp.com\/research\//g)||[]).length,1,'only public reports offer a public link');
