@@ -4,6 +4,7 @@ import { memberSearchEntries, type Member } from "../lib/member-model";
 import { searchEntry, documentStatements } from "../free/server/catalog";
 import { sourceKey } from "../lib/report-source-key";
 import { reportShareKey, reportSharePath } from "../lib/report-share-image";
+import { contentShareText } from "../lib/content-share-text";
 import { publicCover, type PublicCover } from "../lib/public-cover";
 import { HttpError } from "../admin-server/validation";
 import { adminMode } from "./mode";
@@ -170,7 +171,7 @@ export class CmsStore {
         const item = JSON.parse(row.public_item) as ContentItem;
         const cover = publicCover({ id: entry.id, kind: "research", cover: JSON.parse(row.public_cover) as PublicCover });
         const url = cover && reportSharePath(cover.previewUrl ?? cover.url, item);
-        if (url) entry.sharePreview = { url, title: item.title };
+        if (url) entry.sharePreview = { url, ...contentShareText(item) };
       }
     }
     return entry;

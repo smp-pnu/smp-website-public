@@ -23,7 +23,7 @@ export type Entry = {
   rank: number;
   pending: boolean;
   error: string | null;
-  sharePreview?: { url: string; title: string } | null;
+  sharePreview?: { url: string; title: string; description: string } | null;
 };
 export const cmsLimits = {
   entries: 2500,

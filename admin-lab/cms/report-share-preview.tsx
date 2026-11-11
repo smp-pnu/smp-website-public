@@ -29,14 +29,27 @@ export function ReportSharePreview({ entry, dirty }: { entry: Entry; dirty: bool
   const label = url ? "현재 공개본" : entry.trashedAt ? "휴지통" : entry.pending ? "게시 준비 중" : entry.approvedRevision ? "확인 필요" : "게시 전";
   return <section className="report-share-preview" aria-labelledby={`report-share-heading-${entry.id}`}>
     <header>
-      <div><h2 id={`report-share-heading-${entry.id}`}>카카오톡 공유 배너</h2><span className="status-badge">{label}</span></div>
-      {url && <a href={url} target="_blank" rel="noopener noreferrer">크게 보기<ExternalLink size={14} aria-hidden="true" /></a>}
+      <div><h2 id={`report-share-heading-${entry.id}`}>카카오톡 공유 미리보기</h2><span className="status-badge">{label}</span></div>
+      {url && <a href={url} target="_blank" rel="noopener noreferrer">이미지 크게 보기<ExternalLink size={14} aria-hidden="true" /></a>}
     </header>
-    {url && preview ? <BannerImage key={url} url={url} title={preview.title} /> : <div className="report-share-empty" role="status">
+    {url && preview ? <div className="report-share-layout">
+      <figure className="report-share-card">
+        <BannerImage key={url} url={url} title={preview.title} />
+        <figcaption>
+          <strong className="report-share-card-title">{preview.title}</strong>
+          <p className="report-share-card-description">{preview.description}</p>
+          <span className="report-share-card-domain">pnusmp.com</span>
+        </figcaption>
+      </figure>
+      <div className="report-share-caption">
+        <p>{entry.pending ? "새 게시본을 준비하는 동안 기존 공개 배너를 표시합니다." : changed ? "현재 공개된 카드입니다. 수정한 초안을 게시하면 변경 사항이 반영됩니다." : "이미지와 하단 정보를 함께 확인하세요."}</p>
+        <p>제목·기업명을 수정해 게시하면 배너를 자동으로 확인해 다시 만듭니다. 요약은 카드 아래 설명에 반영됩니다.</p>
+        <small>카카오톡 버전과 저장된 미리보기에 따라 실제 표시가 다를 수 있습니다.</small>
+      </div>
+    </div> : <div className="report-share-empty" role="status">
       <ImageIcon size={28} aria-hidden="true" />
       <strong>{entry.trashedAt ? "복원한 뒤 게시하면 배너가 준비됩니다." : entry.pending ? "게시 준비가 끝나면 배너가 표시됩니다." : entry.approvedRevision ? "공개 배너 정보를 확인하지 못했어요." : "리포트를 게시하면 자동으로 생성됩니다."}</strong>
       <span>{entry.approvedRevision && !entry.pending && !entry.trashedAt ? "화면을 새로고침한 뒤 다시 확인해 주세요." : "표지·기업명·제목을 사용하며, 별도 이미지 등록은 필요 없습니다."}</span>
     </div>}
-    {url && <p className="report-share-caption">{entry.pending ? "새 게시본을 준비하는 동안 기존 공개 배너를 표시합니다." : changed ? "현재 공개된 배너입니다. 수정한 초안을 게시하면 변경 사항이 반영됩니다." : "공식 사이트에서 제공하는 공유 이미지입니다."} 카카오톡에 저장된 미리보기는 갱신 시점이 다를 수 있습니다.</p>}
   </section>;
 }

@@ -1,6 +1,7 @@
 import type { ContentItem } from "../../lib/content-model"
 import { publicCover, type CoveredItem } from "../../lib/public-cover"
 import {reportSharePath,reportShareSize} from '../../lib/report-share-image'
+import {contentShareText} from '../../lib/content-share-text'
 import { SITE_ALTERNATE_NAMES, SITE_CHANNELS, SITE_DESCRIPTION, SITE_HOME_TITLE, SITE_INTRO, SITE_NAME_KO, SITE_ORIGIN, SITE_PAGE_METADATA, SITE_SHORT_NAME_KO } from "../../lib/site-config"
 
 export const siteOrigin=SITE_ORIGIN
@@ -33,13 +34,6 @@ const organization={
   sameAs:[SITE_CHANNELS.cafe,SITE_CHANNELS.instagram,SITE_CHANNELS.youtube],
 }
 type SeoItem=CoveredItem
-function articleTitle(item:SeoItem) {
-  const company=item.company?.trim()
-  // Keep the author's title intact; supply a company only when it is missing.
-  const subject=item.kind==="research"&&company&&!item.title.includes(company)
-    ?`${company}${item.ticker?` (${item.ticker})`:""} 기업분석 · ${item.title}`:item.title
-  return `${subject} | ${SITE_SHORT_NAME_KO}`
-}
 export function pageMetadata(path:string,item?:SeoItem) {
   const url=new URL(path,siteOrigin),pathname=url.pathname.replace(/\/$/,"")||"/"
   const base=staticPages[pathname]
@@ -50,8 +44,9 @@ export function pageMetadata(path:string,item?:SeoItem) {
   const canonical=siteOrigin+canonicalPath+(paginated?`?page=${page}`:"")
   const filtered=["q","category","semester","industry","activity","reportType","company"].some(key=>url.searchParams.has(key)&&url.searchParams.get(key))
   const noindex=(!base&&!article)||!!base?.noindex||filtered
-  const title=article?articleTitle(article):pathname==="/"?base.title:`${base?.title??"페이지를 찾을 수 없습니다"}${paginated?` · ${page}페이지`:""} | ${SITE_SHORT_NAME_KO}`
-  const description=(article?[article.company,article.ticker,article.industry,article.summary||`${article.author||"SMP"}의 ${article.category||"리포트"}`].filter(Boolean).join(" · "):base?.description??"요청한 페이지를 찾을 수 없습니다.").replace(/\s+/g," ").slice(0,200)
+  const articleText=article&&contentShareText(article)
+  const title=articleText?articleText.title:pathname==="/"?base.title:`${base?.title??"페이지를 찾을 수 없습니다"}${paginated?` · ${page}페이지`:""} | ${SITE_SHORT_NAME_KO}`
+  const description=articleText?articleText.description:(base?.description??"요청한 페이지를 찾을 수 없습니다.").replace(/\s+/g," ").slice(0,200)
   const cover=article && publicCover(article)
   const shareImage=cover?{
     url:siteOrigin+reportSharePath(cover.previewUrl??cover.url,article),type:'image/jpeg',

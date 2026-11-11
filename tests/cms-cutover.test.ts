@@ -19,6 +19,7 @@ import { collectSiteAnalytics } from "../free/jobs/site-analytics";
 import { recordEvents } from "../free/server/site-events";
 import {selectReportShares,reportSharesNeedDeployment,deployReportShareManifest} from '../free/jobs/report-share-manifest';
 import {reportSharePath} from '../lib/report-share-image';
+import {pageMetadata} from '../free/seo/metadata';
 function fixture() {
   const sql = new DatabaseSync(":memory:");
   for (const f of readdirSync("cloudflare/migrations").sort())
@@ -113,7 +114,9 @@ test('report banner previews use only the published edition and disappear when p
     const url=`/report-covers/${e.id}/${'b'.repeat(64)}.webp`,previewUrl=`/report-covers/${e.id}/${'c'.repeat(64)}.webp`;
     const ready={...e.draft,cover:{url,previewUrl,sourceKey:sourceKey(e.draft.item as ContentItem)}};
     await f.store.complete(e.id,1,ready);
-    const expected={url:reportSharePath(previewUrl,ready.item as ContentItem),title:'공개된 제목'};
+    const metadata=pageMetadata(`/research/${e.id}`,ready.item as ContentItem);
+    const expected={url:reportSharePath(previewUrl,ready.item as ContentItem),title:metadata.title,description:metadata.description};
+    assert.match(expected.title,/인바디.*공개된 제목.*부산대 SMP/);
     assert.deepEqual((await f.store.get(e.id)).sharePreview,expected);
     const edit=structuredClone(ready);(edit.item as ContentItem).title='아직 게시하지 않은 제목';
     const edited=await f.store.save(e.id,1,edit);
@@ -292,9 +295,22 @@ test("PDF approval keeps existing publication until assets are ready; later meta
     assert.notEqual(JSON.parse(String(f.sql.prepare('SELECT item FROM free_content WHERE id=?').get(e.id)!.item)).title, '새 제목');
     changed.cover.shareCopy=reportShareKey(changed.item as ContentItem);
     await f.store.complete(e.id,2,changed);
+    const updatedPreview=(await f.store.get(e.id)).sharePreview!;
+    assert.equal(updatedPreview.url,reportSharePath(changed.cover.url,changed.item as ContentItem));
+    assert.match(updatedPreview.title,/새 제목/);
     const summaryEdit=structuredClone(changed);(summaryEdit.item as ContentItem).summary='새 요약';
     await f.store.save(e.id,2,summaryEdit);
+    assert.equal((await f.store.get(e.id)).sharePreview?.description,updatedPreview.description,'unpublished summaries must stay out of the share preview');
     assert.equal((await f.store.approve(e.id,3)).pending,false);
+    const summarized=(await f.store.get(e.id)).sharePreview!;
+    assert.equal(summarized.url,updatedPreview.url,'a text-only footer change must reuse identical image pixels');
+    assert.match(summarized.description,/새 요약/);
+    assert.equal(summarized.description,pageMetadata(`/research/${e.id}`,summaryEdit.item as ContentItem).description);
+    assert.equal(f.sql.prepare("SELECT count(*) n FROM cms_jobs").get()!.n,0);
+    const companyEdit=structuredClone(summaryEdit);(companyEdit.item as ContentItem).company='새 기업명';
+    await f.store.save(e.id,3,companyEdit);
+    assert.equal((await f.store.approve(e.id,4)).pending,true,'company changes must prepare a new image, just like subtitle changes');
+    assert.deepEqual((await f.store.get(e.id)).sharePreview,summarized,'keep a complete old card until its replacement image is ready');
   } finally {
     f.close();
   }

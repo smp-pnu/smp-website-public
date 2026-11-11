@@ -80,14 +80,24 @@
 .report-share-preview h2 { margin: 0; font-size: 16px; font-weight: 650; }
 .report-share-preview > header a { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; font-size: 13px; color: var(--accent); text-decoration: none; }
 .report-share-preview > header a:hover { text-decoration: underline; text-underline-offset: 4px; }
-.report-share-image { position: relative; aspect-ratio: 40 / 21; overflow: hidden; border-radius: 8px; background: var(--accent-soft); }
+.report-share-layout { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; }
+.report-share-card { flex: 0 1 320px; min-width: 0; max-width: 100%; margin: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: #222; }
+.report-share-card figcaption { padding: 12px 16px 16px; }
+.report-share-card-title, .report-share-card-description { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+.report-share-card-title { font-size: 14px; font-weight: 500; line-height: 1.5; }
+.report-share-card-description { margin: 4px 0 8px; color: #717171; font-size: 12px; line-height: 1.5; }
+.report-share-card-domain { color: #888; font-size: 12px; }
+.report-share-image { position: relative; aspect-ratio: 40 / 21; overflow: hidden; background: var(--accent-soft); }
 .report-share-image img { display: block; width: 100%; height: auto; opacity: 0; }
 .report-share-image img.is-ready { opacity: 1; }
 .report-share-image-status { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; color: var(--muted); font-size: 14px; text-align: center; }
 .report-share-image-status button { min-height: var(--control-height); }
 .report-share-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 160px; padding: 24px; border: 1px dashed var(--line); border-radius: 8px; background: var(--page); text-align: center; color: var(--muted); font-size: 13px; line-height: 1.6; }
 .report-share-empty strong { color: var(--ink); font-weight: 500; }
-.report-share-caption { max-width: 720px; margin: 16px 0 0; font-size: 13px; line-height: 1.7; color: var(--muted); overflow-wrap: anywhere; }
+.report-share-caption { flex: 1 1 240px; max-width: 400px; font-size: 13px; line-height: 1.7; color: var(--muted); overflow-wrap: anywhere; }
+.report-share-caption p { margin: 0 0 12px; }
+.report-share-caption p:first-child { color: var(--ink); }
+.report-share-caption small { font-size: 12px; }
 @media (max-width: 700px) {
   .report-share-preview { padding: 16px; }
   .report-share-preview > header { gap: 8px; }
