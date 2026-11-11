@@ -1,6 +1,7 @@
 import type { Database } from "../cloudflare/bindings"
 import type { FileInventory, InventoryFile, FileReference } from "../admin-lab/file-inventory-model"
 import { validFileId } from "./drive/connection"
+import { driveSourceId } from '../cms/pdf-sources'
 
 type Source = { id:string; title:string|null; url:string|null; identity:string|null; upload:string|null; bytes:number|null; name:string|null; usage:FileReference['usage'] }
 type Stored = { id:string; name:string; identity:string; bytes:number; provider:'d1'|'drive'; file_id:string|null; state:string; delete_after:number|null; upload:string|null; bindings:number }
@@ -62,5 +63,10 @@ export async function fileInventory(admin:Database,cms:Database) {
       UNION ALL SELECT h.id,${fields('h.payload')},'history' usage FROM cms_history h JOIN cms_entries e ON e.id=h.id WHERE e.kind='research'
       UNION ALL SELECT j.id,${fields('j.payload')},'approved' usage FROM cms_jobs j JOIN cms_entries e ON e.id=j.id WHERE e.kind='research'`).all<Source>(),
   ])
-  return combineInventory(stored.results,sources.results)
+  const aliases=await cms.prepare('SELECT source_id,upload_id,identity FROM cms_pdf_aliases').all<{source_id:string;upload_id:string;identity:string}>()
+  const shared=new Map(aliases.results.map(a=>[a.source_id,a]))
+  return combineInventory(stored.results,sources.results.map(source=>{
+    const alias=shared.get(driveSourceId(source.url)??'')
+    return alias?{...source,url:null,identity:alias.identity,upload:alias.upload_id}:source
+  }))
 }

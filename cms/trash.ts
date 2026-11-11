@@ -3,6 +3,7 @@ import { HttpError, object } from "../admin-server/validation"
 import { guardedBatch } from "../admin-cloud/transaction"
 import type { Env } from "../admin-cloud/worker"
 import type { ObjectRow } from "../admin-cloud/store"
+import {queueRetirement,uploadReferenced} from './pdf-sources'
 
 export type TrashItem = { id: string; kind: string; title: string; revision: number; trashedAt: string }
 export async function trashPreview(db: Database) {
@@ -33,20 +34,15 @@ export async function purgeCmsEntry(db: Database, id: string, revision: number) 
   ])
 }
 
-async function retireUpload(env: Env, upload: string, now: number) {
-  if (!/^[a-f\d]{32}$/.test(upload)) return
+export async function retireUpload(env: Env, upload: string, now: number) {
+  if (!/^[a-f\d]{32}$/.test(upload)) return false
   const db=env.CMS_DB!
   // Both current and previous approved revisions may still need the original.
-  const reference=await db.prepare(`SELECT 1 AS found WHERE
-    EXISTS(SELECT 1 FROM cms_entries WHERE instr(draft,?)>0 OR instr(coalesce(approved,''),?)>0)
-    OR EXISTS(SELECT 1 FROM cms_history WHERE instr(payload,?)>0)
-    OR EXISTS(SELECT 1 FROM cms_jobs WHERE instr(payload,?)>0)
-    OR EXISTS(SELECT 1 FROM free_content WHERE instr(item,?)>0)`).bind(upload,upload,upload,upload,upload).first()
-  if(reference) return
+  if(await uploadReferenced(db,upload,env.ADMIN_DB)) return false
   const row=await env.ADMIN_DB.prepare("SELECT * FROM objects WHERE replace(id,'-','')=? AND status='ready'").bind(upload).first<ObjectRow>()
-  if(!row) return
+  if(!row) return true
   const data=JSON.parse(row.data)
-  if(data.trashedAt) return
+  if(data.trashedAt) return true
   // Keep original bytes for the normal 30-day quarantine. No Drive deletion is
   // performed in this request; existing reference/ownership checks still apply.
   await guardedBatch(env.ADMIN_DB,"EXISTS(SELECT 1 FROM objects WHERE id=? AND revision=?)",[row.id,row.revision],[
@@ -54,6 +50,7 @@ async function retireUpload(env: Env, upload: string, now: number) {
     env.ADMIN_DB.prepare("DELETE FROM report_releases WHERE report_id=?").bind(row.id),
     env.ADMIN_DB.prepare("DELETE FROM report_jobs WHERE report_id=?").bind(row.id),
   ])
+  return true
 }
 
 export async function emptyTrashItem(env: Env, input: unknown, now: number) {
@@ -61,11 +58,18 @@ export async function emptyTrashItem(env: Env, input: unknown, now: number) {
   const value=object(input),id=value.id,revision=value.revision
   if(value.confirm!=="permanent-delete"||typeof id!=="string"||!/^[a-f\d]{32}$/.test(id)||!Number.isSafeInteger(revision)||Number(revision)<1)
     throw new HttpError(400,"삭제할 자료를 다시 확인해 주세요.")
-  const row=await env.CMS_DB.prepare("SELECT json_extract(draft,'$.upload.id') AS upload FROM cms_entries WHERE id=?").bind(id).first<{upload:string|null}>()
+  const row=await env.CMS_DB.prepare("SELECT id FROM cms_entries WHERE id=?").bind(id).first()
   if(!row) return {removed:false,alreadyRemoved:true,cleanupPending:false}
+  const uploads=await env.CMS_DB.prepare(`SELECT json_extract(draft,'$.upload.id') upload FROM cms_entries WHERE id=?
+    UNION SELECT json_extract(approved,'$.upload.id') FROM cms_entries WHERE id=?
+    UNION SELECT json_extract(payload,'$.upload.id') FROM cms_history WHERE id=?
+    UNION SELECT json_extract(payload,'$.upload.id') FROM cms_jobs WHERE id=?`).bind(id,id,id,id).all<{upload:string|null}>()
+  // Queue before purging so a crash cannot leave the old sources forgotten.
+  const ids=uploads.results.map(r=>r.upload).filter((v):v is string=>!!v&&/^[a-f\d]{32}$/.test(v))
+  if(ids.length)await env.CMS_DB.batch(ids.map(upload=>queueRetirement(env.CMS_DB!,upload,now)))
   await purgeCmsEntry(env.CMS_DB,id,Number(revision))
   let cleanupPending=false
-  if(row.upload){try{await retireUpload(env,row.upload,now)}catch{cleanupPending=true}}
+  for(const upload of ids){try{await retireUpload(env,upload,now)}catch{cleanupPending=true}}
   await env.ADMIN_DB.prepare("DELETE FROM dashboard_snapshots WHERE key='overview'").run()
   return {removed:true,cleanupPending}
 }

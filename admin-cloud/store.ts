@@ -31,6 +31,7 @@ export class CloudStore {
   constructor(
     readonly db: Database,
     readonly now = Date.now(),
+    readonly canPurge?: (id: string) => Promise<boolean>,
   ) {}
   async cleanup() {
     // On admin activity, at most once per hour. No scheduled billable work.
@@ -42,7 +43,7 @@ export class CloudStore {
       .first()
     if (!lease) return
     const versions = new ReportVersions(this.db, this.now)
-    await versions.expireTrash()
+    await versions.expireTrash(2, this.canPurge)
     await versions.cleanupLocal()
     const cutoff = new Date(this.now - 30 * 86400000).toISOString()
     await this.db.batch([

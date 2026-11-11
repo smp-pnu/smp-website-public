@@ -22,6 +22,7 @@ import { spend } from "../free/server/budget";
 import {sourceKey} from '../lib/report-source-key';
 import {reportShareKey} from '../lib/report-share-image';
 import type {Cover} from '../free/jobs/prepare';
+import {resolvePdfSource} from './pdf-sources';
 
 type Job = { id: string; revision: number; payload: string; attempts: number };
 async function download(env: Env, job: Job, p: Payload) {
@@ -113,7 +114,7 @@ export async function publishCms(
       .first<Job>();
     if (!job) break;
     try {
-      const p: Payload = JSON.parse(job.payload);
+      const p = await resolvePdfSource(env.CMS_DB, JSON.parse(job.payload));
       // Copy-only edits and re-publication reuse the approved PDF/reader assets.
       // They neither download/render the PDF nor spend the daily PDF allowance.
       const cover=p.cover as Cover|null;

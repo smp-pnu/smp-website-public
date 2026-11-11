@@ -17,6 +17,8 @@ import { existingRoster, importGeneration, importMembers } from "./member-import
 import { memberCohorts } from "./member-cohorts";
 import { uploadLinks } from "./upload-links";
 import { cmsLimits, type Kind, type Payload } from "./model";
+import {queueRetirement} from './pdf-sources';
+import {guardedBatch} from '../admin-cloud/transaction';
 const idPattern = /^[a-f0-9]{32}$/;
 const json = (value: unknown, status = 200) => Response.json(value, { status });
 export async function cmsExport(
@@ -203,23 +205,22 @@ export async function cmsApi(
           : {}),
       };
       if (!same) delete next.original;
-      const replaced = await db
+      const update = db
         .prepare(
-          "UPDATE cms_entries SET draft=?,revision=revision+1,updated_at=? WHERE id=? AND revision=? RETURNING id",
+          "UPDATE cms_entries SET draft=?,revision=revision+1,updated_at=? WHERE id=? AND revision=? AND trashed_at IS NULL",
         )
         .bind(
           JSON.stringify(next),
           new Date(now).toISOString(),
           targetId,
           entry.revision,
-        )
-        .first();
-      if (!replaced)
-        throw new HttpError(409, "다른 변경이 저장됐어요. 다시 확인해 주세요.");
-      await db
-        .prepare("DELETE FROM cms_jobs WHERE id=? AND revision<=?")
-        .bind(targetId, entry.revision)
-        .run();
+        );
+      const previous=entry.draft.upload?.id;
+      await guardedBatch(db,'EXISTS(SELECT 1 FROM cms_entries WHERE id=? AND revision=? AND trashed_at IS NULL)',[targetId,entry.revision],[
+        update,
+        db.prepare("DELETE FROM cms_jobs WHERE id=? AND revision<=?").bind(targetId,entry.revision),
+        ...(previous&&previous!==report.id?[queueRetirement(db,previous,now)]:[]),
+      ]);
       return json(await store.get(targetId));
     }
     const rank = (await db

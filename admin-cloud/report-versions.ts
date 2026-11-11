@@ -231,7 +231,7 @@ export class ReportVersions {
         OR EXISTS(SELECT 1 FROM report_file_bindings b WHERE b.asset_id=report_files.id))`),
     ]
   }
-  async expireTrash(limit = 2) {
+  async expireTrash(limit = 2, canPurge?: (id: string) => Promise<boolean>) {
     const { results } = await this.db
       .prepare(
         "SELECT * FROM objects WHERE status='ready' AND json_extract(data,'$.trashedAt')<? LIMIT ?",
@@ -239,6 +239,7 @@ export class ReportVersions {
       .bind(new Date(this.now - retentionMs).toISOString(), limit)
       .all<ObjectRow>()
     for (const row of results) {
+      if (canPurge && !await canPurge(row.id)) continue
       await guardedBatch(
         this.db,
         "EXISTS(SELECT 1 FROM objects WHERE id=? AND revision=? AND json_extract(data,'$.trashedAt')<?)",
