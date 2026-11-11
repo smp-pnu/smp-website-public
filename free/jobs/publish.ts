@@ -23,6 +23,7 @@ import { repairRegionalImages } from "./regional-image-repair"
 import { publicationAssets, requiresAssetDeployment } from "./publication-assets"
 import { prepareReaderAssets } from "./reader-assets"
 import { prepareReportShares } from "./report-shares"
+import { reportSharesNeedDeployment, deployReportShareManifest } from './report-share-manifest'
 import { reportShareKey } from '../../lib/report-share-image'
 import { queueReaderBackfill } from "./reader-backfill"
 
@@ -67,7 +68,7 @@ async function main() {
   try {
     if(await adminMode(env.CMS_DB)){await publishCms(env,origin,acquiredUntil-60000);return}
     const recruitment=await prepareRecruitment(env)
-    const forceBuild=process.env.SMP_FORCE_BUILD==="1" || recruitment.changed
+    let forceBuild=process.env.SMP_FORCE_BUILD==="1" || recruitment.changed
     await reconcileIfDue(env)
     await repairRegionalImages(env.CMS_DB)
     if(libraryMigration || !forceBuild) await queueReaderBackfill(env,libraryMigration)
@@ -106,6 +107,7 @@ async function main() {
         if(error instanceof Busy) {if(complete.length)break;throw error}
       }
     }
+    forceBuild=await reportSharesNeedDeployment(env.CMS_DB) || forceBuild
     if(!complete.length && !forceBuild) { console.log("No asset deployment needed");return }
     // Preparation stops early so deployment and publication checks can finish
     // inside the lease. Those checks still obey the shared Notion rate limits.
@@ -146,10 +148,12 @@ async function main() {
     const updated=new Map(readerRecords.results.map(row=>[row.id,{...JSON.parse(row.item),id:row.id,cover:JSON.parse(row.cover)}]))
     for(const result of complete) if(result.job.kind==='research') updated.set(result.job.id,{...result.job.item,id:result.job.id,cover:result.cover})
     await prepareReaderAssets([...updated.values()],origin,Math.min(Date.now()+8*60_000,acquiredUntil-(libraryMigration?12:2)*60_000))
-    await prepareReportShares([...updated.values()])
+    const shares=await prepareReportShares([...updated.values()])
     for(const result of complete)if(result.job.kind==='research' && result.cover)result.cover.shareCopy=reportShareKey(result.job.item as ContentItem)
-    command("scripts/build-free.mjs")
-    command("scripts/deploy-free.mjs")
+    await deployReportShareManifest(env.CMS_DB,shares,()=>{
+      command("scripts/build-free.mjs")
+      command("scripts/deploy-free.mjs")
+    })
     await setAdminConfig(env.CMS_DB,"recruitment_deployed",recruitment.fingerprint)
     // Code releases can change catalogue projections without changing Notion.
     if(process.env.SMP_FORCE_BUILD==="1") await rebuildDocuments(env,["research","notice"])

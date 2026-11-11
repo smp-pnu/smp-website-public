@@ -23,6 +23,7 @@ import {sourceKey} from '../lib/report-source-key';
 import {reportShareKey} from '../lib/report-share-image';
 import type {Cover} from '../free/jobs/prepare';
 import {resolvePdfSource} from './pdf-sources';
+import {reportSharesNeedDeployment,deployReportShareManifest} from '../free/jobs/report-share-manifest';
 
 type Job = { id: string; revision: number; payload: string; attempts: number };
 async function download(env: Env, job: Job, p: Payload) {
@@ -171,7 +172,8 @@ export async function publishCms(
       console.warn(JSON.stringify({ cmsJob: job.id, error: code }));
     }
   }
-  if (!complete.length && !force) {
+  const sharesChanged = await reportSharesNeedDeployment(env.CMS_DB);
+  if (!complete.length && !force && !sharesChanged) {
     console.log("CMS: no asset deployment needed");
     return;
   }
@@ -218,16 +220,18 @@ export async function publishCms(
       requiredOriginal: !!(p.item as ContentItem).managedPdf,
     });
   await prepareReaderAssets([...reader.values()], origin, deadline - 60000);
-  await prepareReportShares([...reader.values()]);
+  const shares = await prepareReportShares([...reader.values()]);
   if (!deploy) return;
-  for (const script of ["scripts/build-free.mjs", "scripts/deploy-free.mjs"]) {
-    const r = spawnSync(process.execPath, [script], {
-      stdio: "inherit",
-      env: { ...process.env, SMP_CMS_ADMIN_BUILD: "1" },
-    });
-    if (r.status !== 0)
-      throw Error("CMS deployment failed; previous approvals preserved");
-  }
+  await deployReportShareManifest(env.CMS_DB, shares, () => {
+    for (const script of ["scripts/build-free.mjs", "scripts/deploy-free.mjs"]) {
+      const r = spawnSync(process.execPath, [script], {
+        stdio: "inherit",
+        env: { ...process.env, SMP_CMS_ADMIN_BUILD: "1" },
+      });
+      if (r.status !== 0)
+        throw Error("CMS deployment failed; previous approvals preserved");
+    }
+  });
   for (const { job, p } of complete) {
     p.cover={...(p.cover as Cover),shareCopy:reportShareKey(p.item as ContentItem)};
     await store.complete(job.id, job.revision, p);
