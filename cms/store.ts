@@ -3,7 +3,8 @@ import type { ContentItem } from "../lib/content-model";
 import { memberSearchEntries, type Member } from "../lib/member-model";
 import { searchEntry, documentStatements } from "../free/server/catalog";
 import { sourceKey } from "../lib/report-source-key";
-import { reportShareKey } from "../lib/report-share-image";
+import { reportShareKey, reportSharePath } from "../lib/report-share-image";
+import { publicCover, type PublicCover } from "../lib/public-cover";
 import { HttpError } from "../admin-server/validation";
 import { adminMode } from "./mode";
 import { resolvePdfSource } from './pdf-sources';
@@ -27,6 +28,8 @@ type Row = {
   rank: number;
   pending: number;
   error: string | null;
+  public_item?: string | null;
+  public_cover?: string | null;
 };
 const decode = (r: Row): Entry => ({
   id: r.id,
@@ -41,7 +44,7 @@ const decode = (r: Row): Entry => ({
   pending: !!r.pending,
   error: r.error,
 });
-const select = `SELECT e.*,j.id IS NOT NULL AS pending,j.error FROM cms_entries e LEFT JOIN cms_jobs j ON j.id=e.id`;
+const select = `SELECT e.*,j.id IS NOT NULL AS pending,j.error,c.item AS public_item,c.cover AS public_cover FROM cms_entries e LEFT JOIN cms_jobs j ON j.id=e.id LEFT JOIN free_content c ON c.id=e.id AND c.kind='research'`;
 export function publicStatements(
   db: Database,
   id: string,
@@ -159,6 +162,17 @@ export class CmsStore {
     if (!row) throw new HttpError(404, "자료를 찾지 못했어요.");
     const entry = decode(row);
     entry.draft = await resolvePdfSource(this.db, entry.draft);
+    if (entry.kind === "research") {
+      entry.sharePreview = null;
+      // Use the actual public edition, never an unapproved title or replacement
+      // PDF. The primary-key join adds no request or image generation work.
+      if (entry.approvedRevision && !entry.trashedAt && row.public_item && row.public_cover) {
+        const item = JSON.parse(row.public_item) as ContentItem;
+        const cover = publicCover({ id: entry.id, kind: "research", cover: JSON.parse(row.public_cover) as PublicCover });
+        const url = cover && reportSharePath(cover.previewUrl ?? cover.url, item);
+        if (url) entry.sharePreview = { url, title: item.title };
+      }
+    }
     return entry;
   }
   async create(kind: Kind, input: unknown) {

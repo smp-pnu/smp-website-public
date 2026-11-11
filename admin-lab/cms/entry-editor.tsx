@@ -10,6 +10,7 @@ import { Field } from "./field";
 import { names, status, statusTone } from "./presentation";
 import type { CmsAction } from "../cms-bulk";
 import { NoticeWorkspace } from "../notice/workspace";
+import { ReportSharePreview } from "./report-share-preview";
 export type EntryEditorProps = {
   selected: Entry;
   form: Payload;
@@ -196,6 +197,7 @@ export function EntryEditor({
           </>
         )}
       </fieldset>
+      <ReportSharePreview entry={selected} dirty={dirty} />
       {section !== "members" && (
         <>
           <div className="cms-actions">
