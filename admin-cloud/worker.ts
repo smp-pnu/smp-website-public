@@ -20,6 +20,8 @@ import { DriveConnection, type DriveFetch } from "./drive/connection"
 import { DriveUploads } from "./drive/uploads"
 import { publicationExport } from "./publication-export"
 import { dashboardData, driveCapacity } from "./dashboard"
+import { fileInventory } from "./file-inventory"
+import { DriveMigration } from "./drive/migration"
 import { dashboardSnapshot } from "./dashboard-cache"
 import { readCloudUsage } from "../cms/cloudflare-usage"
 import { readSiteDashboard, readReportAnalytics } from "../cms/site-analytics"
@@ -127,6 +129,14 @@ export function createHandler(clock = Date.now, driveFetch: DriveFetch = fetch) 
           if (path === "/api/dashboard" && method === "GET") {
             if (!env.CMS_DB) throw new HttpError(409, "게시 관리 연결을 확인해 주세요.")
             response = json(await dashboardSnapshot(env.ADMIN_DB,"overview",60_000,()=>dashboardData(env.ADMIN_DB,env.CMS_DB!,now),now))
+          } else if (path === '/api/dashboard/files' && method === 'GET') {
+            if(!env.CMS_DB)throw new HttpError(409,'게시 관리 연결을 확인해 주세요.')
+            response=json(await dashboardSnapshot(env.ADMIN_DB,'files',300_000,()=>fileInventory(env.ADMIN_DB,env.CMS_DB!),now))
+          } else if (/^\/api\/storage\/migrate\/[^/]+\/(?:start|finish|\d+)$/.test(path) && method === 'POST') {
+            const [, , , ,id,step]=path.split('/')
+            if(!idPattern.test(id))throw new HttpError(400,'원본 번호를 확인해 주세요.')
+            const migration=new DriveMigration(drive)
+            response=json(step==='start'?await migration.start(id,await jsonBody(request,1024)):step==='finish'?await migration.finish(id):await migration.copy(id,Number(step)))
           } else if (path === "/api/dashboard/trash" && method === "GET") {
             if (!env.CMS_DB) throw new HttpError(409, "게시 관리 연결을 확인해 주세요.")
             response = json(await trashPreview(env.CMS_DB))

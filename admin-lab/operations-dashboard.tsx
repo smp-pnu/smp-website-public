@@ -8,6 +8,7 @@ import "./operations-dashboard.css"
 import { CloudflareUsage } from "./cloudflare-usage"
 import { TrashCleanup } from "./trash-cleanup"
 import type { SiteRange } from "./site-model"
+import { FileInventoryPanel } from "./file-inventory"
 import { SiteAnalytics } from "./site-analytics"
 
 const names: Record<Kind,string> = {research:"리포트",notice:"공지사항",members:"회원 명단"}
@@ -62,6 +63,7 @@ export function OperationsDashboard(props: Props) {
         {overview.snapshot?.value && <Attention data={overview.snapshot.value} {...props} onClean={()=>setTick(n=>n+1)}/>}
       </div>
       {overview.snapshot?.value && <DashboardDetails data={overview.snapshot.value} {...props}/>}
+      <FileInventoryPanel onComplete={()=>setTick(n=>n+1)}/>
       <p className="ops-footnote">관리 자료 확인 {time(overview.snapshot?.checkedAt??null)} · 운영 수치는 최대 1분 전 값입니다. 자동 반복 조회는 하지 않습니다.</p>
     </div>
   </>
@@ -120,12 +122,9 @@ function DashboardDetails({data,onNavigate}:Props & {data:DashboardData}) {
       </section>
       <section className="ops-panel"><header><h2>PDF 보관 현황</h2><button className="ops-text-button" onClick={()=>onNavigate('research')}>리포트 관리 <ArrowUpRight size={14}/></button></header>
         <dl className="ops-file-stats"><div><dt>관리자에서 보관한 원본</dt><dd>{o.count}개 · {capacityLabel(o.driveBytes+o.databaseBytes)}</dd></div><div><dt>Drive에 저장</dt><dd>{capacityLabel(o.driveBytes)}</dd></div><div><dt>기존 DB에 저장</dt><dd>{capacityLabel(o.databaseBytes)}</dd></div><div><dt>그중 교체·삭제 후 보관분</dt><dd>{capacityLabel(o.retainedBytes)}</dd></div><div><dt>업로드 준비 중</dt><dd>{o.staging}개</dd></div></dl>
-        <p className="ops-footnote">이전 방식으로 연결된 리포트 {o.legacyReports}개는 원본 크기를 따로 기록하지 않아 위 합계에 포함하지 않습니다. 같은 Google 계정의 파일은 Google 전체 용량에 포함됩니다.</p>
+        <p className="ops-footnote">기존 Drive 링크로 연결된 리포트 {o.legacyReports}개는 아래 ‘리포트 원본 · 용량순’에서 함께 확인할 수 있습니다. 이 영역은 관리자 저장소에 직접 등록된 원본만 집계합니다.</p>
       </section>
     </div>
-    <section className="ops-panel"><header><h2>관리자 보관 PDF · 용량순</h2><span className="ops-muted">용량이 큰 파일 10개</span></header>
-      <p className="ops-footnote">새 관리자에 저장하거나 이관한 PDF 원본만 표시합니다. 기존 Drive 폴더에 연결된 리포트 전체 목록은 아닙니다. ‘DB’는 이전에 데이터베이스에 직접 보관한 원본을 뜻합니다.</p>
-      {data.files.length?<div className="ops-files"><table><thead><tr><th>파일</th><th>저장 위치</th><th>용량</th></tr></thead><tbody>{data.files.map((f,i)=><tr key={i}><td>{f.name}{f.retained===1&&<small>교체·삭제 후 보관분</small>}</td><td>{f.provider==='drive'?'Drive':'DB'}</td><td>{capacityLabel(f.bytes)}</td></tr>)}</tbody></table></div>:<p className="ops-muted">관리자에서 새로 저장한 PDF 원본이 없습니다.</p>}
-    </section>
+
   </>
 }

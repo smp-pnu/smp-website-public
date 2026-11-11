@@ -22,7 +22,7 @@ type Grant = {
 }
 export const driveScope = "https://www.googleapis.com/auth/drive.file"
 const apiRoot = "https://www.googleapis.com/drive/v3"
-const folderName = "SMP 관리자 시험 · PDF 원본"
+const folderName = "관리자 등록 원본"
 export const validFileId = (id: string) => /^[\w-]{10,200}$/.test(id)
 const transientError = () =>
   new HttpError(
@@ -189,6 +189,13 @@ export class DriveConnection {
   }
   async grant() {
     return this.vault.get<Grant>("drive-grant")
+  }
+  async checkFolder() {
+    const ctx=await this.context(),grant=await this.grant()
+    const folder=await this.request<{name:string;trashed:boolean;ownedByMe:boolean;appProperties?:Record<string,string>;permissions?:{role:string}[]}>(`/files/${ctx.folderId}?fields=name,trashed,ownedByMe,appProperties,permissions`)
+    if(folder.trashed)throw new HttpError(409,'PDF 저장 폴더가 Drive 휴지통에 있어요. 폴더를 복원한 뒤 다시 시도해 주세요.')
+    if(!folder.ownedByMe||folder.appProperties?.smpAdmin!==ctx.namespace||folder.permissions?.some(p=>p.role!=='owner'))throw new HttpError(409,'PDF 저장 폴더의 소유권·공개 범위를 확인해 주세요.')
+    if(grant&&folder.name!==grant.folderName)await this.vault.set('drive-grant',{...grant,folderName:folder.name})
   }
   async status(owner: string) {
     const client = await this.vault.get<Client>("drive-client"),

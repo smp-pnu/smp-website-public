@@ -91,6 +91,7 @@ export class DriveUploads {
     if (!/^[a-f0-9]{64}$/.test(expected))
       throw new HttpError(400, "원본 파일 검증 값이 없어요. 관리자 화면을 새로고침해 주세요.")
     const ctx = await this.connection.context()
+    await this.connection.checkFolder()
     await this.db
       .prepare(
         "INSERT OR IGNORE INTO drive_uploads(object_id,file_id,folder_id,expected_sha256) VALUES(?,'',?,?)",
