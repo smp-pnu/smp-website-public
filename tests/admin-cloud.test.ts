@@ -1728,3 +1728,43 @@ test("Drive secret rotation needs step-up, preserves the app namespace and rolls
     for(const row of f.db.prepare("SELECT encrypted FROM storage_secrets").all())assert.ok(!String(row.encrypted).includes(client.web.client_secret))
   } finally {f.close()}
 })
+
+test('legacy DB migration keeps the original on failure, resumes, and preserves every reference after verified Drive copy',async()=>{
+  const google=new MockDrive(),f=await fixture(origin,google)
+  try {
+    await f.login()
+    const source=new Uint8Array(Buffer.concat([Buffer.from(f.pdf.subarray(0,f.pdf.length-8)),Buffer.alloc(chunkBytes*3,32),Buffer.from('\n%%EOF\n')]))
+    const draft=await f.upload(source), asset=f.db.prepare('SELECT id FROM report_files').get()!.id as string,base=`/api/storage/migrate/${asset}`
+    const original=f.db.prepare("SELECT sum(length(data)) bytes FROM chunks WHERE kind='pdf'").get()!.bytes
+    await connectDrive(f)
+    const start=await f.call(`${base}/start`,'POST',{rawSha256:await sha256(source)})
+    assert.equal(start.status,200,await start.clone().text())
+    google.lossAfterWrite=true
+    assert.equal((await f.call(`${base}/0`,'POST')).status,503)
+    assert.equal(f.db.prepare('SELECT provider FROM report_files').get()!.provider,'d1')
+    assert.equal(f.db.prepare("SELECT sum(length(data)) bytes FROM chunks WHERE kind='pdf'").get()!.bytes,original)
+    assert.equal((await f.call(`${base}/finish`,'POST')).status,409)
+    for(let i=0;i<Math.ceil(source.length/chunkBytes);i++)assert.equal((await f.call(`${base}/${i}`,'POST')).status,200)
+    assert.equal((await f.call(`${base}/finish`,'POST')).status,200)
+    assert.equal((await f.call(`${base}/finish`,'POST')).status,200,'finalization is idempotent')
+    const migrated=f.db.prepare('SELECT * FROM report_files').get()!
+    assert.equal(migrated.id,asset);assert.equal(migrated.provider,'drive');assert.equal(migrated.source_sha256,await sha256(source))
+    assert.equal(f.db.prepare('SELECT asset_id FROM report_file_bindings').get()!.asset_id,asset)
+    assert.equal(f.db.prepare('SELECT asset_id FROM report_versions').get()!.asset_id,asset)
+    assert.ok(Number(f.db.prepare("SELECT sum(length(data)) bytes FROM chunks WHERE kind='pdf'").get()!.bytes)<6000)
+    const parts=[]
+    for(let i=0;i<Math.ceil(source.length/chunkBytes);i++)parts.push(Buffer.from(await(await f.call(`/api/drafts/${draft.id}/pdf/${i}`)).arrayBuffer()))
+    assert.deepEqual(Buffer.concat(parts),Buffer.from(source))
+    assert.ok([...google.files.values()].every(file=>file.permissions.every(p=>p.role==='owner')))
+  }finally{f.close()}
+})
+test('uploads detect a trashed destination folder before creating any Drive file',async()=>{
+  const google=new MockDrive(),f=await fixture(origin,google)
+  try {
+    await f.login();await connectDrive(f)
+    const folder=[...google.files.values()][0];folder.trashed=true
+    const r=await f.call('/api/uploads','POST',await f.meta())
+    assert.equal(r.status,409);assert.match((await r.json()).error,/폴더.*휴지통/)
+    assert.equal(google.files.size,1)
+  }finally{f.close()}
+})

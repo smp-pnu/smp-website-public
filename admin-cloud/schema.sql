@@ -191,3 +191,8 @@ CREATE TABLE IF NOT EXISTS dashboard_snapshots (
   key TEXT PRIMARY KEY CHECK(key IN ('overview','drive')),
   payload TEXT, checked_at INTEGER, refresh_after INTEGER NOT NULL, lease TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS storage_inventory_snapshot (
+  key TEXT PRIMARY KEY CHECK(key='files'),
+  payload TEXT, checked_at INTEGER, refresh_after INTEGER NOT NULL, lease TEXT NOT NULL
+);
