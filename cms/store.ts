@@ -3,6 +3,7 @@ import type { ContentItem } from "../lib/content-model";
 import { memberSearchEntries, type Member } from "../lib/member-model";
 import { searchEntry, documentStatements } from "../free/server/catalog";
 import { sourceKey } from "../lib/report-source-key";
+import { reportShareKey } from "../lib/report-share-image";
 import { HttpError } from "../admin-server/validation";
 import { adminMode } from "./mode";
 import {
@@ -252,7 +253,9 @@ export class CmsStore {
       );
     const needsAssets =
       e.kind === "research" &&
-      (!(p.cover as { sourceKey?: string } | null)?.sourceKey ||
+      (e.approvedRevision === null ||
+        (p.cover as { shareCopy?: string } | null)?.shareCopy !== reportShareKey(p.item as ContentItem) ||
+        !(p.cover as { sourceKey?: string } | null)?.sourceKey ||
         (p.cover as { sourceKey?: string }).sourceKey !==
           sourceKey(p.item as ContentItem));
     if (needsAssets) {

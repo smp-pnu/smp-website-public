@@ -41,16 +41,16 @@ test('report sharing keeps each title and validated cover, with a safe fallback 
   const report={...item,title:'테스트기업 <새로운 성장>',cover}
   const html=metadataHtml(`/research/${id}?page=3`,report)
   assert.match(html,/property="og:title" content="테스트기업 &lt;새로운 성장&gt; \| 부산대 SMP"/)
-  assert.match(html,/property="og:image:type" content="image\/png"/)
-  assert.match(html,/property="og:image:width" content="1200"/)
-  assert.equal(pageMetadata(`/research/${id}`,report).image,'https://pnusmp.com'+reportSharePath(cover.previewUrl))
+  assert.match(html,/property="og:image:type" content="image\/jpeg"/)
+  assert.match(html,/property="og:image:width" content="2400"/)
+  assert.equal(pageMetadata(`/research/${id}`,report).image,'https://pnusmp.com'+reportSharePath(cover.previewUrl,report))
   assert.equal(pageMetadata(`/notice/${id}`,report).image,defaultShareImage.url)
   assert.equal(pageMetadata(`/research/${id}`,item).image,defaultShareImage.url)
   const foreign={...report,cover:{...cover,url:'https://external.invalid/cover.png'}}
   assert.equal(pageMetadata(`/research/${id}`,foreign).image,defaultShareImage.url)
   const fallback={...report,cover:{...cover,previewUrl:'https://external.invalid/cover.png'}}
-  assert.equal(pageMetadata(`/research/${id}`,fallback).image,'https://pnusmp.com'+reportSharePath(cover.url))
-  assert.match(metadataHtml(`/research/${id}`,fallback),/property="og:image:height" content="630"/)
+  assert.equal(pageMetadata(`/research/${id}`,fallback).image,'https://pnusmp.com'+reportSharePath(cover.url,fallback))
+  assert.match(metadataHtml(`/research/${id}`,fallback),/property="og:image:height" content="1260"/)
 })
 
 test('canonical pages, pagination and search filters have distinct indexing rules',()=>{
@@ -195,7 +195,7 @@ test('cover discovery, large sharing images and related links use the same publi
   const html=detailHtml(report,[],false,related)
   assert.match(html,new RegExp(`src="${cover.previewUrl}"`));assert.match(html,/alt="기업 분석 리포트 표지"/)
   assert.match(html,/href="\/research\/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"/);assert.match(html,/관련 &lt;기업&gt;/)
-  assert.equal(pageMetadata(`/research/${id}`,report).image,'https://pnusmp.com'+reportSharePath(cover.previewUrl))
+  assert.equal(pageMetadata(`/research/${id}`,report).image,'https://pnusmp.com'+reportSharePath(cover.previewUrl,report))
   const xml=sitemapXml([report],false)
   assert.match(xml,/xmlns:image=/);assert.match(xml,new RegExp(`<image:loc>https://pnusmp.com${cover.previewUrl}</image:loc>`))
   assert.match(listHtml('research',[report],new URLSearchParams()).body,/loading="lazy"/)

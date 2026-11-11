@@ -1,3 +1,4 @@
+import { reportShareKey } from '../lib/report-share-image';
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
@@ -243,6 +244,7 @@ test("PDF approval keeps existing publication until assets are ready; later meta
       ...e.draft,
       cover: {
         sourceKey: sourceKey(e.draft.item as ContentItem),
+        shareCopy: reportShareKey(e.draft.item as ContentItem),
         url: `/report-covers/${e.id}/${"d".repeat(64)}.webp`,
       },
     };
@@ -251,8 +253,14 @@ test("PDF approval keeps existing publication until assets are ready; later meta
     const changed = structuredClone(ready);
     (changed.item as ContentItem).title = "새 제목";
     await f.store.save(e.id, 1, changed);
-    assert.equal((await f.store.approve(e.id, 2)).pending, false);
-    assert.equal(f.sql.prepare("SELECT count(*) n FROM cms_jobs").get()!.n, 0);
+    assert.equal((await f.store.approve(e.id, 2)).pending, true);
+    assert.equal(f.sql.prepare("SELECT count(*) n FROM cms_jobs").get()!.n, 1);
+    assert.notEqual(JSON.parse(String(f.sql.prepare('SELECT item FROM free_content WHERE id=?').get(e.id)!.item)).title, '새 제목');
+    changed.cover.shareCopy=reportShareKey(changed.item as ContentItem);
+    await f.store.complete(e.id,2,changed);
+    const summaryEdit=structuredClone(changed);(summaryEdit.item as ContentItem).summary='새 요약';
+    await f.store.save(e.id,2,summaryEdit);
+    assert.equal((await f.store.approve(e.id,3)).pending,false);
   } finally {
     f.close();
   }
@@ -529,14 +537,17 @@ test("report withdrawal, collection while private, republication and trash resto
     await collectSiteAnalytics(f.db, config, now + 122 * 60_000, graph);
     assert.equal((await readSiteAnalytics(f.db))?.periods[7].reports[0].title, "재공개 리포트");
     await check("private");
-    await f.store.approve(entry.id, 2);
+    assert.equal((await f.store.approve(entry.id, 2)).pending,true);
+    await check("private");
+    await f.store.complete(entry.id,2,ready);
     await check("public");
     assert.equal(f.sql.prepare("SELECT count(*) n FROM cms_jobs").get()?.n, 0, "same prepared PDF must not be regenerated");
     await f.store.change(entry.id, 2, "trash");
     await check("trashed");
     await f.store.change(entry.id, 3, "restore");
     await check("private");
-    await f.store.approve(entry.id, 4);
+    assert.equal((await f.store.approve(entry.id, 4)).pending,true);
+    await f.store.complete(entry.id,4,ready);
     await check("public");
   } finally { f.close(); }
 });

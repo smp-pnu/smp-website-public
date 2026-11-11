@@ -7,6 +7,7 @@ const paths=new Map([
   ['/', ['design/share-card.html','text/html; charset=utf-8']],
   ['/logo-render', ['design/share-logo.html','text/html; charset=utf-8']],
   ['/logo.svg',['public/smp-symbol-white.svg','image/svg+xml']],
+  ['/logo-clean.svg',['design/smp-symbol-clean.svg','image/svg+xml']],
   ['/background.png',['public/home-gwangan-3.png','image/png']],
   ['/fonts/wght.css',['node_modules/@fontsource-variable/noto-sans-kr/wght.css','text/css']],
 ])

@@ -23,6 +23,7 @@ import { repairRegionalImages } from "./regional-image-repair"
 import { publicationAssets, requiresAssetDeployment } from "./publication-assets"
 import { prepareReaderAssets } from "./reader-assets"
 import { prepareReportShares } from "./report-shares"
+import { reportShareKey } from '../../lib/report-share-image'
 import { queueReaderBackfill } from "./reader-backfill"
 
 import {ensureAdminSchema,setAdminConfig} from "./admin-schema"
@@ -117,7 +118,8 @@ async function main() {
     const existing=publicationAssets(records.results.flatMap(row=>[row.cover?JSON.parse(row.cover):null,row.blocks?JSON.parse(row.blocks):null]),origin.origin)
     const incoming=publicationAssets(complete.flatMap(result=>[result.blocks,result.cover]),origin.origin)
     const readerChanged=complete.some(result=>JSON.stringify([result.cover?.reader?.pdf?.url,result.cover?.reader?.pdf?.chunkSize,result.cover?.reader?.pagePack?.url])!==JSON.stringify([result.job.cover?.reader?.pdf?.url,result.job.cover?.reader?.pdf?.chunkSize,result.job.cover?.reader?.pagePack?.url]))
-    if(!requiresAssetDeployment(existing,incoming,forceBuild||readerChanged)) {
+    const sharingChanged=complete.some(result=>result.job.kind==='research' && result.cover?.shareCopy!==reportShareKey(result.job.item as ContentItem))
+    if(!requiresAssetDeployment(existing,incoming,forceBuild||readerChanged||sharingChanged)) {
       await finishPublications(env,origin,complete)
       console.log(JSON.stringify({prepared:complete.length,notionRequests:requestCount,assetDeployment:false}))
       return
@@ -140,11 +142,12 @@ async function main() {
         if(/^[a-f0-9]{64}\.webp$/.test(name) && !assets.has(`/report-covers/${dir.name}/${name}`)) await rm(`.smp-cache/covers/${dir.name}/${name}`)
       }
     }
-    const readerRecords=await env.CMS_DB.prepare("SELECT id,json_extract(item,'$.date') AS date,cover FROM free_content WHERE kind='research' AND cover IS NOT NULL").all<{id:string;date:string;cover:string}>()
-    const updated=new Map(readerRecords.results.map(row=>[row.id,{id:row.id,date:row.date||"",cover:JSON.parse(row.cover)}]))
-    for(const result of complete) if(result.job.kind==='research') updated.set(result.job.id,{id:result.job.id,date:(result.job.item as ContentItem).date||"",cover:result.cover})
+    const readerRecords=await env.CMS_DB.prepare("SELECT id,item,cover FROM free_content WHERE kind='research' AND cover IS NOT NULL").all<{id:string;item:string;cover:string}>()
+    const updated=new Map(readerRecords.results.map(row=>[row.id,{...JSON.parse(row.item),id:row.id,cover:JSON.parse(row.cover)}]))
+    for(const result of complete) if(result.job.kind==='research') updated.set(result.job.id,{...result.job.item,id:result.job.id,cover:result.cover})
     await prepareReaderAssets([...updated.values()],origin,Math.min(Date.now()+8*60_000,acquiredUntil-(libraryMigration?12:2)*60_000))
     await prepareReportShares([...updated.values()])
+    for(const result of complete)if(result.job.kind==='research' && result.cover)result.cover.shareCopy=reportShareKey(result.job.item as ContentItem)
     command("scripts/build-free.mjs")
     command("scripts/deploy-free.mjs")
     await setAdminConfig(env.CMS_DB,"recruitment_deployed",recruitment.fingerprint)
