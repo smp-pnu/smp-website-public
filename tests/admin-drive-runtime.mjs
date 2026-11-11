@@ -13,6 +13,7 @@ import { samplePdf } from '../admin-lab/sample.ts'
 import { emptyFields } from '../admin-lab/model.ts'
 import { chunkBytes, fileIdentity, sha256 } from '../admin-cloud/protocol.ts'
 import sharp from 'sharp'
+import {checkDriveReplacement} from './admin-drive-replacement-checks.mjs'
 const require = createRequire(import.meta.url)
 const { Miniflare, convertV4MiniflareOptions } = createRequire(require.resolve('wrangler/package.json'))('miniflare')
 const origin = 'https://admin.pnusmp.com', setupToken = 'b'.repeat(64), google = new MockDrive()
@@ -29,7 +30,7 @@ const runtimeOptions = {
 }
 const mf = new Miniflare(convertV4MiniflareOptions(runtimeOptions))
 try {
-  const db = await mf.getD1Database('ADMIN_DB')
+  let db = await mf.getD1Database('ADMIN_DB')
   const schema = await readFile(new URL('../admin-cloud/schema.sql', import.meta.url), 'utf8')
   await db.batch(schema.split(';').filter(sql => sql.trim()).map(sql => db.prepare(sql)))
   const guards = await readFile(new URL('../admin-cloud/history-budget.sql', import.meta.url), 'utf8')
@@ -88,7 +89,7 @@ try {
     await call(`/api/uploads/${upload.id}/${kind}/${offset/chunkBytes}`,'PUT',bytes.slice(offset,offset+chunkBytes))
   const draft = await (await call(`/api/uploads/${upload.id}/finish`,'POST')).json()
   await mf.setOptions(convertV4MiniflareOptions({...runtimeOptions,bindings:{...runtimeOptions.bindings,REPORT_EXPORT_SCOPE:JSON.stringify({ids:[draft.id.replaceAll('-','')],expires:Date.now()+3600000})}}))
-  cms=await mf.getD1Database('CMS_DB')
+  cms=await mf.getD1Database('CMS_DB');db=await mf.getD1Database('ADMIN_DB')
   const exported = path => mf.dispatchFetch(origin + path,{headers:{Authorization:`Bearer ${'e'.repeat(64)}`}})
   assert.equal((await mf.dispatchFetch(origin+'/api/publisher/reports')).status,401)
   assert.equal((await (await exported('/api/publisher/reports')).json()).reports.length,0)
@@ -139,6 +140,8 @@ try {
   assert.equal((await data('/api/cms/recruitment','PUT',{...recruitment,period:'2027년 1~2월'})).period,'2027년 1~2월')
   assert.equal((await mf.dispatchFetch(origin+'/api/cms/upload-links')).status,401)
   console.log('PASS: authenticated upload-to-CMS handoff, duplicate retry, edit, publish queue, trash/restore, private source preservation, notice order/CRUD, cohort and recruitment APIs')
+
+  if(process.env.SMP_WORKFLOW_BROWSER!=='1')await checkDriveReplacement({db,cms,call,data,google,draft,cover,fields,exported,approved,pdf})
 
   // Optional UI fixture: all data and OAuth responses above are synthetic and
   // local. It never reads production credentials, APIs, Drive or content.

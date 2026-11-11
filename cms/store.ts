@@ -6,6 +6,7 @@ import { sourceKey } from "../lib/report-source-key";
 import { reportShareKey } from "../lib/report-share-image";
 import { HttpError } from "../admin-server/validation";
 import { adminMode } from "./mode";
+import { resolvePdfSource } from './pdf-sources';
 import {
   cmsLimits,
   validatePayload,
@@ -156,7 +157,9 @@ export class CmsStore {
       .bind(id)
       .first<Row>();
     if (!row) throw new HttpError(404, "자료를 찾지 못했어요.");
-    return decode(row);
+    const entry = decode(row);
+    entry.draft = await resolvePdfSource(this.db, entry.draft);
+    return entry;
   }
   async create(kind: Kind, input: unknown) {
     const count = await this.db
@@ -261,9 +264,9 @@ export class CmsStore {
     if (needsAssets) {
       await this.db
         .prepare(
-          `INSERT INTO cms_jobs(id,revision,payload,next_at) SELECT id,revision,draft,? FROM cms_entries WHERE id=? AND revision=? AND trashed_at IS NULL ON CONFLICT(id) DO UPDATE SET revision=excluded.revision,payload=excluded.payload,next_at=excluded.next_at,attempts=0,lease_until=0,error=NULL`,
+          `INSERT INTO cms_jobs(id,revision,payload,next_at) SELECT id,revision,?,? FROM cms_entries WHERE id=? AND revision=? AND trashed_at IS NULL ON CONFLICT(id) DO UPDATE SET revision=excluded.revision,payload=excluded.payload,next_at=excluded.next_at,attempts=0,lease_until=0,error=NULL`,
         )
-        .bind(this.now, id, revision)
+        .bind(JSON.stringify(p), this.now, id, revision)
         .run();
       return this.get(id);
     }

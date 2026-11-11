@@ -1,5 +1,6 @@
 import { emptyTrashItem, trashPreview } from "../cms/trash"
 import { guardUploadDeletion, cmsMaintenance } from "../cms/maintenance"
+import {uploadReferenced} from '../cms/pdf-sources'
 import { cmsApi, cmsExport } from "../cms/api"
 import { Buffer } from "node:buffer"
 import type { Database } from "../cloudflare/bindings"
@@ -120,7 +121,7 @@ export function createHandler(clock = Date.now, driveFetch: DriveFetch = fetch) 
           response = authResponse
         } else {
           const session = await new Sessions(env, now).identity(request),
-            store = new CloudStore(env.ADMIN_DB, now)
+            store = new CloudStore(env.ADMIN_DB, now, async id=>!env.CMS_DB||!await uploadReferenced(env.CMS_DB,id,env.ADMIN_DB))
           if (mutation && request.headers.get("x-csrf-token") !== session.csrf)
             throw new HttpError(403, "요청 인증을 다시 확인해 주세요.")
           await store.budget()

@@ -52,3 +52,20 @@ CREATE TABLE IF NOT EXISTS cms_site_snapshot (
 
 -- Atomic guard for explicit Trash deletion with revision checks.
 CREATE TABLE IF NOT EXISTS mutation_checks(token TEXT PRIMARY KEY, valid INTEGER NOT NULL CHECK(valid=1));
+
+-- Verified byte-identical sources share storage without rewriting immutable history.
+CREATE TABLE IF NOT EXISTS cms_pdf_aliases (
+ source_id TEXT PRIMARY KEY CHECK(length(source_id) BETWEEN 10 AND 200),
+ upload_id TEXT NOT NULL CHECK(length(upload_id)=32),
+ identity TEXT NOT NULL CHECK(length(identity)=64),
+ sha256 TEXT NOT NULL CHECK(length(sha256)=64),
+ bytes INTEGER NOT NULL CHECK(bytes>0),
+ source TEXT NOT NULL CHECK(json_valid(source) AND length(CAST(source AS BLOB))<=16384),
+ created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS cms_upload_retirements (
+ upload_id TEXT PRIMARY KEY CHECK(length(upload_id)=32),
+ next_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS cms_pdf_aliases_upload ON cms_pdf_aliases(upload_id);
+CREATE INDEX IF NOT EXISTS cms_upload_retirements_next ON cms_upload_retirements(next_at);
