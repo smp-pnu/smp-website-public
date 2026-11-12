@@ -26,17 +26,19 @@ export function MembersDirectory({ result, initialGeneration, reservedGeneration
     <section id="generation-panel" aria-labelledby="generation-heading" className="mt-7">
       {profiles.length === 0 ? <p className="mt-6 text-sm text-site-body">회원 정보를 준비하고 있습니다.</p> :
         <div className="grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
-          {profiles.map(member => <article key={member.id} className="border-t border-site-line pt-6 text-site-body">
-            {member.image && <div className="relative mb-5 aspect-[4/5] overflow-hidden bg-black/25">
-              <Image src={member.image} alt={member.name} fill sizes="(min-width: 1024px) 350px, (min-width: 640px) 50vw, 100vw" className="object-cover object-top" />
+          {profiles.map(member => <article key={member.id} className="flex items-start gap-4 border-t border-site-line pt-6 text-site-body sm:gap-6">
+            {member.image && <div className="relative h-24 w-18 shrink-0 overflow-hidden rounded-sm bg-black/25 sm:h-32 sm:w-24">
+              <Image src={member.image} alt={`${member.name} 프로필`} fill sizes="(min-width: 640px) 96px, 72px" className="object-cover object-top" />
             </div>}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <h3 className="text-xl font-normal text-white">{member.name}</h3>
-              {!!member.roles?.length && <ul aria-label="직책" className="flex flex-wrap gap-1.5">
-                {member.roles.map(role => <li key={role} className="rounded-full border border-sky-200/20 bg-sky-200/[0.07] px-2.5 py-0.5 text-xs font-medium leading-5 text-site-accent">{role}</li>)}
-              </ul>}
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <h3 className="text-xl font-normal text-white">{member.name}</h3>
+                {!!member.roles?.length && <ul aria-label="직책" className="flex flex-wrap gap-1.5">
+                  {member.roles.map(role => <li key={role} className="rounded-full border border-sky-200/20 bg-sky-200/[0.07] px-2.5 py-0.5 text-xs font-medium leading-5 text-site-accent">{role}</li>)}
+                </ul>}
+              </div>
+              {(member.department || member.year) && <p className="mt-3 text-sm leading-relaxed">{[member.department, member.year].filter(Boolean).join(" / ")}</p>}
             </div>
-            {(member.department || member.year) && <p className="mt-3 text-sm leading-relaxed">{[member.department, member.year].filter(Boolean).join(" / ")}</p>}
           </article>)}
         </div>}
     </section>
