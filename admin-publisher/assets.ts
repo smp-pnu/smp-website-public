@@ -9,6 +9,7 @@ import { sourceKey } from "../lib/cover-metadata"
 import type { Cover } from "../free/jobs/prepare"
 import { publicationLimits, publicReport, type ApprovedReport } from "../admin-publication/model"
 import { fileIdentity } from "../admin-cloud/protocol"
+import { isolatedMedia, mediaTask } from "../free/jobs/security/media-sandbox"
 
 export type PreparedEdition = { cover: Cover; original: ReaderPdf }
 const digest = (data: Uint8Array) => createHash("sha256").update(data).digest("hex")
@@ -71,6 +72,10 @@ export class LocalPublicationAssets {
 // pages and members of the complete pack. Never runs inside a visitor Worker.
 export async function prepareApprovedPdf(r:ApprovedReport,data:Uint8Array<ArrayBuffer>,assets:LocalPublicationAssets):Promise<PreparedEdition> {
   if(data.length!==r.bytes || await fileIdentity(data)!==r.identity || !Buffer.from(data.subarray(0,5)).equals(Buffer.from("%PDF-")))throw Error("Approved PDF integrity mismatch")
+  if(isolatedMedia())return mediaTask<PreparedEdition>('approved',r,data,async(result,files)=>{
+    for(const file of files)await assets.put(file.url,file.bytes)
+    await assets.verify(r,result);return result
+  })
   const hash=digest(data),modified=new Date(r.approvedAt).toUTCString(),checkedAt=Date.now()
   const original:ReaderPdf={url:`/_reader-pdfs/${r.id}/${hash}.pdf`,bytes:data.length,chunkSize:readerPdfChunkBytes,initialChunks:[0],sourceBytes:data.length,sourceModified:modified,checkedAt}
   const packed:PackedPage[]=[],pages:{page:number;url:string;width:number;height:number}[]=[]

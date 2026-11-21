@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import sharp from 'sharp'
 import { renderReaderPackPages } from '../../lib/pdf-preview-render'
 import { encodePagePack, pagePackMaxBytes, type PackedPage, type PagePackAsset } from '../../lib/pdf-page-pack'
+import {isolatedMedia,mediaTask,saveSandboxAssets} from './security/media-sandbox'
 
 // Optional acceleration generated once per PDF, within the existing publisher.
 // Never retain dozens of full-size canvases/PNGs or fetch an extra Drive copy.
@@ -14,6 +15,7 @@ export async function prepareReaderPack(id: string, data: Uint8Array, previous?:
       if (bytes.length === previous.bytes && createHash('sha256').update(bytes).digest('hex') === previous.url.split('/').at(-1)!.slice(0,-5)) return previous
     } catch { /* A restored/re-published report may need its optional pack again. */ }
   }
+  if(isolatedMedia())return mediaTask<PagePackAsset|undefined>('pack',{id},data,saveSandboxAssets)
   const pages: PackedPage[] = []
   let size = 0
   await renderReaderPackPages(data, async page => {

@@ -35,3 +35,7 @@ node_modules
 # Private admin trial data (credentials, sessions and unpublished files).
 /.smp-admin-data/
 /.smp-admin-backups/
+
+# Encrypted publisher cache and temporary authenticated restore
+.smp-private-cache/
+.smp-cache.restoring/

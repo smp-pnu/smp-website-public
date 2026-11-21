@@ -13,6 +13,7 @@ import { prepareReaderPack } from './reader-pack'
 import { sourceKey } from "../../lib/cover-metadata"
 import { cmsImageUrl } from "../../lib/cms-image-url"
 import { notion } from "../server/notion"
+import { isolatedMedia, mediaTask, saveSandboxAssets } from "./security/media-sandbox"
 import type { Env } from "../server/types"
 const children=new Set(["paragraph","heading_1","heading_2","heading_3","bulleted_list_item","numbered_list_item","quote","callout","toggle","to_do","column_list","column","table"])
 export type Cover={url:string;previewUrl:string;width:number;height:number;sourceKey?:string;pdfHash?:string;reader?:PreparedReader;shareCopy?:string}
@@ -31,7 +32,9 @@ async function notionImage(url:string) {
   const reader=response.body!.getReader(),chunks:Uint8Array[]=[];let size=0
   try { while(true) { const {value,done}=await reader.read();if(done) break;size+=value.length;if(size>10*1024*1024) throw new Error("Image exceeds 10 MiB");chunks.push(value) } }
   finally { await reader.cancel() }
-  return sharp(Buffer.concat(chunks),{limitInputPixels:40_000_000}).resize({width:2048,height:4096,fit:"inside",withoutEnlargement:true}).webp({quality:90}).toBuffer()
+  const data=Buffer.concat(chunks)
+  if(isolatedMedia())return mediaTask<Buffer>('image',{},data,async(_,files)=>{if(files.length!==1||files[0].url!=='image.webp')throw Error('Invalid prepared image');return files[0].bytes})
+  return sharp(data,{limitInputPixels:40_000_000,failOn:'error'}).resize({width:2048,height:4096,fit:"inside",withoutEnlargement:true}).webp({quality:90}).toBuffer()
 }
 export async function prepareMemberPhoto(member:Member):Promise<Cover|null> {
   if(!member.image || !isNotionFileUrl(member.image)) return null
@@ -106,6 +109,7 @@ export async function prepareCover(item:ContentItem,previous?:Cover|null,depende
         sourceModified:snapshot.lastModified??saved.pdf?.sourceModified??'',
         checkedAt:snapshot.lastModified && Number.isFinite(Date.parse(snapshot.lastModified))?Date.now():1}}:{})}}
   }
+  if(isolatedMedia())return mediaTask<Cover>('cover',{item,modified:snapshot.lastModified,skip:skipPdfOptimization},data,saveSandboxAssets)
   const rendered=await dependencies.render(data)
   const pages=[]
   for(const image of rendered.pages) {

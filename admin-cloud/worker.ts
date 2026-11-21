@@ -340,7 +340,7 @@ export function createHandler(clock = Date.now, driveFetch: DriveFetch = fetch) 
                 throw new HttpError(400, "전송된 파일 크기가 맞지 않아요.")
               if (part === 0) {
                 const start = Buffer.from(bytes.subarray(0, 16)).toString("latin1")
-                if (kind === "pdf" && !/^%PDF-\d\.\d/.test(start))
+                if (kind === "pdf" && (!/^%PDF-\d\.\d/.test(start) || !/[\r\n]\d+\s+\d+\s+obj\b/.test(Buffer.from(bytes).toString("latin1"))))
                   throw new HttpError(400, "PDF 파일 헤더를 확인해 주세요.")
                 if (kind === "cover") validateCover(bytes, total)
               }

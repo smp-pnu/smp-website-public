@@ -553,7 +553,7 @@ test("cloud EOF verification crosses chunk boundaries; malformed/oversized anima
   try {
     await f.login()
     const split = new Uint8Array(chunkBytes + 3).fill(32)
-    split.set(f.pdf.slice(0, 8))
+    split.set(f.pdf.slice(0, 100))
     split.set(new TextEncoder().encode("%%EOF"), chunkBytes - 2)
     await f.upload(split)
     const broken = split.slice()
@@ -1672,7 +1672,7 @@ test("unauthenticated floods cannot spend another IP's login budget or write D1 
       assert.equal(r.status, i < 20 ? 200 : 429)
       if(i >= 20) assert.equal(f.queries, 0)
     }
-    assert.equal(f.db.prepare("SELECT count(*) AS n FROM usage WHERE key LIKE 'auth-%'").get()!.n, 0)
+    assert.ok(Number(f.db.prepare("SELECT count(*) AS n FROM usage WHERE key LIKE 'auth-budget:%'").get()!.n) <= 4)
     assert.equal((await f.call("/api/auth/login/options", "POST", {})).status, 200)
     // Proofs are isolated even when the same NAT has spent its start budget.
     const options = await (await f.call("/api/auth/login/options", "POST", {}, {"CF-Connecting-IP":"192.0.2.55"})).json()
@@ -1767,4 +1767,38 @@ test('uploads detect a trashed destination folder before creating any Drive file
     assert.equal(r.status,409);assert.match((await r.json()).error,/폴더.*휴지통/)
     assert.equal(google.files.size,1)
   }finally{f.close()}
+})
+
+
+test("distributed auth starts have an atomic daily budget and cannot block existing sessions or proofs", async () => {
+  const f=await fixture()
+  try {
+    await f.login()
+    const options=await (await f.call('/api/auth/login/options','POST',{})).json(),flow=f.jar.read()
+    f.db.prepare("UPDATE usage SET hits=600 WHERE key='auth-budget:start'").run()
+    assert.equal((await f.call('/api/auth/login/options','POST',{}, {'CF-Connecting-IP':'203.0.113.23'})).status,429)
+    assert.equal((await f.call('/api/auth/login/options','POST',{}, {'CF-Connecting-IP':'203.0.113.24'})).status,429)
+    assert.equal(f.queries,0)
+    assert.equal((await f.call('/api/session')).status,200)
+    assert.equal((await f.call('/api/auth/login/verify','POST',{response:f.device.authenticate(options,origin)},{Cookie:flow})).status,200)
+    assert.equal((await f.call('/api/auth/unknown','POST',{})).status,404)
+    assert.equal(f.queries,0)
+    assert.equal(f.db.prepare("SELECT count(*) AS n FROM security_events WHERE action='login:success'").get()!.n,1)
+  }finally{f.close()}
+})
+
+
+test("image and PDF transport checks reject header-only impostors before committing an upload",async()=>{
+ const f=await fixture()
+ try{
+  await f.login()
+  const fake=new Uint8Array(Buffer.from('%PDF-1.7\nThis is not a document.\n%%EOF\n'))
+  const start=await f.call('/api/uploads','POST',await f.meta(fake))
+  assert.equal(start.status,201);const {id}=await start.json()
+  assert.equal((await f.call(`/api/uploads/${id}/pdf/0`,'PUT',fake)).status,400)
+  assert.throws(()=>validateCover(Buffer.from([255,216,255,192,0,11,8,0,10,0,10,1,1,17,0]),15))
+  const real=await sharp({create:{width:40,height:60,channels:3,background:'#fff'}}).jpeg().toBuffer()
+  assert.equal(validateCover(real,real.length),'image/jpeg')
+  assert.throws(()=>validateCover(real.subarray(0,-2),real.length-2))
+ }finally{f.close()}
 })

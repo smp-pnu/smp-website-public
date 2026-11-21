@@ -46,6 +46,7 @@ async function webhook(request: Request, env: Env, ctx: Context) {
   const verification = await captureWebhookVerification(raw, env)
   if (verification) return verification
   if (!validNotionSignature(raw, request.headers.get("x-notion-signature"), env.NOTION_WEBHOOK_VERIFICATION_TOKEN)) return reply({ error: "Unauthorized" }, 401)
+  env={...env,CMS_ADMIN_MODE:await adminMode(env.CMS_DB)}
   if(env.CMS_ADMIN_MODE)return reply({received:true,ignored:true})
   await spend(env.CMS_DB, "webhook-day", 500, 86_400_000)
   const event = JSON.parse(raw)
@@ -76,28 +77,31 @@ async function webhook(request: Request, env: Env, ctx: Context) {
 
 async function handle(request: Request, env: Env, ctx: Context): Promise<Response> {
   const url = new URL(request.url), path = url.pathname
-  if (path === "/api/health") return reply({ ok: true, mode: __SMP_FIXTURE__ ? "fixture" : "free", readOnly: env.SMP_READ_ONLY === "1" })
+  if (path === "/api/health") return request.method === "GET" || request.method === "HEAD" ? reply({ ok: true, mode: __SMP_FIXTURE__ ? "fixture" : "free", readOnly: env.SMP_READ_ONLY === "1" }) : new Response("Method not allowed",{status:405,headers:{Allow:"GET, HEAD"}})
   if (path === '/api/site-events') return siteEvents(request,env)
   if (path.startsWith("/api/internal/")) return reply({ error: "Not found" },404)
 
-  if(path.startsWith("/api/")||/^\/(research|notice|sitemap-research\.xml|sitemap-notice\.xml|feed\.xml)(?:\/|$)/.test(path)) env={...env,CMS_ADMIN_MODE:await adminMode(env.CMS_DB)}
   if (path === "/api/notion/webhook" && request.method === "POST") return webhook(request, env, ctx)
   let decodedPath=path
   try { decodedPath=decodeURIComponent(path) } catch { return new Response("Not found",{status:404}) }
   if (decodedPath.startsWith("/_reader-pdfs")) return new Response("Not found",{status:404})
-  if (!path.startsWith("/api/")) return publicPage(request,env,ctx,name=>document(request,env,ctx,name))
-  const media=/^\/api\/cms-media\/([a-f0-9]{32})$/.exec(path)
-  if(media&&env.CMS_ADMIN_MODE) {
-    const denied=await publicBudget(request,env);if(denied)return denied
-    const row=await env.CMS_DB.prepare(`SELECT a.data,a.mime,a.name FROM cms_assets a JOIN free_content c ON c.id=a.owner WHERE a.id=? AND (instr(c.blocks,?)>0 OR instr(c.item,?)>0)`).bind(media[1],`/api/cms-media/${media[1]}`,`/api/cms-media/${media[1]}`).first<{data:string;mime:string;name:string}>()
-    return row?new Response(Buffer.from(row.data,'base64'),{headers:{'Content-Type':row.mime,'Content-Security-Policy':'sandbox','Content-Disposition':`${row.mime.startsWith('image/')?'inline':'attachment'}; filename="attachment"; filename*=UTF-8''${encodeURIComponent(row.name)}`}}):new Response('Not found',{status:404})
+  if (!path.startsWith("/api/")) {
+    if(/^\/(research|notice|sitemap-research\.xml|sitemap-notice\.xml|feed\.xml)(?:\/|$)/.test(path)) env={...env,CMS_ADMIN_MODE:await adminMode(env.CMS_DB)}
+    return publicPage(request,env,ctx,name=>document(request,env,ctx,name))
   }
-  if(!/^\/api\/(search$|catalog\/(research|notice|members)$|member-photo\/[a-f0-9]{32}$|(detail|content)\/(research|notice)\/[a-f\d-]{32,36}(\/(pdf|file|block-file))?$)/.test(path)) return new Response("Not found",{status:404})
+  const media=/^\/api\/cms-media\/([a-f0-9]{32})$/.exec(path)
+  // Reject unknown paths, methods and cross-site traffic before any D1 lookup.
+  if(!media&&!/^\/api\/(search$|catalog\/(research|notice|members)$|member-photo\/[a-f0-9]{32}$|(detail|content)\/(research|notice)\/[a-f\d-]{32,36}(\/(pdf|file|block-file))?$)/.test(path)) return new Response("Not found",{status:404})
   const match = /^\/api\/(detail|content)\/(research|notice)\/([a-f\d-]{32,36})(?:\/(pdf|file|block-file))?$/.exec(path)
   const reference=match && normalizeId(match[3])
   const admittedAt=Date.now()
   const denied = await publicBudget(request, env,reference?{id:reference,kind:match![2]}:undefined)
   if (denied) return denied
+  env={...env,CMS_ADMIN_MODE:await adminMode(env.CMS_DB)}
+  if(media&&env.CMS_ADMIN_MODE) {
+    const row=await env.CMS_DB.prepare(`SELECT a.data,a.mime,a.name FROM cms_assets a JOIN free_content c ON c.id=a.owner WHERE a.id=? AND (instr(c.blocks,?)>0 OR instr(c.item,?)>0)`).bind(media[1],`/api/cms-media/${media[1]}`,`/api/cms-media/${media[1]}`).first<{data:string;mime:string;name:string}>()
+    return row?new Response(Buffer.from(row.data,'base64'),{headers:{'Content-Type':row.mime,'Content-Security-Policy':'sandbox','Content-Disposition':`${row.mime.startsWith('image/')?'inline':'attachment'}; filename="attachment"; filename*=UTF-8''${encodeURIComponent(row.name)}`}}):new Response('Not found',{status:404})
+  }
   const photo=/^\/api\/member-photo\/([a-f0-9]{32})$/.exec(path)
   if(photo)return memberPhoto(env,photo[1])
   if (path === "/api/search") return document(request,env,ctx,"search")

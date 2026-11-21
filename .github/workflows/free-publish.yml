@@ -7,6 +7,10 @@ on:
         type: choice
         default: publish
         options: [publish, status, retry-failed, refresh-report, prepare-library]
+      migrate_plain_cache:
+        description: '보안 전환 시에만 기존 자료 캐시를 한 번 암호화합니다.'
+        type: boolean
+        default: false
       page_id:
         description: 'retry-failed / refresh-report에서만 Notion 페이지 ID 입력'
         type: string
@@ -60,16 +64,29 @@ jobs:
         timeout-minutes: 2
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - name: Restore encrypted publication assets
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        id: private-assets
+        with:
+          path: .smp-private-cache/assets.enc
+          key: smp-private-assets-v1-${{ github.run_id }}
+          restore-keys: smp-private-assets-v1-
+      - name: Decrypt trusted publication assets
+        run: node scripts/private-asset-cache.mjs open
+        env:
+          SMP_ASSET_CACHE_KEY: ${{ secrets.SMP_ASSET_CACHE_KEY }}
+      # Explicit, one-time transition only. Never save plaintext caches again.
       - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        id: assets
+        if: github.event_name == 'workflow_dispatch' && inputs.migrate_plain_cache && steps.private-assets.outputs.cache-matched-key == ''
         with:
           path: .smp-cache/covers
-          key: smp-free-public-assets-${{ github.run_id }}
+          key: smp-free-public-assets-migration
           restore-keys: smp-free-public-assets-
       - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        if: github.event_name == 'workflow_dispatch' && inputs.migrate_plain_cache && steps.private-assets.outputs.cache-matched-key == ''
         with:
           path: .smp-cache/reader-pdfs
-          key: smp-free-reader-pdfs-${{ github.run_id }}
+          key: smp-free-reader-pdfs-migration
           restore-keys: smp-free-reader-pdfs-
       - run: pnpm cms:manage
         env:
@@ -78,18 +95,19 @@ jobs:
         if: env.SMP_CMS_OPERATION != 'status'
         id: publisher
         env:
+          SMP_MEDIA_SANDBOX: '1'
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_REPORTS_DATA_SOURCE_ID: ${{ secrets.NOTION_REPORTS_DATA_SOURCE_ID }}
           NOTION_NOTICES_DATA_SOURCE_ID: ${{ secrets.NOTION_NOTICES_DATA_SOURCE_ID }}
           NOTION_MEMBERS_DATA_SOURCE_ID: ${{ secrets.NOTION_MEMBERS_DATA_SOURCE_ID }}
+      - name: Encrypt publication assets
+        if: success() && (steps.publisher.outputs.assets_changed == 'true' || inputs.migrate_plain_cache)
+        run: node scripts/private-asset-cache.mjs seal
+        env:
+          SMP_ASSET_CACHE_KEY: ${{ secrets.SMP_ASSET_CACHE_KEY }}
       - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        if: success() && steps.publisher.outputs.assets_changed == 'true'
+        if: success() && (steps.publisher.outputs.assets_changed == 'true' || inputs.migrate_plain_cache)
         with:
-          path: .smp-cache/covers
-          key: smp-free-public-assets-${{ github.run_id }}
-      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        if: success() && steps.publisher.outputs.assets_changed == 'true'
-        with:
-          path: .smp-cache/reader-pdfs
-          key: smp-free-reader-pdfs-${{ github.run_id }}
+          path: .smp-private-cache/assets.enc
+          key: smp-private-assets-v1-${{ github.run_id }}
