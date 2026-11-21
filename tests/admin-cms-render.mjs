@@ -74,7 +74,8 @@ try {
  assert.ok(bulk.includes('1개 공개'));assert.ok(bulk.includes('1개 비공개'));assert.ok(bulk.includes('1개 삭제'));assert.ok(bulk.includes('페이지를 옮겨도 선택 유지'))
  assert.ok(loadingList.includes('자료를 불러오는 중'));assert.ok(!loadingList.includes('조건에 맞는 자료가 없습니다'));assert.ok(!loadingList.includes('0건'));
  assert.ok(failedList.includes('다시 불러오기'));assert.ok(!failedList.includes('조건에 맞는 자료가 없습니다'));
- assert.match(publishedEditor,/<button class="primary" disabled="">게시됨<\/button>/);
+ assert.match(publishedEditor,/<span class="status-badge ready">게시됨<\/span>/);
+ assert.match(publishedEditor,/<button class="primary" disabled="">변경사항 게시<\/button>/);
  assert.ok(publishedEditor.includes('aria-label="공지 제목"'));assert.ok(publishedEditor.includes('aria-label="공지 게시 설정"'));assert.ok(publishedEditor.includes('초안 저장됨'));assert.ok(!publishedEditor.includes('추가할 본문 요소'));
  console.log(JSON.stringify({result:'pass',checks:['escaped notice text','safe links','authenticated image path','20-row pagination','order and selection controls']}))
 } finally {await rm(target,{force:true})}
