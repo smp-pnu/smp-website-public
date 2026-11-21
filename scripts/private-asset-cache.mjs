@@ -1,7 +1,7 @@
 // Only ciphertext leaves the trusted publisher. No tar extraction, symlinks or
 // caller-selected paths: the archive accepts the two bounded asset namespaces.
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto'
-import { open, mkdir, readdir, lstat, rename, rm, writeFile, appendFile } from 'node:fs/promises'
+import { open, mkdir, readdir, lstat, rename, rm, rmdir, writeFile, appendFile } from 'node:fs/promises'
 import { createReadStream, createWriteStream } from 'node:fs'
 import { pipeline } from 'node:stream/promises'
 import { fileURLToPath } from 'node:url'
@@ -80,9 +80,18 @@ export async function openCache(input,root,key) {
       }
     }finally{await plain.close()}
     await mkdir(root,{recursive:true,mode:0o700})
+    // Publication tests remove their files but leave empty parent directories.
+    // Check every destination before moving anything; never merge existing data
+    // or follow a symlink. rmdir below also fails if a directory becomes nonempty.
     for(const folder of ['covers','reader-pdfs']) {
-      // Restore runs before the publisher. Refuse to overwrite an existing tree.
-      try{await lstat(path.join(root,folder));throw Error('Refusing to overwrite prepared assets')}catch(e){if(e.code!=='ENOENT')throw e}
+      const target=path.join(root,folder)
+      try{
+        const stat=await lstat(target)
+        if(!stat.isDirectory()||stat.isSymbolicLink()||(await readdir(target)).length)throw Error('Refusing to overwrite prepared assets')
+      }catch(e){if(e.code!=='ENOENT')throw e}
+    }
+    for(const folder of ['covers','reader-pdfs']) {
+      try{await rmdir(path.join(root,folder))}catch(e){if(e.code!=='ENOENT')throw e}
       try{await rename(path.join(staging,folder),path.join(root,folder))}catch(e){if(e.code!=='ENOENT')throw e}
     }
     return {files,bytes}

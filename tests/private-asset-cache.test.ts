@@ -19,6 +19,23 @@ test('private asset cache restores exact bytes and rejects tampering and wrong k
   await symlink('/etc/passwd',join(root,'source',`covers/${'a'.repeat(32)}/${'c'.repeat(64)}.webp`));await assert.rejects(sealCache(join(root,'source'),cache,key))
  }finally{await rm(root,{recursive:true,force:true})}
 })
+test('authenticated restore accepts empty test directories but preserves existing files and rejects symlinks',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'smp-empty-cache-')),key=randomBytes(32).toString('hex'),cache=join(root,'cache.enc'),source=join(root,'source')
+ const name=`covers/${'a'.repeat(32)}/${'b'.repeat(64)}.webp`
+ try{
+  await mkdir(join(source,name,'..'),{recursive:true});await writeFile(join(source,name),'source');await sealCache(source,cache,key)
+  const restored=join(root,'restored')
+  for(const folder of ['covers','reader-pdfs'])await mkdir(join(restored,folder),{recursive:true})
+  assert.equal((await openCache(cache,restored,key)).files,1);assert.equal(await readFile(join(restored,name),'utf8'),'source')
+  const existing=join(root,'existing');await mkdir(join(existing,'covers'),{recursive:true});await mkdir(join(existing,'reader-pdfs'),{recursive:true})
+  await writeFile(join(existing,'reader-pdfs','keep'),'existing')
+  await assert.rejects(openCache(cache,existing,key),/Refusing to overwrite/)
+  assert.deepEqual(await readdir(join(existing,'covers')),[],'all destinations are checked before any promotion')
+  assert.equal(await readFile(join(existing,'reader-pdfs','keep'),'utf8'),'existing')
+  const linked=join(root,'linked');await mkdir(linked);await symlink(source,join(linked,'covers'))
+  await assert.rejects(openCache(cache,linked,key),/Refusing to overwrite/)
+ }finally{await rm(root,{recursive:true,force:true})}
+})
 test('legacy cache migration preserves generated sharing artwork and only its bounded manifest',async()=>{
  const root=await mkdtemp(join(tmpdir(),'smp-share-cache-')),key=randomBytes(32).toString('hex'),source=join(root,'source'),cache=join(root,'cache.enc')
  const names=[`covers/_share/${'a'.repeat(32)}/v2-${'b'.repeat(64)}-${'c'.repeat(16)}.jpg`,`covers/_share/${'a'.repeat(32)}/v1-${'b'.repeat(64)}.png`,'covers/_share/manifest.json']
