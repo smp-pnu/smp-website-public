@@ -8,21 +8,21 @@ import {SiteTrend} from './site-trend'
 const count=(n:number)=>n.toLocaleString('ko-KR')
 const stamp=(n:number)=>new Date(n).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})
 type RankingLink={onAllReports?:(range:SiteRange,metric:"views"|"downloads")=>void}
-export function SiteAnalytics({refresh,onAllReports}:{refresh:number}&RankingLink){
+export function SiteAnalytics({refresh,onAllReports,compact=false}:{refresh:number;compact?:boolean}&RankingLink){
  const [state,setState]=useState<{data:SiteSnapshot|null;loaded:boolean;error:string}>({data:null,loaded:false,error:''})
  useEffect(()=>{let live=true;void api('/dashboard/site').then(r=>r.json()).then((data:SiteSnapshot|null)=>{if(live)setState({data,loaded:true,error:''})}).catch((e:Error)=>{if(live)setState(p=>({...p,loaded:true,error:e.message}))});return()=>{live=false}},[refresh])
- return <section className="ops-panel ops-site" aria-label="사이트 현황"><header><h2><ChartNoAxesCombined size={18}/> 사이트 현황</h2><span className="ops-muted">pnusmp.com · 공개 사이트</span></header>
+ return <section className={`ops-panel ops-site${compact ? " is-compact" : ""}`} aria-label="사이트 현황"><header><h2><ChartNoAxesCombined size={18}/> 사이트 현황</h2><span className="ops-muted">pnusmp.com · 공개 사이트</span></header>
  {state.error&&<p className="ops-warning" role="alert">통계를 확인하지 못했습니다. {state.data?'이전 확인값입니다.':''} {state.error}</p>}
  {!state.data&&!state.error&&(state.loaded?<p className="site-empty">집계를 시작합니다. 첫 자동 수집이 완료되면 표시됩니다.</p>:<LoadingState label="저장된 사이트 통계를 불러오는 중…" />)}
- {state.data&&<SiteAnalyticsDetails data={state.data} onAllReports={onAllReports}/>}
+ {state.data&&<SiteAnalyticsDetails data={state.data} onAllReports={onAllReports} compact={compact}/>}
  </section>
 }
-export function SiteAnalyticsDetails({data,onAllReports}:{data:SiteSnapshot}&RankingLink){
+export function SiteAnalyticsDetails({data,onAllReports,compact=false}:{data:SiteSnapshot;compact?:boolean}&RankingLink){
  const [range,setRange]=useState<SiteRange>(7),[rank,setRank]=useState<'views'|'downloads'>('views')
  const p=data.periods[range],traffic=p.traffic,days=Array.from({length:range},(_,i)=>siteDate(siteStart(data.checkedAt,range)+i*86400000))
  const daily=days.map(day=>({day,views:traffic?.daily.find(d=>d.day===day)?.views??0,visits:traffic?.daily.find(d=>d.day===day)?.visits??0,downloads:p.dailyDownloads.find(d=>d.day===day)?.count??0}))
  const outcomes=p.ready+p.failed
- const rows=[...p.reports].sort((a,b)=>(b[rank]??0)-(a[rank]??0)||b.downloads-a.downloads).slice(0,10)
+ const rows=[...p.reports].sort((a,b)=>(b[rank]??0)-(a[rank]??0)||b.downloads-a.downloads).slice(0,compact ? 5 : 10)
  const refs=traffic?.referrers.filter(r=>r.host!=='pnusmp.com'&&r.host!=='www.pnusmp.com')??[]
  const snapshotOld=Date.now()-data.checkedAt>2*3600000
  const trafficOld=data.trafficError||data.trafficCheckedAt===null||Date.now()-data.trafficCheckedAt>2*3600000

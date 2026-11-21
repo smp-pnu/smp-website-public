@@ -52,5 +52,12 @@ export async function connectTestDrive(page: Page) {
 }
 
 export async function noPageOverflow(page: Page) {
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'Page must fit the viewport').toBe(true)
+  const layout = await page.evaluate(() => ({
+    width: window.innerWidth, scrollWidth: document.documentElement.scrollWidth,
+    overflow: [...document.querySelectorAll<HTMLElement>('body *')].filter(element => {
+      const box = element.getBoundingClientRect()
+      return box.right > window.innerWidth + 1 && getComputedStyle(element).position !== 'fixed'
+    }).slice(0, 8).map(element => ({ tag: element.tagName, class: element.className, right: element.getBoundingClientRect().right })),
+  }))
+  expect(layout.scrollWidth <= layout.width + 1, `Page must fit the viewport: ${JSON.stringify(layout)}`).toBe(true)
 }

@@ -32,6 +32,7 @@ function SnapshotNote({snapshot,error,label}:{snapshot:Snapshot<unknown>|null;er
 export function OperationsDashboard(props: Props) {
   const [overview,setOverview] = useState<State<DashboardData>>({snapshot:null,error:""})
   const [drive,setDrive] = useState<State<DriveCapacity>>({snapshot:null,error:""})
+  const [view,setView] = useState<"overview"|"traffic"|"storage">("overview")
   const [tick,setTick] = useState(0), [loading,setLoading] = useState(true)
   useEffect(()=>{
     let live = true
@@ -47,26 +48,46 @@ export function OperationsDashboard(props: Props) {
     <header className="page-heading"><div><h1>운영 현황</h1><p>게시 자료와 저장 공간을 한곳에서 확인합니다.</p></div>
       <div className="cms-actions"><button disabled={loading} onClick={()=>setTick(n=>n+1)}>{loading?<InlineLoading>확인 중…</InlineLoading>:<><RefreshCw size={15}/>새로고침</>}</button><button className="primary" onClick={props.onUpload}>리포트 등록</button></div>
     </header>
+    <nav className="list-tabs ops-view-switch" aria-label="운영 현황 보기">
+      {([['overview','요약'],['traffic','방문·리포트'],['storage','저장 공간·처리량']] as const).map(([key,label]) => <button key={key} aria-pressed={view === key} onClick={() => setView(key)}>{label}</button>)}
+    </nav>
     <div className="ops-dashboard">
       <SnapshotNote snapshot={overview.snapshot} error={overview.error} label="운영 현황"/>
       {!overview.snapshot?.value && !overview.error && !overview.snapshot && <LoadingState label="관리 자료를 확인하는 중…" />}
-      {overview.snapshot?.value && <ContentSummary data={overview.snapshot.value} {...props}/>}
-      <SiteAnalytics refresh={tick} onAllReports={props.onReportAnalytics}/>
-      <CloudflareUsage refresh={tick}/>
-      <div className="ops-columns">
+      {overview.snapshot?.value && <div hidden={view !== 'overview'} className="ops-overview">
+        <AttentionSummary data={overview.snapshot.value} onNavigate={props.onNavigate} onDetails={()=>setView('storage')}/>
+        <ContentSummary data={overview.snapshot.value} {...props}/>
+      </div>}
+      {/* Keep fetched panels mounted: changing views never starts another request. */}
+      <div hidden={view === 'storage'}><SiteAnalytics refresh={tick} compact={view === 'overview'} onAllReports={props.onReportAnalytics}/></div>
+      <div hidden={view === 'traffic'} className={view === 'overview' ? 'ops-capacity-overview' : 'ops-storage-view'}>
+      <CloudflareUsage refresh={tick} compact={view === 'overview'}/>
+      <div className={view === 'overview' ? 'ops-drive-summary' : 'ops-columns'}>
         <section className="ops-panel ops-drive">
           <header><h2><HardDrive size={18}/> Google 저장 공간</h2><button className="ops-text-button" onClick={props.onStorage}>연결 관리 <ArrowUpRight size={14}/></button></header>
           <SnapshotNote snapshot={drive.snapshot} error={drive.error} label="Google 저장 공간"/>
           {drive.snapshot?.value ? <DriveCard data={drive.snapshot.value} onStorage={props.onStorage}/> : !drive.error && !drive.snapshot && <LoadingState label="Google 계정 용량을 확인하는 중…" rows={2} />}
           <p className="ops-footnote">마지막 확인 {time(drive.snapshot?.checkedAt??null)} · 조회 결과는 10분간 재사용합니다.</p>
         </section>
-        {overview.snapshot?.value && <Attention data={overview.snapshot.value} {...props} onClean={()=>setTick(n=>n+1)}/>}
+        {overview.snapshot?.value && <div hidden={view !== 'storage'}><Attention data={overview.snapshot.value} {...props} onClean={()=>setTick(n=>n+1)}/></div>}
       </div>
+      <div hidden={view !== 'storage'} className="ops-storage-details">
       {overview.snapshot?.value && <DashboardDetails data={overview.snapshot.value} {...props}/>}
       <FileInventoryPanel onComplete={()=>setTick(n=>n+1)}/>
+      </div>
+      {view === 'overview' && <button className="ops-text-button ops-details-link" onClick={()=>setView('storage')}>용량·처리량 상세 보기 <ArrowUpRight size={16}/></button>}
+      </div>
       <p className="ops-footnote">관리 자료 확인 {time(overview.snapshot?.checkedAt??null)} · 운영 수치는 최대 1분 전 값입니다. 자동 반복 조회는 하지 않습니다.</p>
     </div>
   </>
+}
+function AttentionSummary({data,onNavigate,onDetails}:{data:DashboardData;onNavigate:Props['onNavigate'];onDetails:()=>void}) {
+  const errors = data.jobs.failed + data.jobs.cleanupFailed;
+  const drafts = data.content.reduce((sum, item) => sum + item.changed, 0);
+  return <section className={`ops-attention-summary${errors ? ' has-errors' : ''}`} aria-label="확인할 작업">
+    <div><strong>{errors ? `확인이 필요한 오류 ${errors}건` : '확인할 작업'}</strong><span>게시 준비 {data.jobs.pending}건 · 수정 초안 {drafts}개 · 파일 정리 대기 {data.jobs.cleanup}개</span></div>
+    <div><button className="ops-text-button" onClick={()=>onNavigate('research','draft')}>초안 확인 <ArrowUpRight size={14}/></button><button className="ops-text-button" onClick={onDetails}>처리 상태 보기 <ArrowUpRight size={14}/></button></div>
+  </section>;
 }
 function ContentSummary({data,onNavigate}:Props & {data:DashboardData}) {
   return <div className="ops-summary">{data.content.map(c=><button key={c.kind} onClick={()=>onNavigate(c.kind)}>

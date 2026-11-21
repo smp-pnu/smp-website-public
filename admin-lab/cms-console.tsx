@@ -135,6 +135,10 @@ export function CmsConsole({
     guard = true,
   ) => {
     if (guard && !(await canLeave())) return false;
+    if (push && uploadReturn?.storage) {
+      saveUploadReturn(uploadReturn.target, uploadReturn.title, uploadReturn.route);
+      setUploadReturn(readUploadReturn());
+    }
     setSection(next);
     setInsightOptions({range:7,metric:"views"});
     if (push) writeAdminSection(next);
@@ -356,7 +360,7 @@ export function CmsConsole({
           onStorage={() =>
             void go("storage").then((ok) => {
               if (ok) {
-                saveUploadReturn(uploadTarget, uploadTitle, uploadReturn?.route);
+                saveUploadReturn(uploadTarget, uploadTitle, uploadReturn?.route, true);
                 setUploadReturn(readUploadReturn());
               }
             })
@@ -368,7 +372,7 @@ export function CmsConsole({
           onBusy={setBusy}
           onChange={reload}
           onReturnUpload={
-            uploadReturn
+            uploadReturn?.storage
               ? () =>
                   void go("upload").then((ok) => {
                     if (ok) {

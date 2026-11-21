@@ -28,7 +28,7 @@
   /* Only children move, so the observed box cannot oscillate across its threshold. */
   /* Waiting content stays readable if observation is unavailable or suspended. */
   .home-entrance[data-motion="entered"] > * {
-    animation: home-rise-in 800ms var(--home-ease) var(--home-delay) both;
+    animation: home-rise-in 400ms var(--home-ease) var(--home-delay) both;
   }
   .home-network[data-motion="entered"] > h2,
   .home-recruit[data-motion="entered"] > h2 { animation-delay: 80ms; }
@@ -39,7 +39,7 @@
 
   .home-activity[data-motion="entered"] .home-activity__icon :is(path,polyline,line) {
     stroke-dasharray: 80;
-    animation: home-icon-draw 900ms var(--home-ease) var(--home-delay) both;
+    animation: home-icon-draw 400ms var(--home-ease) var(--home-delay) both;
   }
   #site-hero h1 { animation: home-hero-settle 900ms cubic-bezier(.2,.65,.35,1) both; }
   #site-hero h1 + p { animation: home-hero-settle 800ms ease 100ms both; }
@@ -50,7 +50,7 @@
 @media (max-width:639px) and (prefers-reduced-motion:no-preference) {
   .home-entrance { --home-rise: 16px; }
   .home-entrance[data-motion="entered"] > * {
-    animation-duration: 650ms;
+    animation-duration: 320ms;
     animation-delay: 0ms;
   }
   .home-network[data-motion="entered"] > p,
@@ -58,7 +58,7 @@
   .home-network[data-motion="entered"] > a,
   .home-recruit[data-motion="entered"] > a { animation-delay: 160ms; }
   .home-activity[data-motion="entered"] .home-activity__icon :is(path,polyline,line) {
-    animation-duration: 700ms;
+    animation-duration: 320ms;
     animation-delay: 0ms;
   }
   #site-hero h1, #site-hero h1 + p { animation-duration: 600ms; }
@@ -67,3 +67,5 @@
   .home-entrance, .home-entrance *,
   #site-hero h1, #site-hero h1 + p { animation: none !important; transition: none !important; }
 }
+
+.hero-reading-shade { background: linear-gradient(to right, rgb(0 0 0 / .55) calc(100% - 96px), transparent); pointer-events: none; }

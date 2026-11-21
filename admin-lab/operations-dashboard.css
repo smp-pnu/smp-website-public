@@ -5,3 +5,42 @@
 /* Keep the filter compact; shared form controls default to full width. */
 .ops-dashboard .inventory-controls>label{min-width:0;flex:1 1 0}.ops-dashboard .inventory-panel .inventory-controls input{border:0;border-radius:0;background:transparent;padding:8px 0;min-width:0;box-shadow:none;outline:none}.ops-dashboard .inventory-controls>label>svg{flex:none}.ops-dashboard .inventory-controls>.ui-select{flex:0 0 200px;width:200px;min-width:0}@media(max-width:600px){.ops-dashboard .inventory-controls>.ui-select{flex:0 0 auto;width:100%}.ops-dashboard .inventory-panel .inventory-controls input{font-size:16px}}
 @media(max-width:600px){.inventory-file{grid-column:1/-1;grid-row:1}.inventory-file>.inventory-state{max-width:calc(100% - 96px)}.inventory-size{grid-column:2;grid-row:1;align-self:start;padding-top:0;line-height:24px}}
+
+.ops-view-switch { margin-bottom: 24px; padding-inline: 0; gap: 24px; }
+.ops-view-switch button { font-size: 14px; min-height: 48px; }
+.ops-dashboard [hidden] { display: none !important; }
+.ops-overview, .ops-storage-view, .ops-storage-details { display: grid; gap: 24px; }
+.ops-attention-summary { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 24px; border: 1px solid var(--line); border-radius: var(--radius-panel); background: var(--surface); }
+.ops-attention-summary > div { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; }
+.ops-attention-summary strong { font-size: 14px; font-weight: 600; }
+.ops-attention-summary span { color: var(--muted); font-size: 13px; line-height: 1.6; }
+.ops-attention-summary.has-errors { border-color: #d4a39a; }
+.ops-attention-summary.has-errors strong { color: #974335; }
+.ops-capacity-overview { display: grid; grid-template-columns: 1fr; gap: 24px; align-items: start; }
+.ops-capacity-overview .cloud-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ops-capacity-overview .cloud-metric { padding: 16px 0; border: 0; border-bottom: 1px solid var(--line); }
+.ops-capacity-overview .cloud-value { font-size: 24px; }
+.ops-capacity-overview .ops-drive .ops-breakdown,
+.ops-capacity-overview .ops-drive .ops-links a:not(:first-child),
+.ops-cloudflare.is-compact .cloud-rows,
+.ops-cloudflare.is-compact .cloud-details { display: none; }
+.ops-details-link { grid-column: 1 / -1; justify-self: end; min-height: 40px; }
+.ops-storage-details .ops-columns { align-items: start; }
+@media (max-width: 1100px) { .ops-capacity-overview { grid-template-columns: 1fr; } }
+@media (max-width: 700px) {
+  .ops-view-switch { gap: 16px; }
+  .ops-view-switch button { font-size: 13px; }
+  .ops-attention-summary { padding: 16px; }
+  .ops-attention-summary .ops-text-button, .ops-details-link { min-height: 48px; }
+}
+
+.ops-cloudflare.is-compact .cloud-metric > .ops-footnote:not(:last-child),
+.ops-cloudflare.is-compact > .ops-footnote:not(:last-child) { display: none; }
+.ops-drive-summary .ops-drive { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 24px; }
+.ops-drive-summary .ops-drive > header, .ops-drive-summary .ops-drive > .ops-links, .ops-drive-summary .ops-drive > .ops-footnote { grid-column: 1 / -1; }
+.ops-drive-summary .ops-capacity { grid-column: 1; }
+.ops-drive-summary .ops-meter { grid-column: 2; grid-row: 2 / 4; align-self: center; }
+@media (max-width: 700px) {
+  .ops-capacity-overview .cloud-metrics { grid-template-columns: 1fr; }
+  .ops-drive-summary .ops-drive { display: block; }
+}

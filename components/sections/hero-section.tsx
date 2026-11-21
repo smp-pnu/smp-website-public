@@ -13,7 +13,7 @@ export function HeroSection() {
       id="site-hero"
       className="relative flex min-h-[100svh] w-full items-center overflow-hidden"
     >
-      <div className="absolute inset-y-0 left-0 bg-black/55" style={{ width: panelWidth }} aria-hidden="true" />
+      <div className="hero-reading-shade absolute inset-y-0 left-0" style={{ width: `calc(${panelWidth} + 64px)` }} aria-hidden="true" />
       <div className="relative z-10 flex min-h-[100svh] items-center px-[clamp(20px,3vw,64px)] py-28" style={{ width: panelWidth }}>
 
         <div className="w-full [container-type:inline-size]">

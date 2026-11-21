@@ -46,7 +46,7 @@ export function NoticeWorkspace(props: EntryEditorProps) {
             </span>
           </div>
         </div>
-        <div className="notice-publish-actions">
+        <div className="notice-publish-actions" aria-label="공지 저장·게시">
           <span className="notice-save-status" role="status">
             {busy ? (
               <InlineLoading>처리 중…</InlineLoading>
@@ -154,7 +154,7 @@ export function NoticeWorkspace(props: EntryEditorProps) {
             </fieldset>
           </details>
           <p className="notice-settings-help">
-            초안 저장 후 ‘게시’를 누르면 사이트에 반영됩니다. 수정 중에는 현재
+            초안을 저장하고 게시하면 사이트에 반영됩니다. 수정 중에는 현재
             공개된 글이 유지됩니다.
           </p>
           <details className="notice-more">

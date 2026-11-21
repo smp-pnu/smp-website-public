@@ -28,7 +28,7 @@ function Freshness({part}:{part:CloudPart<unknown>}) {
 function Metric({title,part,children}:{title:string;part:CloudPart<unknown>;children:ReactNode}) {
   return <div className="cloud-metric"><h3>{title}</h3>{children}<Freshness part={part}/></div>
 }
-export function CloudflareUsage({refresh}:{refresh:number}) {
+export function CloudflareUsage({refresh,compact=false}:{refresh:number;compact?:boolean}) {
   const [state,setState]=useState<{value:CloudUsage|null;error:string}>({value:null,error:''})
   useEffect(()=>{
     let live=true
@@ -36,7 +36,7 @@ export function CloudflareUsage({refresh}:{refresh:number}) {
       .catch((e:Error)=>{if(live)setState(previous=>({...previous,error:e.message}))})
     return()=>{live=false}
   },[refresh])
-  return <section className="ops-panel ops-cloudflare" aria-label="Cloudflare 무료 사용량">
+  return <section className={`ops-panel ops-cloudflare${compact ? " is-compact" : ""}`} aria-label="Cloudflare 무료 사용량">
     <header><h2><Cloud size={18}/> Cloudflare 사용량</h2><a className="ops-external" href="https://dash.cloudflare.com/" target="_blank" rel="noopener noreferrer">Cloudflare 열기 <ArrowUpRight size={14}/></a></header>
     <p className="ops-muted">계정 전체 · 무료 플랜 기준 · 일일 사용량은 매일 오전 9시(KST) 초기화</p>
     {state.error&&<p className="ops-warning" role="alert">사용량을 불러오지 못했습니다. {state.value?'이전 확인값을 표시합니다.':''} {state.error}</p>}
@@ -59,7 +59,7 @@ export function CloudflareDetails({data}:{data:CloudUsage}) {
         <div className="cloud-value">{ms(slowest?.p99Ms??null)}<small>/ 기준 10 ms</small></div>
         <p className="ops-muted">{slowest?`${label(slowest.name)} · 서버별 P99 중 최댓값`:'측정된 요청 없음'}</p>
         <p className="cloud-cpu-status">리소스 제한으로 중단 <strong className={w.resourceErrors?'ops-warning':''}>{count(w.resourceErrors)}회</strong></p>
-        {slowest&&slowest.p99Ms!>CLOUD_FREE.cpuMs&&<p className="ops-warning">일부 요청이 CPU 기준보다 높습니다. 아래 서버별 수치를 확인해 주세요.</p>}
+        {slowest&&slowest.p99Ms!>CLOUD_FREE.cpuMs&&<p className="ops-warning">일부 요청이 CPU 기준보다 높습니다. 상세 사용량에서 서버별 수치를 확인해 주세요.</p>}
       </>}</Metric>
       <Metric title="DB 실제 저장 공간" part={data.storage}>{d&&<>
         <div className="cloud-value">{capacityLabel(d.bytes)}<small>/ 5 GB</small></div>

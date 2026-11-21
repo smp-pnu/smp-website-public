@@ -5,8 +5,8 @@ import type { Entry } from '../cms/model';
 
 test('editing a published entry shows an unsaved publication action, never an already-published label',()=>{
  const entry={revision:2,approvedRevision:2,pending:false,trashedAt:null,error:null} as Entry;
- assert.deepEqual(publicationState(entry,true),{saveDisabled:false,publishDisabled:true,label:'게시'});
- assert.deepEqual(publicationState(entry,false),{saveDisabled:true,publishDisabled:true,label:'게시됨'});
+ assert.deepEqual(publicationState(entry,true),{saveDisabled:false,publishDisabled:true,label:'변경사항 게시'});
+ assert.deepEqual(publicationState(entry,false),{saveDisabled:true,publishDisabled:true,label:'변경사항 게시'});
  const saved={...entry,revision:3};
  assert.equal(publicationState(saved,false).publishDisabled,false);
  assert.equal(publicationState(saved,false,true).publishDisabled,true);

@@ -83,7 +83,7 @@ export function RecruitmentEditor({
         <p className="success-panel" role="status">저장했습니다. 다음 게시 작업에서 반영됩니다.</p>
       )}
       {value ? (
-        <form
+        <form className="recruitment-editor"
           onSubmit={(e) => {
             e.preventDefault();
             void (async () => {
@@ -161,7 +161,7 @@ export function RecruitmentEditor({
             />
             <h2 className="cms-section-title">활동·지원 안내</h2>
             {Object.entries(labels).map(([k, label]) => (
-              <label className={`cms-field ${k === "fees" || k === "process" ? "cms-wide" : ""}`} key={k}>
+              <label className="cms-field cms-wide" key={k}>
                 {label}
                 <textarea
                   value={String(value[k as keyof Recruitment] ?? "")}
