@@ -36,6 +36,12 @@ test('upload return survives an OAuth reload with bounded target and expires saf
   try{
     saveUploadReturn('a'.repeat(32),'Original title',{section:'research',q:'기업',group:'2026-2',filter:'public',page:3});assert.equal(readUploadReturn()?.target,'a'.repeat(32))
     assert.deepEqual(readUploadReturn()?.route,{section:'research',q:'기업',group:'2026-2',filter:'public',page:3,entry:'a'.repeat(32)})
+    assert.equal(readUploadReturn()?.storage,false)
+    saveUploadReturn('a'.repeat(32),'Original title',readUploadReturn()?.route,true)
+    assert.equal(readUploadReturn()?.storage,true)
+    saveUploadReturn('a'.repeat(32),'Original title',readUploadReturn()?.route)
+    assert.equal(readUploadReturn()?.storage,false)
+    assert.equal(readUploadReturn()?.route?.page,3)
     clearUploadReturn();assert.equal(readUploadReturn(),null)
     for(const value of [{expires:Date.now()-1},{expires:Date.now()+1000,target:'https://evil.test'},{expires:Date.now()+1000,title:9}]){map.set('smp-admin-upload-return',JSON.stringify(value));assert.equal(readUploadReturn(),null)}
     assert.equal(adminSection('#upload'),'upload');assert.equal(adminSection('#storage'),'storage');assert.equal(adminSection('#unknown'),'dashboard')

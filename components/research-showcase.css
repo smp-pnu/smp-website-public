@@ -9,7 +9,7 @@
 .report-exhibit__edition time { color: #9fb5c4; font-variant-numeric: tabular-nums; }
 .report-exhibit__latest { display: inline-flex; align-items: center; gap: 8px; color: #c9e8fc; }
 .report-exhibit__latest::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
-.report-exhibit__all { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; min-height: 32px; color: var(--site-accent); }
+.report-exhibit__all { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; min-height: 44px; color: var(--site-accent); }
 .report-exhibit__all svg { transition: transform 180ms; }
 .report-exhibit__selectors { display: grid; grid-template-columns: repeat(var(--report-count),minmax(0,1fr)); border-bottom: 1px solid var(--exhibit-line); }
 .report-exhibit__selectors button { position: relative; display: flex; align-items: center; gap: 12px; min-width: 0; min-height: 64px; padding: 16px 24px; text-align: left; color: #8aa2b4; border-right: 1px solid var(--exhibit-line); transition: color 180ms, background 180ms; }
@@ -20,15 +20,15 @@
 .report-exhibit__selectors button > span:not(.report-exhibit__index) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
 .report-exhibit__selectors button > svg { margin-left: auto; flex-shrink: 0; width: 14px; }
 .report-exhibit__index { font-size: 10px; font-variant-numeric: tabular-nums; opacity: .6; }
-.report-exhibit__stage { display: flex; height: 496px; overflow: hidden; isolation: isolate; border-top: 1px solid var(--exhibit-line); border-bottom: 1px solid var(--exhibit-line); background: transparent; touch-action: pan-y pinch-zoom; }
-.report-exhibit__panel { position: relative; flex: 1 1 0; min-width: 0; overflow: hidden; contain: layout paint; border-right: 1px solid var(--exhibit-line); background: transparent; transition: flex-grow 620ms var(--exhibit-ease); }
+.report-exhibit__stage { display: flex; height: 480px; overflow: hidden; isolation: isolate; border-top: 1px solid var(--exhibit-line); border-bottom: 1px solid var(--exhibit-line); background: transparent; touch-action: pan-y pinch-zoom; }
+.report-exhibit__panel { position: relative; flex: 1 1 0; min-width: 0; overflow: hidden; contain: layout paint; border-right: 1px solid var(--exhibit-line); background: transparent; transition: flex-grow 360ms var(--exhibit-ease); }
 .report-exhibit__panel:last-child { border-right: 0; }
 .report-exhibit__panel[data-active=true] { flex-grow: 3.5; }
 .report-exhibit__panel-number { position: absolute; top: 20px; left: 24px; color: #abc3d4; font-size: 10px; letter-spacing: .08em; }
-.report-exhibit__paper { position: absolute; width: 272px; aspect-ratio: 210/297; top: 48px; left: 50%; transform: translateX(-50%) perspective(1000px) rotateY(-24deg) translateY(4px) scale(.76); opacity: .2; background: #f5f5f3; box-shadow: 0 20px 32px rgb(0 0 0 / 28%),3px 0 0 #bcc3c5; transition: transform 700ms var(--exhibit-ease), opacity 450ms ease; }
+.report-exhibit__paper { position: absolute; width: 272px; aspect-ratio: 210/297; top: 48px; left: 50%; transform: translateX(-50%) perspective(1000px) rotateY(-24deg) translateY(4px) scale(.76); opacity: .2; background: #f5f5f3; box-shadow: 0 20px 32px rgb(0 0 0 / 28%),3px 0 0 #bcc3c5; transition: transform 360ms var(--exhibit-ease), opacity 280ms ease; }
 .report-exhibit__paper img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .report-exhibit__panel[data-active=true] .report-exhibit__paper { transform: translateX(-50%) perspective(1000px) rotateY(0) translateY(0) scale(1); opacity: 1; }
-.report-exhibit__spine { position: absolute; z-index: 2; inset: auto 24px 24px; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; color: #afc7d7; font-size: 23px; line-height: 1.4; font-weight: 450; letter-spacing: -.045em; word-break: keep-all; overflow-wrap: anywhere; transition: opacity 220ms, transform 420ms var(--exhibit-ease); }
+.report-exhibit__spine { position: absolute; z-index: 2; inset: auto 24px 24px; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; color: #afc7d7; font-size: 19px; line-height: 1.4; font-weight: 450; letter-spacing: -.045em; word-break: keep-all; overflow-wrap: anywhere; transition: opacity 220ms, transform 360ms var(--exhibit-ease); }
 .report-exhibit__spine > span { min-width: 0; }
 .report-exhibit__spine, .report-exhibit__cover-action span { text-shadow: 0 1px 6px rgb(0 0 0 / 65%); }
 .report-exhibit__spine svg { flex-shrink: 0; margin-bottom: 5px; }
@@ -37,8 +37,8 @@
 .report-exhibit__cover-action { display: flex; justify-content: center; align-items: flex-end; padding-bottom: 24px; }
 .report-exhibit__cover-action span { display: flex; align-items: center; gap: 16px; color: #d9eafa; font-size: 12px; }
 .report-exhibit__cover-action svg { transition: transform 180ms; }
-.report-exhibit__detail { display: flex; align-items: center; min-height: 120px; padding: 16px 0 24px; }
-.report-exhibit__caption { min-width: 0; animation: exhibit-caption 450ms var(--exhibit-ease) both; }
+.report-exhibit__detail { display: flex; align-items: center; min-height: 104px; padding: 16px 0 24px; }
+.report-exhibit__caption { min-width: 0; animation: exhibit-caption 320ms var(--exhibit-ease) both; }
 .report-exhibit__meta { display: flex; margin-top: 12px; gap: 16px; flex-wrap: wrap; color: #9cb8cc; font-size: 11px; line-height: 1.6; }
 .report-exhibit__meta span+span { padding-left: 16px; border-left: 1px solid var(--exhibit-line); }
 .report-exhibit__caption h3 { margin: 0; color: #eef5fa; font-size: 23px; font-weight: 450; line-height: 1.5; letter-spacing: -.025em; word-break: keep-all; overflow-wrap: anywhere; }
@@ -69,7 +69,7 @@
   .report-exhibit__edition { margin-top: 32px; gap: 12px; font-size: 10px; flex-wrap: wrap; }
   .report-exhibit__selectors { gap: 0; }
   .report-exhibit__selectors button { min-height: 68px; padding: 12px 4px; flex-direction: column; justify-content: center; gap: 6px; text-align: center; }
-  .report-exhibit__selectors button > span:not(.report-exhibit__index) { font-size: 11px; max-width: 100%; }
+  .report-exhibit__selectors button > span:not(.report-exhibit__index) { font-size: 13px; line-height: 1.5; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
   .report-exhibit__selectors button > svg { display: none; }
   .report-exhibit__selectors button::after { inset-inline: 8px; }
   .report-exhibit__index { font-size: 9px; }
@@ -81,16 +81,20 @@
   .report-exhibit__panel-number { top: 12px; left: 12px; font-size: 9px; }
   .report-exhibit__spine, .report-exhibit__panel-action { display: none; }
   .report-exhibit__cover-action { padding-bottom: 20px; }
-  .report-exhibit__detail { align-items: flex-start; min-height: 128px; }
+  .report-exhibit__detail { align-items: flex-start; min-height: 112px; }
   .report-exhibit__caption { min-height: 88px; animation-duration: 300ms; }
   .report-exhibit__caption h3 { font-size: 20px; line-height: 1.5; }
   .report-exhibit__meta { gap: 12px; font-size: 10px; }
   .report-exhibit__meta span+span { padding-left: 12px; }
 }
 @media (max-width:359px) {
-  .report-exhibit__selectors button > span:not(.report-exhibit__index) { display: flex; align-items: center; justify-content: center; min-height: 30px; font-size: 10px; line-height: 15px; white-space: normal; overflow-wrap: anywhere; }
+  .report-exhibit__selectors button > span:not(.report-exhibit__index) { display: flex; align-items: center; justify-content: center; min-height: 30px; font-size: 12px; line-height: 18px; white-space: normal; overflow-wrap: anywhere; }
 }
 @media (prefers-reduced-motion:reduce) {
   .report-exhibit *, .report-exhibit *::after { animation: none !important; transition: none !important; }
   .report-exhibit__paper { transform: translateX(-50%) !important; }
 }
+/* Large editions keep every report selectable without squeezing the page. */
+.report-exhibit[data-many] .report-exhibit__selectors { display: flex; overflow-x: auto; overscroll-behavior-x: contain; }
+.report-exhibit[data-many] .report-exhibit__selectors button { flex: 0 0 clamp(120px,18vw,200px); }
+.report-exhibit[data-many] .report-exhibit__panel { border: 0; }

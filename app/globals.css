@@ -174,7 +174,7 @@
 /* An uninterrupted reading column; the scrim fades into the existing photograph. */
 .notice-detail { max-width: 51rem; }
 .notice-article { position: relative; isolation: isolate; padding-block: .75rem 1rem; }
-.notice-article::before { content: ""; position: absolute; z-index: -1; pointer-events: none; inset: -2rem -1.5rem -3rem; background: linear-gradient(90deg, transparent, rgb(10 20 28 / .38) 15%, rgb(10 20 28 / .38) 85%, transparent); mask-image: linear-gradient(transparent, black 5rem, black calc(100% - 4rem), transparent); }
+.notice-article::before { content: ""; position: absolute; z-index: -1; pointer-events: none; inset: -2rem -1.5rem -3rem; background: linear-gradient(90deg, transparent, rgb(10 20 28 / .5) 15%, rgb(10 20 28 / .5) 85%, transparent); mask-image: linear-gradient(transparent, black 5rem, black calc(100% - 4rem), transparent); }
 .notice-article-header { max-width: 43rem; margin-inline: auto; padding-bottom: 2rem; border-bottom: 1px solid var(--site-line); }
 .notice-article-title { margin-top: 1rem; color: white; font-size: clamp(1.75rem,3.6vw,2.625rem); font-weight: 400; line-height: 1.4; letter-spacing: -.035em; text-wrap: balance; overflow-wrap: anywhere; }
 .notice-article-meta { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: .75rem; row-gap: .25rem; margin-top: 1.5rem; color: var(--site-muted); font-size: .8125rem; }
@@ -301,3 +301,6 @@ html[data-network-transition]::view-transition-new(network-content) { height: au
 .public-loading__shapes span:last-child { width: 60%; }
 @keyframes public-loading-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .public-loading__status::before { animation: none; border-style: dotted; } }
+
+.pdf-preparation-status { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin: 0; padding: 8px 12px; color: #cbd5e1; font-size: 12px; line-height: 1.5; }
+.pdf-preparation-status.is-complete::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #b6ccc2; }

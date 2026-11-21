@@ -318,3 +318,8 @@
   max-width: 750px;
   margin: auto;
 }
+
+.storage-return { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+.storage-return strong { color: var(--ink); font-weight: 600; }
+.storage-return p { margin: 4px 0 0; }
+.storage-return button { min-height: var(--control-height); flex-shrink: 0; }

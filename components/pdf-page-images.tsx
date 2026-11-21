@@ -45,7 +45,7 @@ export function PdfPageImages({state,identity,page,pageCount,pagesPerView=1,widt
   const sheetWidth=paperWidth*pagesPerView+PDF_PAGE_GAP*(pagesPerView-1)
   const pending=!ready
   return <div data-pdf-prepared-pages={state.entries.length} data-pdf-cache-bytes={state.entries.reduce((sum, entry) => sum + entry.bytes, 0)} data-pdf-preparation={state.complete ? 'complete' : state.limited ? 'limited' : onDemand ? 'on-demand' : 'preparing'}>
-    <p className="border-b border-white/10 px-4 py-2 text-xs text-slate-300" role="status">
+    <p className={`pdf-preparation-status${state.complete ? " is-complete" : ""}`} role="status">
       {state.complete ? '전체 페이지 준비 완료' : state.limited || state.failed.length || onDemand ? '준비된 페이지부터 읽을 수 있습니다' : `페이지 준비 중 · ${state.entries.length}`}
     </p>
     <div className="relative flex items-start justify-center" data-pdf-visible-page={shown?.start??''}

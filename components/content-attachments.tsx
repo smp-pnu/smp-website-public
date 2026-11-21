@@ -18,7 +18,7 @@ export function ContentAttachments({ item }: { item: ContentItem }) {
       const url = `/api/content/${kind}/${item.id}/pdf?${file.query}`
       return <div key={file.query} className="mt-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h3 className="min-w-0 break-words text-sm text-slate-200">{file.name}</h3>
+          <div className="min-w-0"><h3 className="text-sm text-slate-200">PDF 원문</h3><p className="mt-1 break-words text-xs text-site-muted">{file.name}</p></div>
           {/* The first research PDF already has a download action in the header. */}
           {(kind !== "research" || index > 0) && <a href={`${url}&download=1`} download className="shrink-0 rounded-md bg-sky-300 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-sky-200">PDF 다운로드 ↓</a>}
         </div>

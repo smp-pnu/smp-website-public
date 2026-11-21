@@ -71,9 +71,9 @@
 .notice-save-status {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   margin-right: 8px;
 }
 .notice-workspace-grid {
@@ -586,3 +586,11 @@
 }
 
 .notice-heading > button { min-width: var(--control-height); }
+
+@media (max-width: 960px) {
+  .notice-workspace-header { display: contents; }
+  .notice-heading { margin-bottom: 16px; }
+  .notice-publish-actions { position: sticky; top: 0; z-index: 15; padding-block: 12px; margin-bottom: 16px; border-bottom: 1px solid var(--line); background: var(--page); }
+  .notice-save-status { margin-right: 0; }
+  .notice-toolbar { position: relative; top: auto; }
+}

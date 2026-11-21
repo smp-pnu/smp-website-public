@@ -168,7 +168,7 @@ function Attachments({ item }: { item: PreparedItem }) {
         return (
           <div key={pdf.query} className="mt-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <h3 className="text-sm text-site-body">{pdf.name}</h3>
+              <div className="min-w-0"><h3 className="text-sm text-site-body">PDF 원문</h3><p className="mt-1 break-words text-xs text-site-muted">{pdf.name}</p></div>
               {(item.kind !== "research" || index > 0) && (
                 <a
                   href={`${url}&download=1`}

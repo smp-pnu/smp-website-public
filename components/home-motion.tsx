@@ -15,16 +15,19 @@ export function HomeEntrance({ children, className = "", id }: {
     const element = root.current
     if (!element || !("IntersectionObserver" in window)) return
     const preference = window.matchMedia("(prefers-reduced-motion: reduce)")
+    let entered = false
     const observer = new IntersectionObserver(([entry]) => {
-      if (preference.matches) return
+      if (preference.matches || entered) return
       // Keep focused links visible, even when keyboard navigation skips a section.
       if (element.contains(document.activeElement)) {
         setPhase("static")
       } else if (!entry.isIntersecting && (entry.boundingClientRect.bottom <= 0 || entry.boundingClientRect.top >= window.innerHeight)) {
-        // Re-arm only after fully leaving the viewport, not at the entry threshold.
+        // Prepare the first entrance only; returning readers keep stable content.
         setPhase("waiting")
       } else if (entry.intersectionRatio >= 0.2) {
+        entered = true
         setPhase("entered")
+        observer.disconnect()
       }
     }, { threshold: [0, 0.2] })
     const syncPreference = () => {

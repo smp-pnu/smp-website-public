@@ -22,6 +22,7 @@ export function ResearchShowcase({ items, pending = false, error }: {
   const [selectedId, setSelectedId] = useState<string>()
   const index = Math.max(0, items.findIndex(item => item.id === selectedId))
   const active = items[index]
+  const many = items.length > 6
   const buttons = useRef<(HTMLButtonElement | null)[]>([])
   const [direction, setDirection] = useState(1)
   const touch = useRef<{ x: number; y: number } | null>(null)
@@ -43,7 +44,7 @@ export function ResearchShowcase({ items, pending = false, error }: {
     select(next, true)
   }
 
-  return <section id="latest-research" className="report-exhibit" aria-labelledby="report-exhibit-heading">
+  return <section id="latest-research" className="report-exhibit" data-many={many || undefined} aria-labelledby="report-exhibit-heading">
     <div className="report-exhibit__inner">
       <header className="report-exhibit__heading">
         <div><p className="report-exhibit__eyebrow">LATEST RESEARCH</p><h2 id="report-exhibit-heading">우리가 발견한 기업의 가치를<br className="report-exhibit__break" /> 확인해보세요.</h2></div>
@@ -71,13 +72,13 @@ export function ResearchShowcase({ items, pending = false, error }: {
             const x = end.clientX - start.x, y = end.clientY - start.y
             if (Math.abs(x) > 48 && Math.abs(x) > Math.abs(y) * 1.5) { swiped.current = true; select(index + (x < 0 ? 1 : -1)) }
           }} onTouchCancel={() => { touch.current = null }}>
-          {items.map((item, i) => <div key={item.id} className="report-exhibit__panel" data-active={i === index}>
+          {(many ? items.slice(index, index + 1) : items).map((item, position) => { const i = many ? index : position; return <div key={item.id} className="report-exhibit__panel" data-active={i === index}>
             <span className="report-exhibit__panel-number" aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
             <div className="report-exhibit__paper"><ShowcaseCover url={item.cover?.url} title={item.title} /></div>
             <span className="report-exhibit__spine" aria-hidden="true"><span>{companyName(item)}</span><ArrowUpRight size={20} /></span>
             {i === index ? <Link href={contentHref(item)} prefetch={false} className="report-exhibit__cover-action" onClick={event => { if (swiped.current) { event.preventDefault(); swiped.current = false } }} aria-label={`${companyName(item)} 리포트 읽기`}><span>리포트 읽기<ArrowUpRight size={16} aria-hidden="true" /></span></Link>
               : <button type="button" tabIndex={-1} className="report-exhibit__panel-action" aria-label={`${companyName(item)} 표지 펼치기`} onClick={() => select(i)} />}
-          </div>)}
+          </div>})}
         </div>
         <div className="report-exhibit__selectors" role="group" aria-label="최신 리포트 선택" style={{ "--report-count": items.length } as CSSProperties}>
           {items.map((item, i) => <button key={item.id} ref={node => { buttons.current[i] = node }} type="button" aria-pressed={i === index} aria-controls="report-exhibit-detail" onClick={() => select(i)} onKeyDown={event => onKeyDown(event, i)}>

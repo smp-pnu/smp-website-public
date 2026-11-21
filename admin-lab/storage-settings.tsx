@@ -77,7 +77,11 @@ export function StorageSettings({
         </p>
       )}
       {message&&<p className="success-panel" role="status">{message}</p>}
-      {onReturnUpload&&<div className="settings-note"><p>리포트 등록에서 저장소 연결을 확인하고 있습니다. 연결을 마친 뒤 등록을 계속하세요. 선택했던 파일은 다시 선택해야 합니다.</p><button disabled={busy||!status?.connected||status.pending} onClick={onReturnUpload}>리포트 등록 계속하기</button></div>}
+      {onReturnUpload && status && <div className="settings-note storage-return">
+        <div><strong>{status.connected && !status.pending ? "저장소가 연결되어 있습니다" : "저장소 연결 후 등록을 이어가세요"}</strong>
+          <p>{status.connected && !status.pending ? "리포트 등록 화면으로 돌아가 PDF를 선택해 주세요." : "아래에서 연결을 완료하면 리포트 등록으로 돌아갈 수 있습니다."}</p></div>
+        <button disabled={busy || !status.connected || status.pending} onClick={onReturnUpload}>리포트 등록 계속하기</button>
+      </div>}
       {status?.pending&&<p className="settings-note" role="status">Google 승인은 받았지만 아직 연결을 저장하지 않았습니다. 아래 ‘Drive 연결 완료’를 눌러 주세요.</p>}
       {!status ? (
         <LoadingState label="저장소 상태를 확인하는 중…" />

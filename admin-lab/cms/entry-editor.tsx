@@ -57,7 +57,7 @@ export function EntryEditor({
         </button>
         <span className={`status-badge ${dirty ? "edited" : statusTone(selected)}`}>{dirty ? "저장 전 변경" : status(selected)}</span>
       </div>
-      <header className="page-heading">
+      <header className="page-heading cms-editor-heading">
         <div>
           <h1>{names[section]} 편집</h1>
           <p>
@@ -66,7 +66,7 @@ export function EntryEditor({
               : "저장한 초안은 게시 버튼을 눌러야 공개됩니다."}
           </p>
         </div>
-        <div className="cms-actions">
+        <div className="cms-actions cms-editor-actions" aria-label="편집 내용 저장·게시">
           {section === "research" && (
             <button
               disabled={busy || dirty || !!selected.trashedAt}
@@ -81,7 +81,7 @@ export function EntryEditor({
       <PublicationFeedback entry={selected} />
       {dirty && (
         <p className="field-help" role="status">
-          수정한 내용을 ‘초안 저장’한 뒤 ‘게시’를 누르면 사이트에 반영됩니다.
+          변경 내용을 먼저 저장한 뒤 게시해 주세요. 저장만 하면 현재 공개본은 유지됩니다.
         </p>
       )}
       <fieldset className="cms-form" disabled={busy || !!selected.trashedAt}>

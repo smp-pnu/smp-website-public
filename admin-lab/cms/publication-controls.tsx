@@ -7,8 +7,8 @@ export function publicationState(entry: Entry, dirty: boolean, busy = false, inv
     saveDisabled: busy || !dirty || !!entry.trashedAt || invalid,
     publishDisabled: busy || dirty || !!entry.trashedAt || invalid ||
       (entry.pending && !entry.error) || current,
-    // Unsaved edits must not still describe the form as already published.
-    label: dirty ? "게시" : entry.error ? "다시 게시" : entry.pending ? "게시 준비 중" : current ? "게시됨" : "게시",
+    // State belongs in the badge; the button always describes an action.
+    label: !dirty && entry.error ? "다시 게시" : !dirty && entry.pending ? "게시 준비 중" : entry.approvedRevision ? "변경사항 게시" : "게시",
   };
 }
 
