@@ -65,6 +65,10 @@ If a client does not load project settings, register the same wrapper with
 Verify it with `codex mcp get smp_browser_qa`; an already-running chat does not
 automatically gain newly configured tools. The browser suite also tests the MCP
 handshake, navigation and page snapshot through a separate local client.
+On GitHub's Linux runner this MCP check uses the runner-installed stable Chrome
+at `/opt/google/chrome/chrome`, which has Ubuntu's AppArmor policy. Chromium
+sandboxing stays enabled; no host security settings are changed. Other browser
+checks use the pinned Playwright Chromium download.
 
 For interactive exploration, start `node tests/e2e/public-server.mjs` and/or
 `node --import tsx tests/e2e/admin-server.mjs` in separate terminals, then ask
