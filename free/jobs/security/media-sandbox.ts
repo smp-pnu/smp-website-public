@@ -36,6 +36,8 @@ export async function mediaTask<T>(task:'approved'|'cover'|'pack'|'optimize'|'im
   const base=await mkdtemp(path.join(tmpdir(),'smp-media-task-')),input=path.join(base,'input'),output=path.join(base,'output'),name=`smp-media-${crypto.randomUUID()}`
   try {
     await mkdir(input);await mkdir(output)
+    // Nested bind targets must exist before the input tree becomes read-only.
+    await mkdir(path.join(input,'node_modules'))
     await writeFile(path.join(input,'source'),data)
     await writeFile(path.join(input,'request.json'),JSON.stringify({task,metadata}))
     await build({entryPoints:[path.join(root,'scripts/media-task.ts')],outfile:path.join(input,'task.mjs'),bundle:true,platform:'node',format:'esm',packages:'external',logLevel:'silent'})
