@@ -1,0 +1,6 @@
+# Local synthetic QA only. No personal browser profile or production login.
+[mcp_servers.smp_browser_qa]
+command = "node"
+args = ["scripts/qa-mcp.mjs"]
+startup_timeout_sec = 30
+tool_timeout_sec = 60

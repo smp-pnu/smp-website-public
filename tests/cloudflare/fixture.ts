@@ -25,15 +25,17 @@ function page(index: number, kind: "research" | "notice") {
       "외부 링크": { url: `https://drive.google.com/file/d/fixture-report-${index}/view` },
     } }
 }
-const pdfText = "BT /F1 24 Tf 50 700 Td (SMP migration test PDF) Tj ET"
-const objects = ["<< /Type /Catalog /Pages 2 0 R >>", "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-  "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
-  "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", `<< /Length ${pdfText.length} >>\nstream\n${pdfText}\nendstream`]
+const objects = ["<< /Type /Catalog /Pages 2 0 R >>", "<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R] /Count 3 >>",
+  "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"]
+for (let page = 1; page <= 3; page++) {
+  const text = `BT /F1 24 Tf 40 722 Td (SMP QA PAGE ${page}) Tj 0 -50 Td /F1 16 Tf (Synthetic browser test only) Tj ET`
+  objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents ${objects.length + 2} 0 R >>`, `<< /Length ${text.length} >>\nstream\n${text}\nendstream`)
+}
 let pdf = "%PDF-1.4\n"
 const offsets: number[] = []
 objects.forEach((object, index) => { offsets.push(pdf.length); pdf += `${index + 1} 0 obj\n${object}\nendobj\n` })
 const xref = pdf.length
-pdf += `xref\n0 6\n0000000000 65535 f \n${offsets.map(n => `${String(n).padStart(10, "0")} 00000 n \n`).join("")}trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`
+pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.map(n => `${String(n).padStart(10, "0")} 00000 n \n`).join("")}trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`
 
 export const upstreamFetch: typeof fetch = async (input, init) => {
   const url = new URL(typeof input === "string" || input instanceof URL ? input : input.url)
@@ -43,9 +45,9 @@ export const upstreamFetch: typeof fetch = async (input, init) => {
     if (range) {
       const start = Number(range[1]), end = Math.min(Number(range[2] || pdf.length - 1), pdf.length - 1)
       if (start >= pdf.length) return new Response(null, { status: 416, headers: { "content-range": `bytes */${pdf.length}` } })
-      return new Response(pdf.slice(start, end + 1), { status: 206, headers: { "content-type": "application/pdf", "content-range": `bytes ${start}-${end}/${pdf.length}`, "accept-ranges": "bytes", "content-length": String(end - start + 1) } })
+      return new Response(pdf.slice(start, end + 1), { status: 206, headers: { "content-type": "application/pdf", "content-range": `bytes ${start}-${end}/${pdf.length}`, "accept-ranges": "bytes", "content-length": String(end - start + 1), "last-modified": "Thu, 01 Jan 2026 00:00:00 GMT" } })
     }
-    return new Response(pdf, { headers: { "content-type": "application/pdf", "accept-ranges": "bytes", "content-length": String(pdf.length) } })
+    return new Response(pdf, { headers: { "content-type": "application/pdf", "accept-ranges": "bytes", "content-length": String(pdf.length), "last-modified": "Thu, 01 Jan 2026 00:00:00 GMT" } })
   }
   if (url.hostname === "drive.google.com" && url.pathname === "/thumbnail") return new Response(null, { status: 404 })
   if (url.origin !== "https://api.notion.com") return originalFetch(input, init)
