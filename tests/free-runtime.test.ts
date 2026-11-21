@@ -392,6 +392,7 @@ test('manual library preparation has a separate finite budget and keeps normal p
 
 
 test('unknown public API paths and denied methods or origins do not touch D1',async()=>{
+ Object.assign(globalThis,{__SMP_FIXTURE__:true})
  const worker=(await import('../free/server/worker')).default
  let reads=0
  const env={CMS_DB:{prepare(){reads++;throw Error('Unexpected D1 lookup')}},ASSETS:{fetch}} as unknown as Env

@@ -1,9 +1,10 @@
 // Authenticated CMS CRUD against real workerd/D1. Only disposable local data.
 import assert from 'node:assert/strict'
+import {trashPurpose} from '../admin-cloud/trash-authorization.ts'
 import sharp from 'sharp'
 import {sortContent} from '../lib/content-model.ts'
 import {runCmsBatch} from '../admin-lab/cms-bulk.ts'
-export async function checkCmsManagement({call,cms,mf,origin,jar,csrf}) {
+export async function checkCmsManagement({call,cms,mf,origin,jar,csrf,device}) {
   const published=async(kind)=>JSON.parse((await cms.prepare('SELECT body FROM free_documents WHERE name=?').bind(kind).first()).body).items
   const notice=title=>({item:{id:'',kind:'notice',title,date:'2020-01-01',summary:'',author:'SMP',category:'공지',pinned:false,externalUrl:null,attachments:[]},blocks:[],cover:null})
   const a=await(await call('/api/cms/notice','POST',notice('CMS full flow A'))).json()
@@ -82,7 +83,12 @@ export async function checkCmsManagement({call,cms,mf,origin,jar,csrf}) {
   assert.ok((await(await call('/api/dashboard/trash')).json()).items.some(e=>e.id===disposable.id))
   assert.equal((await mf.dispatchFetch(origin+'/api/dashboard/trash')).status,401)
   assert.equal((await mf.dispatchFetch(origin+'/api/dashboard/trash',{method:'POST',headers:{Origin:origin,Cookie:jar.read(),'Content-Type':'application/json','X-CSRF-Token':'incorrect'},body:JSON.stringify(trashInput)})).status,403)
-  assert.equal((await(await call('/api/dashboard/trash','POST',trashInput)).json()).removed,true)
+  assert.equal((await mf.dispatchFetch(origin+'/api/dashboard/trash',{method:'POST',headers:{Origin:origin,Cookie:jar.read(),'Content-Type':'application/json','X-CSRF-Token':csrf},body:JSON.stringify(trashInput)})).status,403)
+  const items=[{id:disposable.id,revision:2}],purpose=await trashPurpose(items)
+  const options=await(await call('/api/auth/reauth/options','POST',{purpose})).json()
+  const {stepUpToken}=await(await call('/api/auth/reauth/verify','POST',{response:device.authenticate(options,origin)})).json()
+  const {token}=await(await call('/api/dashboard/trash/authorize','POST',{items,stepUpToken})).json()
+  assert.equal((await(await call('/api/dashboard/trash','POST',{...trashInput,token})).json()).removed,true)
   assert.equal(await cms.prepare('SELECT id FROM cms_entries WHERE id=?').bind(disposable.id).first(),null)
   assert.ok((await published('notice')).some(e=>e.id===a.id))
   console.log(JSON.stringify({cmsRuntime:'pass',checks:['session/CSRF','notice create/edit/approve','upload image','manual order','stale revision rejection','trash/restore stays private','member bulk import/private approval/replay','member CRUD and role ordering','public catalogue/search projection']}))

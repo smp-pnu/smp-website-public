@@ -82,7 +82,7 @@ try {
   assert.equal((await(await call('/api/cms/notice?q=runtime')).json()).total,1)
   await call(`/api/cms/entry/${cmsNotice.id}/withdraw`,'POST',{revision:1})
   assert.equal((await cms.prepare('SELECT count(*) n FROM free_content').first()).n,0)
-  await checkCmsManagement({call,cms,mf,origin,jar,csrf})
+  await checkCmsManagement({call,cms,mf,origin,jar,csrf,device})
   const dashboard = await(await call('/api/dashboard')).json()
   assert.ok(dashboard.value && !dashboard.stale)
   assert.equal(dashboard.value.storage.entries,(await cms.prepare('SELECT count(*) n FROM cms_entries').first()).n)
