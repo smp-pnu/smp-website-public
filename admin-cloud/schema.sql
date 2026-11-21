@@ -196,3 +196,8 @@ CREATE TABLE IF NOT EXISTS storage_inventory_snapshot (
   key TEXT PRIMARY KEY CHECK(key='files'),
   payload TEXT, checked_at INTEGER, refresh_after INTEGER NOT NULL, lease TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS admin_purge_batches (
+ hash TEXT PRIMARY KEY, session TEXT NOT NULL, epoch TEXT NOT NULL,
+ remaining TEXT NOT NULL, expires INTEGER NOT NULL
+);

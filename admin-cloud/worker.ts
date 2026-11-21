@@ -7,6 +7,7 @@ import type { Database } from "../cloudflare/bindings"
 import { HttpError, idPattern, object } from "../admin-server/validation"
 import { Passkeys, type AuthEnv } from "./auth"
 import { StepUp } from "./step-up"
+import { TrashAuthorization } from "./trash-authorization"
 import { Sessions } from "./session"
 import { chunkBytes, sha256 } from "./protocol"
 import { CloudStore } from "./store"
@@ -141,8 +142,12 @@ export function createHandler(clock = Date.now, driveFetch: DriveFetch = fetch) 
           } else if (path === "/api/dashboard/trash" && method === "GET") {
             if (!env.CMS_DB) throw new HttpError(409, "게시 관리 연결을 확인해 주세요.")
             response = json(await trashPreview(env.CMS_DB))
+          } else if (path === "/api/dashboard/trash/authorize" && method === "POST") {
+            response=json(await new TrashAuthorization(env.ADMIN_DB,now).create(request,await jsonBody(request,12000)))
           } else if (path === "/api/dashboard/trash" && method === "POST") {
-            response = json(await emptyTrashItem(env,await jsonBody(request,1024),now))
+            const input=await jsonBody(request,1024)
+            await new TrashAuthorization(env.ADMIN_DB,now).consume(request,input)
+            response = json(await emptyTrashItem(env,input,now))
           } else if (path === "/api/dashboard/drive" && method === "GET") {
             response = json(await driveCapacity(connection,env.DRIVE_REPORTS_FOLDER_ID))
           } else if (path === "/api/dashboard/cloudflare" && method === "GET") {

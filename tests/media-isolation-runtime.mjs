@@ -6,7 +6,7 @@ import {mediaTask} from '../free/jobs/security/media-sandbox.ts'
 import {prepareApprovedPdf,LocalPublicationAssets} from '../admin-publisher/assets.ts'
 import {publicationFixture} from './publication-fixture.ts'
 import {fileIdentity} from '../admin-cloud/protocol.ts'
-process.env.SMP_MEDIA_SANDBOX='1';process.env.SMP_SANDBOX_CANARY='fixture-only-not-a-secret'
+process.env.SMP_MEDIA_SANDBOX='1';process.env.SMP_MEDIA_TEST_DIAGNOSTICS='1';process.env.SMP_SANDBOX_CANARY='fixture-only-not-a-secret'
 const isolation=await mediaTask('probe',{},new Uint8Array(),async result=>result)
 assert.deepEqual(isolation,{network:true,noPrivileges:true,noCapabilities:true,readOnly:true,noSecrets:true})
 const f=await publicationFixture(),root=await mkdtemp(path.join(tmpdir(),'smp-isolated-test-'))

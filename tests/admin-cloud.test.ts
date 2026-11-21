@@ -1802,3 +1802,24 @@ test("image and PDF transport checks reject header-only impostors before committ
   assert.throws(()=>validateCover(real.subarray(0,-2),real.length-2))
  }finally{f.close()}
 })
+
+
+test('permanent trash approval binds the reviewed list, session, revision and one-time item use',async()=>{
+ const {TrashAuthorization,trashPurpose}=await import('../admin-cloud/trash-authorization')
+ const f=await fixture()
+ try{
+  await f.login()
+  const items=[{id:'a'.repeat(32),revision:1},{id:'b'.repeat(32),revision:2}],purpose=await trashPurpose(items)
+  const stepUpToken=await f.stepUp(purpose)
+  const response=await f.call('/api/dashboard/trash/authorize','POST',{items,stepUpToken})
+  assert.equal(response.status,200);const {token}=await response.json()
+  assert.equal((await f.call('/api/dashboard/trash/authorize','POST',{items,stepUpToken})).status,403)
+  const auth=new TrashAuthorization(f.env.ADMIN_DB,f.now),request=new Request(origin,{headers:{cookie:f.jar.read()}})
+  await assert.rejects(auth.consume(request,{token,id:items[0].id,revision:2}))
+  await assert.rejects(auth.consume(request,{token,id:'c'.repeat(32),revision:1}))
+  await auth.consume(request,{token,...items[0]})
+  await assert.rejects(auth.consume(request,{token,...items[0]}))
+  await assert.rejects(auth.consume(new Request(origin),{token,...items[1]}))
+  f.time(300001);await assert.rejects(new TrashAuthorization(f.env.ADMIN_DB,f.now).consume(request,{token,...items[1]}))
+ }finally{f.close()}
+})

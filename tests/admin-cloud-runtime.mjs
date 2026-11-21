@@ -101,7 +101,7 @@ try {
   console.log('PASS: authenticated operations dashboard aggregates, private responses and disconnected storage')
   // Optional real PDF path permits a local end-to-end transport check without publishing it.
   const source = process.argv[2] ? new Uint8Array(await readFile(process.argv[2])) : new Uint8Array(32*1024*1024).fill(32)
-  if (!process.argv[2]) { source.set(new TextEncoder().encode('%PDF-1.7\n'));source.set(new TextEncoder().encode('\n%%EOF\n'),source.length-7) }
+  if (!process.argv[2]) { source.set(new TextEncoder().encode('%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n'));source.set(new TextEncoder().encode('\n%%EOF\n'),source.length-7) }
   const cover = new Uint8Array(process.argv[3] ? await readFile(process.argv[3]) : await sharp({create:{width:1177,height:1700,channels:3,background:'white'}}).webp().toBuffer())
   const pages = process.argv[4] ? Number(process.argv[4]) : 27
   const started = performance.now()

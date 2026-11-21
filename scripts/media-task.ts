@@ -26,4 +26,4 @@ else if(task==='image') {
 await writeFile('/work/result.json',JSON.stringify(result??null))
 
 }
-void main().catch(()=>{console.error("Media validation failed");process.exitCode=1})
+void main().catch(error=>{console.error(error);process.exitCode=1})

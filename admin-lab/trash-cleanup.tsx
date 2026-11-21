@@ -1,4 +1,6 @@
 import { useState } from "react"
+import { reauthenticate } from "./reauthenticate"
+import { sha256 } from "../admin-cloud/protocol"
 import { Trash2 } from "lucide-react"
 import type { TrashItem } from "../cms/trash"
 import { api } from "./server-storage"
@@ -17,8 +19,12 @@ export function TrashCleanup({count,onComplete}:{count:number;onComplete:()=>voi
         `휴지통의 자료 ${preview.items.length}개와 해당 수정 이력을 영구 삭제합니다. 관리자에서 복원할 수 없습니다. 다른 글에서 사용하는 파일과 기존 Drive 원본은 보존하며, 관리자에 업로드한 PDF는 30일 보류 후 정리합니다.`,
         {title:"사이트 휴지통을 비울까요?",preview:preview.items.map(item=>item.title).join('\n'),previewLabel:"영구 삭제할 자료",acceptLabel:`${preview.items.length}개 영구 삭제`,cancelLabel:"취소"})
       if(!accepted)return
+      const items=preview.items.map(({id,revision})=>({id,revision}))
+      const purpose=`trash:purge:${await sha256(new TextEncoder().encode(JSON.stringify(items.map(v=>[v.id,v.revision]).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))))))}`
+      const stepUpToken=await reauthenticate(purpose)
+      const {token}=await(await api('/dashboard/trash/authorize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items,stepUpToken})})).json()
       for(const item of preview.items){
-        try{const result=await(await api('/dashboard/trash',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:item.id,revision:item.revision,confirm:'permanent-delete'})})).json();if(result.removed)removed++;if(result.cleanupPending)retained++}
+        try{const result=await(await api('/dashboard/trash',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:item.id,revision:item.revision,confirm:'permanent-delete',token})})).json();if(result.removed)removed++;if(result.cleanupPending)retained++}
         catch(error){failed++;if((error as {status?:number}).status!==409)break}
         setMessage(`${removed}개 정리 · ${failed}개 확인 필요`)
       }
@@ -30,7 +36,7 @@ export function TrashCleanup({count,onComplete}:{count:number;onComplete:()=>voi
     <button className="ops-text-button" disabled={busy||count===0} onClick={()=>void clean()}>
       {busy?<InlineLoading>정리 중…</InlineLoading>:<><Trash2 size={14}/> 사이트 휴지통 비우기</>}
     </button>
-    <p className="ops-footnote">삭제 대상 확인 후 게시 자료·이력을 정리합니다. Cloudflare에 저장된 사이트 휴지통이며, Google 휴지통과 별개입니다.</p>
+    <p className="ops-footnote">패스키로 본인 확인 후 선택한 자료·이력만 영구 삭제합니다. Cloudflare에 저장된 사이트 휴지통이며, Google 휴지통과 별개입니다.</p>
     {message&&<p className="ops-footnote" role="status">{message}</p>}
   </div>
 }

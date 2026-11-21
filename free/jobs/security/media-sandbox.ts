@@ -46,7 +46,7 @@ export async function mediaTask<T>(task:'approved'|'cover'|'pack'|'optimize'|'im
       '--mount',`type=bind,src=${path.join(root,'scripts')},dst=/work/scripts,readonly`,
       image,'node','--conditions=react-server','/input/task.mjs']
     try{await execute('docker',args,{timeout:240000,maxBuffer:65536,env:cleanEnv})}
-    catch{throw Error('Isolated media validation failed; previous publication retained')}
+    catch(error){if(process.env.SMP_MEDIA_TEST_DIAGNOSTICS==='1')console.error(String((error as {stderr?:string}).stderr??'').slice(0,8000));throw Error('Isolated media validation failed; previous publication retained')}
     const meta=await lstat(path.join(output,'result.json'))
     if(!meta.isFile()||meta.isSymbolicLink()||meta.size>65536)throw Error('Invalid media result')
     const result=JSON.parse(await readFile(path.join(output,'result.json'),'utf8')) as T,files:{url:string;bytes:Buffer}[]=[]
