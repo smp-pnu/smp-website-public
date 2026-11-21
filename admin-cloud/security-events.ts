@@ -1,5 +1,5 @@
 import type { Database } from "../cloudflare/bindings"
-export type SecurityAction = "key:add" | "key:remove" | "account:setup" | "account:recover" | "drive:rotate"
+export type SecurityAction = "key:add" | "key:remove" | "account:setup" | "account:recover" | "drive:rotate" | "login:success"
 // Fixed event names and timestamps only: never keys, IPs, email or PDF content.
 // Both time and count caps keep this small on the Free database.
 export function securityEventStatements(db: Database, now: number, action: SecurityAction, credentialId?: string) {

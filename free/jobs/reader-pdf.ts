@@ -7,6 +7,8 @@ import { createHash } from "node:crypto"
 import { readerPdfChunkBytes, readerPdfChunkedMaxBytes, readerPdfParts } from "../../lib/report-reader"
 
 import { firstPageChunks } from "./reader-start"
+import {isolatedMedia,mediaTask,saveSandboxAssets} from './security/media-sandbox'
+import type {ReaderPdf} from '../../lib/report-reader'
 
 const execute = promisify(execFile)
 let pythonReady: Promise<string> | undefined
@@ -29,6 +31,7 @@ function python() {
 }
 export async function optimizeReaderPdf(id: string, bytes: Uint8Array) {
   if (!/^[a-f0-9]{32}$/.test(id) || bytes.length > 128 * 1024 * 1024) throw new Error("Invalid PDF optimization input")
+  if(isolatedMedia())return mediaTask<ReaderPdf|undefined>('optimize',{id},bytes,saveSandboxAssets)
   const binary = await python(), dir = await mkdtemp(join(tmpdir(), "smp-reader-"))
   try {
     const input=join(dir,"original.pdf"), output=join(dir,"reader.pdf")

@@ -64,6 +64,7 @@ export async function renderReaderPackPages(data: Uint8Array, save: (page: Rende
 async function renderPages(data: Uint8Array, count: number, signal: AbortSignal, save?: (page: RenderedPage) => Promise<void>) {
   signal.throwIfAborted()
   const task = getDocument({ data: new Uint8Array(data), useSystemFonts: false,
+    stopAtErrors: true,
     cMapUrl: `${assetPath}/cmaps/`, cMapPacked: true,
     standardFontDataUrl: `${assetPath}/standard_fonts/`, wasmUrl: `${assetPath}/wasm/`,
   })
@@ -72,6 +73,10 @@ async function renderPages(data: Uint8Array, count: number, signal: AbortSignal,
   let canvas: Canvas | undefined
   try {
     const doc = await task.promise
+    if(doc.numPages<1||doc.numPages>pagePackMaxPages)throw new Error("Report exceeds prepared page limit")
+    // Reports do not need executable actions or embedded attachments. Keep the
+    // previous publication if validation fails; never accept just a PDF header.
+    if(await doc.hasJSActions() || await doc.getAttachments())throw new Error("Active PDF content is not supported")
     const pages: RenderedPage[]=[]
     if (save && doc.numPages > pagePackMaxPages) throw new Error("Report exceeds prepared page limit")
     for (let number=1;number<=Math.min(count,doc.numPages);number++) {

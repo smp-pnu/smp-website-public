@@ -12,6 +12,7 @@ import {
   warnings,
 } from "../admin-server/validation"
 import { chunkBytes, coverLimit, manifestHash } from "./protocol"
+import { validateCover } from "./files"
 import { guardedBatch } from "./transaction"
 import { ReportVersions, storageBytesSql, retentionMs } from "./report-versions"
 import { adminDailyRequests } from "./operation-limits"
@@ -288,6 +289,8 @@ export class CloudStore {
     }
     if ((await manifestHash(pdf)) !== row.hash)
       throw new HttpError(400, "PDF 전송 검증에 실패했어요. 원본을 다시 선택해 주세요.")
+    const coverParts = await this.parts(id,"cover",true)
+    validateCover(Buffer.concat(coverParts.map(p=>Buffer.from(p.data!,"base64"))),row.cover_bytes)
     // Read only the ends of the last two chunks: %%EOF may straddle their boundary.
     const tails = await this.db
       .prepare(

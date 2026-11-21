@@ -389,3 +389,15 @@ test('manual library preparation has a separate finite budget and keeps normal p
   assert.equal(sqlite.prepare("SELECT count FROM free_budget WHERE key LIKE 'prepare-day:%'").get()!.count,1)
  } finally {sqlite.close()}
 })
+
+
+test('unknown public API paths and denied methods or origins do not touch D1',async()=>{
+ Object.assign(globalThis,{__SMP_FIXTURE__:true})
+ const worker=(await import('../free/server/worker')).default
+ let reads=0
+ const env={CMS_DB:{prepare(){reads++;throw Error('Unexpected D1 lookup')}},ASSETS:{fetch}} as unknown as Env
+ for(const [path,method,headers,status] of [
+  ['/api/anything','GET',{},404],['/api/search','POST',{},405],['/api/catalog/research','GET',{'sec-fetch-site':'cross-site','sec-fetch-mode':'cors'},403],
+ ] as const){const response=await worker.fetch(new Request('https://pnusmp.com'+path,{method,headers}),env,{waitUntil(){}});assert.equal(response.status,status)}
+ assert.equal(reads,0)
+})

@@ -8,6 +8,7 @@ import { sha256 } from "./protocol"
 import { limitAuth, type AuthLimiter } from "./auth-limit"
 import { StepUp, sessionBinding, securityPurpose } from "./step-up"
 import { securityEventStatements } from "./security-events"
+import { authBudget } from "./auth-budget"
 
 export type AuthEnv = SessionEnv & { ORIGIN: string; SETUP_TOKEN_HASH?: string; AUTH_LIMITER: AuthLimiter }
 type Credential = { id: string; public_key: string; counter: number; label: string; created: number }
@@ -71,7 +72,12 @@ export class Passkeys {
   }
   async handle(request: Request, body: () => Promise<unknown>): Promise<Response | null> {
     const path = new URL(request.url).pathname, method = request.method
-    if (path.startsWith("/api/auth/")) await limitAuth(request, this.env.AUTH_LIMITER, this.env.SESSION_SIGNING_KEY!)
+    if (path.startsWith("/api/auth/")) {
+      const known = method === "GET" ? ["/api/auth/status","/api/auth/keys"] : method === "POST" ? ["/api/auth/register/options", "/api/auth/register/verify", "/api/auth/login/options", "/api/auth/login/verify", "/api/auth/keys/remove", "/api/auth/reauth/options", "/api/auth/reauth/verify"] : []
+      if (!known.includes(path)) throw new HttpError(404,"요청한 기능이 없어요.")
+      await limitAuth(request, this.env.AUTH_LIMITER, this.env.SESSION_SIGNING_KEY!)
+      if (path !== "/api/auth/keys") await authBudget(this.env.ADMIN_DB,path,this.now)
+    }
     if (path === "/api/auth/status" && method === "GET") {
       if (!this.env.SESSION_SIGNING_KEY || !this.env.SETUP_TOKEN_HASH) throw new HttpError(503, "로그인 설정을 준비 중입니다.")
       return responseJSON({ setupRequired: !await this.state() })
@@ -168,6 +174,7 @@ export class Passkeys {
       const flow = await this.consume(request)
       if (flow.kind !== "login" || flow.authority !== await this.state()) throw denied()
       const row = await this.verifyAssertion(data.response, flow.challenge)
+      await this.env.ADMIN_DB.batch(securityEventStatements(this.env.ADMIN_DB,this.now,"login:success",row.id))
       return this.complete(row.id)
     }
     await this.authorize(request)

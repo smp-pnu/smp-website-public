@@ -6,7 +6,7 @@ import { sha256 } from "./protocol"
 const digest = (value: string) => sha256(new TextEncoder().encode(value))
 export const sessionBinding = (request: Request) => digest(cookie(request, cookieName))
 export function securityPurpose(value: unknown) {
-  if (typeof value !== "string" || !(value === "key:add" || value === "drive:rotate" || /^key:remove:[A-Za-z0-9_-]{1,1024}$/.test(value)))
+  if (typeof value !== "string" || !(value === "key:add" || value === "drive:rotate" || /^trash:purge:[a-f0-9]{64}$/.test(value) || /^key:remove:[A-Za-z0-9_-]{1,1024}$/.test(value)))
     throw new HttpError(400, "본인 확인 작업을 다시 선택해 주세요.")
   return value
 }

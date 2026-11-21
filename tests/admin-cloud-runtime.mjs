@@ -82,7 +82,7 @@ try {
   assert.equal((await(await call('/api/cms/notice?q=runtime')).json()).total,1)
   await call(`/api/cms/entry/${cmsNotice.id}/withdraw`,'POST',{revision:1})
   assert.equal((await cms.prepare('SELECT count(*) n FROM free_content').first()).n,0)
-  await checkCmsManagement({call,cms,mf,origin,jar,csrf})
+  await checkCmsManagement({call,cms,mf,origin,jar,csrf,device})
   const dashboard = await(await call('/api/dashboard')).json()
   assert.ok(dashboard.value && !dashboard.stale)
   assert.equal(dashboard.value.storage.entries,(await cms.prepare('SELECT count(*) n FROM cms_entries').first()).n)
@@ -101,7 +101,7 @@ try {
   console.log('PASS: authenticated operations dashboard aggregates, private responses and disconnected storage')
   // Optional real PDF path permits a local end-to-end transport check without publishing it.
   const source = process.argv[2] ? new Uint8Array(await readFile(process.argv[2])) : new Uint8Array(32*1024*1024).fill(32)
-  if (!process.argv[2]) { source.set(new TextEncoder().encode('%PDF-1.7\n'));source.set(new TextEncoder().encode('\n%%EOF\n'),source.length-7) }
+  if (!process.argv[2]) { source.set(new TextEncoder().encode('%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n'));source.set(new TextEncoder().encode('\n%%EOF\n'),source.length-7) }
   const cover = new Uint8Array(process.argv[3] ? await readFile(process.argv[3]) : await sharp({create:{width:1177,height:1700,channels:3,background:'white'}}).webp().toBuffer())
   const pages = process.argv[4] ? Number(process.argv[4]) : 27
   const started = performance.now()
@@ -136,7 +136,7 @@ try {
   const order=await(await call('/api/reports/order')).json()
   await call('/api/reports/order','PUT',{revision:order.revision,ids:[id]})
   await call('/api/reports/batch','POST',{items:[{id,revision:saved.revision}],action:{type:'classify',field:'semester',value:'2026-2'}})
-  const nextSource=new TextEncoder().encode('%PDF-1.7\nLocal replacement test\n%%EOF\n')
+  const nextSource=new TextEncoder().encode('%PDF-1.7\n1 0 obj\n(Local replacement test)\nendobj\n%%EOF\n')
   const replacement=await(await call('/api/uploads','POST',{hash:await fileIdentity(nextSource),filename:'replacement.pdf',fileBytes:nextSource.length,coverBytes:cover.length,pages:1,fields:draft.fields,evidence:[],warnings:[],replace:{id,revision:2}})).json()
   await call(`/api/uploads/${replacement.id}/pdf/0`,'PUT',nextSource)
   for(let offset=0;offset<cover.length;offset+=chunkBytes)await call(`/api/uploads/${replacement.id}/cover/${offset/chunkBytes}`,'PUT',cover.slice(offset,offset+chunkBytes))
