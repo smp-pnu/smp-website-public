@@ -136,7 +136,7 @@ try {
   const order=await(await call('/api/reports/order')).json()
   await call('/api/reports/order','PUT',{revision:order.revision,ids:[id]})
   await call('/api/reports/batch','POST',{items:[{id,revision:saved.revision}],action:{type:'classify',field:'semester',value:'2026-2'}})
-  const nextSource=new TextEncoder().encode('%PDF-1.7\nLocal replacement test\n%%EOF\n')
+  const nextSource=new TextEncoder().encode('%PDF-1.7\n1 0 obj\n(Local replacement test)\nendobj\n%%EOF\n')
   const replacement=await(await call('/api/uploads','POST',{hash:await fileIdentity(nextSource),filename:'replacement.pdf',fileBytes:nextSource.length,coverBytes:cover.length,pages:1,fields:draft.fields,evidence:[],warnings:[],replace:{id,revision:2}})).json()
   await call(`/api/uploads/${replacement.id}/pdf/0`,'PUT',nextSource)
   for(let offset=0;offset<cover.length;offset+=chunkBytes)await call(`/api/uploads/${replacement.id}/cover/${offset/chunkBytes}`,'PUT',cover.slice(offset,offset+chunkBytes))
