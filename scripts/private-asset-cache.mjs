@@ -8,6 +8,10 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 const magic=Buffer.from('SMPASSET1'), maxBytes=6*1024**3, maxFiles=19000
 const allowed=/^(covers|reader-pdfs)\/[a-f0-9]{32}\/[a-f0-9]{64}\.(webp|pdf|pack|\d{4}\.bin)$/
+// Sharing artwork is generated alongside covers. Keep its established names
+// without allowing arbitrary JSON/images or weakening extraction boundaries.
+const shared=/^covers\/_share\/[a-f0-9]{32}\/(v2-[a-f0-9]{64}-[a-f0-9]{16}\.jpg|v1-[a-f0-9]{64}\.png)$/
+const assetLimit=(name)=>typeof name!=='string'?0:allowed.test(name)||shared.test(name)?128*1024**2:name==='covers/_share/manifest.json'?1024**2:0
 const keyFrom=(key)=>{if(!/^[a-f0-9]{64}$/.test(key??''))throw Error('Private asset cache key is missing');return Buffer.from(key,'hex')}
 async function* entries(root) {
   for(const folder of ['covers','reader-pdfs']) {
@@ -17,7 +21,9 @@ async function* entries(root) {
         const relative=`${dir}/${name}`,file=path.join(root,relative),stat=await lstat(file)
         if(stat.isSymbolicLink()||(!stat.isFile()&&!stat.isDirectory()))throw Error('Unsafe cache entry')
         if(stat.isDirectory()){yield* walk(relative);continue}
-        if(!allowed.test(relative)||stat.size>128*1024**2)throw Error('Unexpected cache asset')
+        const limit=assetLimit(relative)
+        if(!limit)throw Error('Unexpected cache asset path')
+        if(stat.size>limit)throw Error('Cache asset exceeds size budget')
         yield {relative,file,size:stat.size}
       }
     }
@@ -66,7 +72,8 @@ export async function openCache(input,root,key) {
       while(at<total) {
         const length=(await read(4)).readUInt32BE();if(length>1024||length<2)throw Error('Invalid cache header')
         const e=JSON.parse((await read(length)).toString())
-        if(!allowed.test(e.path)||seen.has(e.path)||!Number.isSafeInteger(e.bytes)||e.bytes<0||e.bytes>128*1024**2||at+e.bytes>total||++files>maxFiles||(bytes+=e.bytes)>maxBytes)throw Error('Unsafe cache asset')
+        const limit=assetLimit(e.path)
+        if(!limit||seen.has(e.path)||!Number.isSafeInteger(e.bytes)||e.bytes<0||e.bytes>limit||at+e.bytes>total||++files>maxFiles||(bytes+=e.bytes)>maxBytes)throw Error('Unsafe cache asset')
         seen.add(e.path);const target=path.join(staging,e.path);await mkdir(path.dirname(target),{recursive:true,mode:0o700})
         const output=await open(target,'wx',0o600)
         try{let remaining=e.bytes;while(remaining){const b=await read(Math.min(remaining,1024**2));await output.write(b);remaining-=b.length}}finally{await output.close()}
